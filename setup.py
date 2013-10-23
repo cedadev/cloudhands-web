@@ -25,9 +25,13 @@ setup(
     namespace_packages=["cloudhands"],
     packages=["cloudhands.web"],
     package_data={"cloudhands.web": []},
-    install_requires=[],
+    install_requires=[
+        "pyramid>=1.4.0",
+        "waitress>=0.8.7",
+        ],
     entry_points={
         "console_scripts": [
+        "chweb-serve = cloudhands.web.main:run"
         ],
     },
     zip_safe=False
