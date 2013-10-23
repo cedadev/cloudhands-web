@@ -11,7 +11,7 @@ __doc__ = open(os.path.join(os.path.dirname(__file__), "README.rst"),
 
 setup(
     name="cloudhands-web",
-    version=cloudhands.common.__version__,
+    version=cloudhands.web.__version__,
     description="Web portal for cloudhands PaaS",
     author="D Haynes",
     author_email="david.e.haynes@stfc.ac.uk",

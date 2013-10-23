@@ -8,7 +8,7 @@ This release
 
 Cloudhands is a very young project. This release contains the following:
 
-* definition of permissions for a managed domain
+* basic web app demonstrating authentication and permissions
 
 Requirements
 ::::::::::::
@@ -23,8 +23,8 @@ Quick start
 
 Download and unpack the source distribution::
 
-    $ tar -xzvf cloudhands-common-0.001.tar.gz
-    $ cd cloudhands-common-0.001
+    $ tar -xzvf cloudhands-web-0.001.tar.gz
+    $ cd cloudhands-web-0.001
 
 Run the tests::
 
