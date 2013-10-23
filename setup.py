@@ -4,18 +4,18 @@
 from setuptools import setup
 import os.path
 
-import cloudhands.common
+import cloudhands.web
 
 __doc__ = open(os.path.join(os.path.dirname(__file__), "README.rst"),
                "r").read()
 
 setup(
-    name="cloudhands-common",
+    name="cloudhands-web",
     version=cloudhands.common.__version__,
-    description="Common definitions for cloudhands PaaS",
+    description="Web portal for cloudhands PaaS",
     author="D Haynes",
     author_email="david.e.haynes@stfc.ac.uk",
-    url="http://pypi.python.org/pypi/cloudhands-common",
+    url="http://pypi.python.org/pypi/cloudhands-web",
     long_description=__doc__,
     classifiers=[
         "Operating System :: OS Independent",
@@ -23,8 +23,8 @@ setup(
         "License :: OSI Approved :: BSD License"
     ],
     namespace_packages=["cloudhands"],
-    packages=["cloudhands.common"],
-    package_data={"cloudhands.common": []},
+    packages=["cloudhands.web"],
+    package_data={"cloudhands.web": []},
     install_requires=[],
     entry_points={
         "console_scripts": [
