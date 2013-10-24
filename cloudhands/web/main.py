@@ -6,6 +6,7 @@ import logging
 import platform
 import sys
 
+from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
 from pyramid.security import authenticated_userid
 from pyramid.exceptions import Forbidden
@@ -32,7 +33,8 @@ def wsgi_app():
         "persona.secret": "FON85B9O3VCMQ90517Z1",
         "persona.audiences":[
             "http://{}:80".format(platform.node()),
-            "http://localhost:8080"]
+            "http://localhost:8080"],
+        "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
         }
     config = Configurator(settings=settings)
     #config.add_static_view(name="css", path="cloudhands.web:static/css")
@@ -43,7 +45,12 @@ def wsgi_app():
         top_page, route_name="top", request_method="GET",
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/top.pt")
+
     config.include("pyramid_persona")
+    policy = AuthTktAuthenticationPolicy(
+        settings['persona.secret'],
+        callback=None)
+
     config.scan()
     app = config.make_wsgi_app()
     return app

@@ -28,6 +28,8 @@ setup(
     install_requires=[
         "pyramid>=1.4.0",
         "pyramid-persona>=1.5",
+        "pyramid_macauth>=0.3.0",
+        "pyramid_authstack>=1.0.1",
         "waitress>=0.8.7",
         ],
     entry_points={
