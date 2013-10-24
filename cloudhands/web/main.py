@@ -8,23 +8,46 @@ import sys
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
-from pyramid.security import authenticated_userid
 from pyramid.exceptions import Forbidden
+from pyramid.interfaces import IAuthenticationPolicy
+from pyramid.security import authenticated_userid
+
+from pyramid_authstack import AuthenticationStackPolicy
+from pyramid_macauth import MACAuthenticationPolicy
 
 from waitress import serve
 
+#import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
 
 DFLT_PORT = 8080
 
+CRED_TABLE = {}
 
 def top_page(request):
-    userid = authenticated_userid(request)
-    if userid is None:
+    userId = authenticated_userid(request)
+    if userId is None:
         raise Forbidden()
-    return {"versions": {i.__name__: i.__version__ for i in [cloudhands.web]}}
+    return {"versions": {i.__name__: i.__version__
+            for i in [cloudhands.web, cloudhands.web]}}
 
+def macauth_creds(request):
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+ 
+    # Get a reference to the MACAuthenticationPolicy plugin.
+    stack = request.registry.getUtility(IAuthenticationPolicy)
+    policy = stack.policies["apimac"]
+
+    try:
+        id, key = CRED_TABLE[userId]
+    except KeyError: 
+        id, key = policy.encode_mac_id(request, userId)
+        CRED_TABLE[userId] = (id, key)
+
+    return {"id": id, "key": key}
 
 def wsgi_app():
     # Configuration to be done programmatically so
@@ -46,12 +69,27 @@ def wsgi_app():
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/top.pt")
 
-    config.include("pyramid_persona")
-    policy = AuthTktAuthenticationPolicy(
-        settings['persona.secret'],
-        callback=None)
+    config.add_route("creds", "/creds")
+    config.add_view(
+        macauth_creds, route_name="creds", request_method="GET",
+        renderer="json", accept="application/json")
+        #renderer="cloudhands.web:templates/creds.pt")
 
+    config.include("pyramid_persona")
+
+    policy = AuthenticationStackPolicy()
+    policy.add_policy("email",
+        AuthTktAuthenticationPolicy(
+        settings["persona.secret"],
+        callback=None)
+        )
+    policy.add_policy("apimac",
+        MACAuthenticationPolicy(
+        settings["macauth.master_secret"],
+        ))
+    config.set_authentication_policy(policy)
     config.scan()
+
     app = config.make_wsgi_app()
     return app
 
