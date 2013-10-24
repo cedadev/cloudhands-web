@@ -27,6 +27,7 @@ setup(
     package_data={"cloudhands.web": []},
     install_requires=[
         "pyramid>=1.4.0",
+        "pyramid-persona>=1.5",
         "waitress>=0.8.7",
         ],
     entry_points={

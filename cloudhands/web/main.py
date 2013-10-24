@@ -3,9 +3,12 @@
 
 import argparse
 import logging
+import platform
 import sys
 
 from pyramid.config import Configurator
+from pyramid.security import authenticated_userid
+from pyramid.exceptions import Forbidden
 
 from waitress import serve
 
@@ -16,6 +19,9 @@ DFLT_PORT = 8080
 
 
 def top_page(request):
+    userid = authenticated_userid(request)
+    if userid is None:
+        raise Forbidden()
     return {"versions": {i.__name__: i.__version__ for i in [cloudhands.web]}}
 
 
@@ -23,6 +29,10 @@ def wsgi_app():
     # Configuration to be done programmatically so
     # that settings can be shared with, eg: Nginx config
     settings = {
+        "persona.secret": "FON85B9O3VCMQ90517Z1",
+        "persona.audiences":[
+            "http://{}:80".format(platform.node()),
+            "http://localhost:8080"]
         }
     config = Configurator(settings=settings)
     #config.add_static_view(name="css", path="cloudhands.web:static/css")
@@ -31,8 +41,9 @@ def wsgi_app():
     config.add_route("top", "/")
     config.add_view(
         top_page, route_name="top", request_method="GET",
-        renderer="json")
+        renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/top.pt")
+    config.include("pyramid_persona")
     config.scan()
     app = config.make_wsgi_app()
     return app
