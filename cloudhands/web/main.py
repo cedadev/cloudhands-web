@@ -25,6 +25,7 @@ DFLT_PORT = 8080
 
 CRED_TABLE = {}
 
+
 def top_page(request):
     userId = authenticated_userid(request)
     if userId is None:
@@ -32,29 +33,31 @@ def top_page(request):
     return {"versions": {i.__name__: i.__version__
             for i in [cloudhands.web, cloudhands.web]}}
 
+
 def macauth_creds(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
- 
+
     # Get a reference to the MACAuthenticationPolicy plugin.
     stack = request.registry.getUtility(IAuthenticationPolicy)
     policy = stack.policies["apimac"]
 
     try:
         id, key = CRED_TABLE[userId]
-    except KeyError: 
+    except KeyError:
         id, key = policy.encode_mac_id(request, userId)
         CRED_TABLE[userId] = (id, key)
 
     return {"id": id, "key": key}
+
 
 def wsgi_app():
     # Configuration to be done programmatically so
     # that settings can be shared with, eg: Nginx config
     settings = {
         "persona.secret": "FON85B9O3VCMQ90517Z1",
-        "persona.audiences":[
+        "persona.audiences": [
             "http://{}:80".format(platform.node()),
             "http://localhost:8080"],
         "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
@@ -78,14 +81,16 @@ def wsgi_app():
     config.include("pyramid_persona")
 
     policy = AuthenticationStackPolicy()
-    policy.add_policy("email",
+    policy.add_policy(
+        "email",
         AuthTktAuthenticationPolicy(
-        settings["persona.secret"],
-        callback=None)
+            settings["persona.secret"],
+            callback=None)
         )
-    policy.add_policy("apimac",
+    policy.add_policy(
+        "apimac",
         MACAuthenticationPolicy(
-        settings["macauth.master_secret"],
+            settings["macauth.master_secret"],
         ))
     config.set_authentication_policy(policy)
     config.scan()

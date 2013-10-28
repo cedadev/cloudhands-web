@@ -34,7 +34,7 @@ setup(
         ],
     entry_points={
         "console_scripts": [
-        "chweb-serve = cloudhands.web.main:run"
+            "chweb-serve = cloudhands.web.main:run"
         ],
     },
     zip_safe=False
