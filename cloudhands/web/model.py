@@ -4,15 +4,10 @@
 from collections import OrderedDict
 
 import cloudhands.common
+from cloudhands.common.types import NamedDict
+from cloudhands.common.types import NamedList
+
 import cloudhands.web
-
-# TODO: Relocate to common; add tests
-def name(self, name):
-    self.name = name
-    return self
-
-NamedDict = type("NamedDict", (dict,), {"name": name})
-NamedList = type("NamedList", (list,), {"name": name})
 
 
 class Facet(NamedDict):
@@ -65,14 +60,14 @@ class Page(object):
         self.user = NamedList().name("user")
         self.evts = NamedList().name("evts")
 
-    def configure(self, fsm, value, session=None):
+    def configure(self, fsm, value, session=None, *args, **kwargs):
         for spec, picked in [
             (self._navi, self.navi), (self._info, self.info),
             (self._user, self.user), (self._evts, self.evts)
         ]:
             try:
                 picked.extend([
-                    class_().name(fsm).load(session)
+                    class_(*args, **kwargs).name(fsm).load(session)
                     for class_ in spec[(fsm, value)]])
             except KeyError:
                 pass
