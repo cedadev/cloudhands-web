@@ -4,6 +4,8 @@
 import re
 import unittest
 
+import cloudhands.common
+
 import cloudhands.web
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_page
@@ -34,7 +36,10 @@ class TopLevelTests(unittest.TestCase):
     def test_version_json(self):
         self.assertEqual(
             cloudhands.web.__version__,
-            top_page(None)["versions"]["cloudhands.web"])
+            top_page(None)["info"]["versions"]["cloudhands.web"])
+        self.assertEqual(
+            cloudhands.common.__version__,
+            top_page(None)["info"]["versions"]["cloudhands.common"])
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,17 +17,23 @@ class TestPage(unittest.TestCase):
     def test_credential_untrusted_emailisuntrusted(self):
         p = Page()
         p.configure(CredentialState.table, "untrusted")
-        widgets = [i for v in p.user.values() for i in v]
-        self.assertIn(EmailIsUntrusted, widgets)
-        self.assertNotIn(EmailIsTrusted, widgets)
-        self.assertNotIn(EmailHasExpired, widgets)
-        self.assertNotIn(EmailWasWithdrawn, widgets)
+        facet = next(iter(p.user))
+        self.assertIsInstance(facet, EmailIsUntrusted)
 
     def test_credential_trusted_emailistrusted(self):
         p = Page()
         p.configure(CredentialState.table, "trusted")
-        widgets = [i for v in p.user.values() for i in v]
-        self.assertNotIn(EmailIsUntrusted, widgets)
-        self.assertIn(EmailIsTrusted, widgets)
-        self.assertNotIn(EmailHasExpired, widgets)
-        self.assertNotIn(EmailWasWithdrawn, widgets)
+        facet = next(iter(p.user))
+        self.assertIsInstance(facet, EmailIsTrusted)
+
+    def test_credential_expired_emailhasexpired(self):
+        p = Page()
+        p.configure(CredentialState.table, "expired")
+        facet = next(iter(p.user))
+        self.assertIsInstance(facet, EmailHasExpired)
+
+    def test_credential_withdrawn_emailwaswithdrawn(self):
+        p = Page()
+        p.configure(CredentialState.table, "withdrawn")
+        facet = next(iter(p.user))
+        self.assertIsInstance(facet, EmailWasWithdrawn)

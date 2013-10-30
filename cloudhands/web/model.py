@@ -1,25 +1,49 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
-import operator
+from collections import OrderedDict
 
-class Widget(object):
+import cloudhands.common
+import cloudhands.web
 
-    def __init__(self, session):
-        self.session = session
+# TODO: Relocate to common; add tests
+def name(self, name):
+    self.name = name
+    return self
 
-#TODO Widgets are diictionaries?
-class EmailIsUntrusted(Widget):
+NamedDict = type("NamedDict", (dict,), {"name": name})
+NamedList = type("NamedList", (list,), {"name": name})
+
+
+class Facet(NamedDict):
+
+    def load(self, session=None):
+        return self
+
+
+class VersionsAreVisible(Facet):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.update({i.__name__: i.__version__
+                    for i in [cloudhands.web, cloudhands.common]})
+
+
+class EmailIsUntrusted(Facet):
     pass
 
-class EmailIsTrusted(Widget):
+
+class EmailIsTrusted(Facet):
     pass
 
-class EmailHasExpired(Widget):
+
+class EmailHasExpired(Facet):
     pass
 
-class EmailWasWithdrawn(Widget):
+
+class EmailWasWithdrawn(Facet):
     pass
+
 
 class Page(object):
 
@@ -34,17 +58,26 @@ class Page(object):
     _evts = {}
 
     def __init__(self):
-        self.navi = {}
-        self.info = {}
-        self.user = {}
-        self.evts = {}
-        self.configured = []
+        self.navi = NamedList().name("navi")
+        self.info = NamedList([
+            VersionsAreVisible().name("versions")
+        ]).name("info")
+        self.user = NamedList().name("user")
+        self.evts = NamedList().name("evts")
 
-    def configure(self, fsm, value):
-        fsmName = operator.itemgetter(0)
-        for policy, picked in [
+    def configure(self, fsm, value, session=None):
+        for spec, picked in [
             (self._navi, self.navi), (self._info, self.info),
-            (self._user, self.user), (self._evts, self.evts)]:
+            (self._user, self.user), (self._evts, self.evts)
+        ]:
+            try:
+                picked.extend([
+                    class_().name(fsm).load(session)
+                    for class_ in spec[(fsm, value)]])
+            except KeyError:
+                pass
 
-            if (fsm, value) in policy:
-                picked[(fsm, value)] = policy[(fsm, value)]
+    def dump(self):
+        return [(region.name, OrderedDict([(facet.name, facet)
+                for facet in region]))
+                for region in (self.navi, self.info, self.user, self.evts)]

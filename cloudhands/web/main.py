@@ -20,6 +20,7 @@ from waitress import serve
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
+from cloudhands.web.model import Page
 
 DFLT_PORT = 8080
 
@@ -30,8 +31,8 @@ def top_page(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
-    return {"versions": {i.__name__: i.__version__
-            for i in [cloudhands.web, cloudhands.web]}}
+    p = Page()
+    return dict(p.dump())
 
 
 def macauth_creds(request):
