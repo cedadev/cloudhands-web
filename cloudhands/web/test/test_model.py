@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+
 import unittest
 import uuid
 
@@ -25,7 +28,11 @@ class TestRegion(unittest.TestCase):
             model=cloudhands.common.__version__,
             uri="host.domain",
             name="DC under test")
-        self.assertTrue(region.configure(status))
+        rv = region.present(status)
+        self.assertTrue(rv)
+        self.assertIsInstance(rv, MutableMapping)
+        self.assertIsInstance(rv.name, Sequence)
+        print(rv)
 
 class TestPage(unittest.TestCase):
 

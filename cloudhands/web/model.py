@@ -57,12 +57,14 @@ class EmailWasWithdrawn(Facet):
 class Region(NamedList):
 
     @singledispatch
-    def configure(self, artifact, state=None):
-        return False
+    def present(self, artifact, session=None, state=None):
+        return None
 
-    @configure.register(DCStatus)
-    def configure(self, artifact, state=None):
-        return True
+    @present.register(DCStatus)
+    def present(self, artifact, session=None, state=None):
+        rv = DCStatusUnknown(
+            vars(artifact)).name("{}_{:05}".format(self.name, len(self)))
+        return rv
 
 class Page(object):
 
@@ -103,7 +105,9 @@ class Page(object):
     def push(self, artifact, state):
         for region in [
             self.navi, self.info, self.user, self.evts]:
-            pass
+            widget = region.present(artifact, state)
+            if facet:
+                region.append(widget)
 
     def dump(self):
         return [(region.name, OrderedDict([(facet.name, facet)
