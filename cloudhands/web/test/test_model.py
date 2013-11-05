@@ -2,18 +2,43 @@
 # encoding: UTF-8
 
 import unittest
+import uuid
 
+import cloudhands.common
 from cloudhands.common.fsm import CredentialState
+from cloudhands.common.schema import DCStatus
 
 from cloudhands.web.model import Page
+from cloudhands.web.model import Region
 from cloudhands.web.model import EmailIsUntrusted
 from cloudhands.web.model import EmailIsTrusted
 from cloudhands.web.model import EmailHasExpired
 from cloudhands.web.model import EmailWasWithdrawn
 
 
+class TestRegion(unittest.TestCase):
+
+    def test_info_region(self):
+        region = Region().name("test region")
+        status = DCStatus(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            uri="host.domain",
+            name="DC under test")
+        self.assertTrue(region.configure(status))
+
 class TestPage(unittest.TestCase):
 
+    def test_push_interface(self):
+        status = DCStatus(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            uri="host.domain",
+            name="DC under test")
+        p = Page()
+        p.push(status, ("resource", "unknown"))
+
+        
     def test_credential_untrusted_emailisuntrusted(self):
         p = Page()
         p.configure(CredentialState.table, "untrusted")

@@ -5,6 +5,7 @@ import argparse
 import logging
 import platform
 import sys
+import sqlite3
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
@@ -17,21 +18,42 @@ from pyramid_macauth import MACAuthenticationPolicy
 
 from waitress import serve
 
+from cloudhands.common.connectors import Initialiser
+from cloudhands.common.connectors import Session
+from cloudhands.common.schema import DCStatus
+from cloudhands.common.schema import Touch
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
 from cloudhands.web.model import Page
 
 DFLT_PORT = 8080
+DFLT_DB = ":memory:"
 
 CRED_TABLE = {}
 
 
+class Connection(Initialiser):
+
+    def __init__(self, path=DFLT_DB):
+        self.engine = self.connect(sqlite3, path=path)
+        self.session = Session()
+        
+
 def top_page(request):
-    userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
+    #userId = authenticated_userid(request)
+    #if userId is None:
+    #    raise Forbidden()
+
+    con = Connection()
+    status = con.session.query(
+        DCStatus).join(Touch).order_by(Touch.at.desc()).first()
+    
     p = Page()
+    if status:
+        state = status.changes[-1].state
+        p.push(status, (state.fsm, state.name))
+
     return dict(p.dump())
 
 
@@ -127,6 +149,9 @@ def parser():
     rv.add_argument(
         "--port", type=int, default=DFLT_PORT,
         help="Set the port number [{}]".format(DFLT_PORT))
+    rv.add_argument(
+        "--db", default=DFLT_DB,
+        help="Set the path to the database [{}]".format(DFLT_DB))
     return rv
 
 

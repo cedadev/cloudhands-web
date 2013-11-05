@@ -2,8 +2,10 @@
 # encoding: UTF-8
 
 from collections import OrderedDict
+from functools import singledispatch
 
 import cloudhands.common
+from cloudhands.common.schema import DCStatus
 from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
 
@@ -24,6 +26,18 @@ class VersionsAreVisible(Facet):
                     for i in [cloudhands.web, cloudhands.common]})
 
 
+class DCStatusUnknown(Facet):
+    pass
+
+
+class DCStatusSaidUp(Facet):
+    pass
+
+
+class DCStatusSaidDown(Facet):
+    pass
+
+
 class EmailIsUntrusted(Facet):
     pass
 
@@ -40,10 +54,24 @@ class EmailWasWithdrawn(Facet):
     pass
 
 
+class Region(NamedList):
+
+    @singledispatch
+    def configure(self, artifact, state=None):
+        return False
+
+    @configure.register(DCStatus)
+    def configure(self, artifact, state=None):
+        return True
+
 class Page(object):
 
     _navi = {}
-    _info = {}
+    _info = {
+        ("resource", "unknown"): [DCStatusUnknown],
+        ("resource", "down"): [DCStatusSaidDown],
+        ("resource", "up"): [DCStatusSaidUp],
+    }
     _user = {
         ("credential", "untrusted"): [EmailIsUntrusted],
         ("credential", "trusted"): [EmailIsTrusted],
@@ -71,6 +99,11 @@ class Page(object):
                     for class_ in spec[(fsm, value)]])
             except KeyError:
                 pass
+
+    def push(self, artifact, state):
+        for region in [
+            self.navi, self.info, self.user, self.evts]:
+            pass
 
     def dump(self):
         return [(region.name, OrderedDict([(facet.name, facet)
