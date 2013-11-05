@@ -21,51 +21,42 @@ from cloudhands.web.model import EmailWasWithdrawn
 
 class TestRegion(unittest.TestCase):
 
-    def test_info_region(self):
+    def test_info_region_returns_named_dict(self):
         region = Region().name("test region")
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
             uri="host.domain",
             name="DC under test")
-        rv = region.present(status)
+        rv = region.present(status, ("resource", "up"))
         self.assertTrue(rv)
         self.assertIsInstance(rv, MutableMapping)
         self.assertIsInstance(rv.name, Sequence)
-        print(rv)
+
+    def test_info_region_makes_unique_names(self):
+        region = Region().name("test region")
+        status = DCStatus(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            uri="host.domain",
+            name="DC under test")
+
+        n = 10000
+        for i in range(n):
+            widget = region.present(status, ("resource", "up"))
+            region.append(widget)
+
+        names = {i.name for i in region}
+        self.assertEqual(n, len(names))
+
 
 class TestPage(unittest.TestCase):
 
-    def test_push_interface(self):
+    def test_push_simple_use(self):
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
             uri="host.domain",
             name="DC under test")
         p = Page()
-        p.push(status, ("resource", "unknown"))
-
-        
-    def test_credential_untrusted_emailisuntrusted(self):
-        p = Page()
-        p.configure(CredentialState.table, "untrusted")
-        facet = next(iter(p.user))
-        self.assertIsInstance(facet, EmailIsUntrusted)
-
-    def test_credential_trusted_emailistrusted(self):
-        p = Page()
-        p.configure(CredentialState.table, "trusted")
-        facet = next(iter(p.user))
-        self.assertIsInstance(facet, EmailIsTrusted)
-
-    def test_credential_expired_emailhasexpired(self):
-        p = Page()
-        p.configure(CredentialState.table, "expired")
-        facet = next(iter(p.user))
-        self.assertIsInstance(facet, EmailHasExpired)
-
-    def test_credential_withdrawn_emailwaswithdrawn(self):
-        p = Page()
-        p.configure(CredentialState.table, "withdrawn")
-        facet = next(iter(p.user))
-        self.assertIsInstance(facet, EmailWasWithdrawn)
+        p.push(status)

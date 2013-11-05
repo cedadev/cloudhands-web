@@ -61,10 +61,17 @@ class Region(NamedList):
         return None
 
     @present.register(DCStatus)
-    def present(self, artifact, session=None, state=None):
-        rv = DCStatusUnknown(
-            vars(artifact)).name("{}_{:05}".format(self.name, len(self)))
-        return rv
+    def present(self, artifact, state, session=None):
+        if not state:
+            rv = DCStatusUnknown(vars(artifact))
+        elif state[1] == "down":
+            rv = DCStatusSaidDown(vars(artifact))
+        elif state[1] == "up":
+            rv = DCStatusSaidUp(vars(artifact))
+        else:
+            rv = DCStatusUnknown(vars(artifact))
+
+        return rv.name("{}_{:05}".format(self.name, len(self))).load(session)
 
 class Page(object):
 
@@ -83,33 +90,21 @@ class Page(object):
     _evts = {}
 
     def __init__(self):
-        self.navi = NamedList().name("navi")
-        self.info = NamedList([
+        self.navi = Region().name("navi")
+        self.info = Region([
             VersionsAreVisible().name("versions")
         ]).name("info")
-        self.user = NamedList().name("user")
-        self.evts = NamedList().name("evts")
+        self.user = Region().name("user")
+        self.evts = Region().name("evts")
 
-    def configure(self, fsm, value, session=None, *args, **kwargs):
-        for spec, picked in [
-            (self._navi, self.navi), (self._info, self.info),
-            (self._user, self.user), (self._evts, self.evts)
-        ]:
-            try:
-                picked.extend([
-                    class_(*args, **kwargs).name(fsm).load(session)
-                    for class_ in spec[(fsm, value)]])
-            except KeyError:
-                pass
-
-    def push(self, artifact, state):
+    def push(self, artifact, state=None):
         for region in [
             self.navi, self.info, self.user, self.evts]:
             widget = region.present(artifact, state)
-            if facet:
+            if widget:
                 region.append(widget)
 
     def dump(self):
-        return [(region.name, OrderedDict([(facet.name, facet)
-                for facet in region]))
+        return [(region.name, OrderedDict([(widget.name, widget)
+                for widget in region]))
                 for region in (self.navi, self.info, self.user, self.evts)]
