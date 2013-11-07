@@ -24,12 +24,19 @@ setup(
     ],
     namespace_packages=["cloudhands"],
     packages=["cloudhands.web"],
-    package_data={"cloudhands.web": []},
+    package_data={"cloudhands.web": [
+                    "templates/*.pt",
+                    "static/css/*.css",
+                    "static/js/*.js",
+                    "static/img/*.jpg",
+                    ]},
     install_requires=[
+        "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",
-        "pyramid-persona>=1.5",
-        "pyramid_macauth>=0.3.0",
         "pyramid_authstack>=1.0.1",
+        "pyramid_chameleon>=0.1",
+        "pyramid_macauth>=0.3.0",
+        "pyramid-persona>=1.5",
         "waitress>=0.8.7",
         ],
     entry_points={

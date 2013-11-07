@@ -86,14 +86,16 @@ def wsgi_app():
         "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
         }
     config = Configurator(settings=settings)
-    #config.add_static_view(name="css", path="cloudhands.web:static/css")
-    #config.add_static_view(name="js", path="cloudhands.web:static/js")
-    #config.add_static_view(name="img", path="cloudhands.web:static/img")
+    config.include("pyramid_chameleon")
+    config.include("pyramid_persona")
+
     config.add_route("top", "/")
     config.add_view(
         top_page, route_name="top", request_method="GET",
-        renderer="json", accept="application/json")
-        #renderer="cloudhands.web:templates/top.pt")
+        renderer="json", accept="application/json", xhr=True)
+    config.add_view(
+        top_page, route_name="top", request_method="GET",
+        renderer="cloudhands.web:templates/base.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(
@@ -101,7 +103,9 @@ def wsgi_app():
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/creds.pt")
 
-    config.include("pyramid_persona")
+    config.add_static_view(name="css", path="topicmob.web:static/css")
+    #config.add_static_view(name="js", path="topicmob.web:static/js")
+    config.add_static_view(name="img", path="topicmob.web:static/img")
 
     policy = AuthenticationStackPolicy()
     policy.add_policy(

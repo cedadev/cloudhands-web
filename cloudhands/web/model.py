@@ -2,7 +2,10 @@
 # encoding: UTF-8
 
 from collections import OrderedDict
-from functools import singledispatch
+try:
+    from functools import singledispatch  # Python 3.4
+except ImportError:
+    from singledispatch import singledispatch
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
