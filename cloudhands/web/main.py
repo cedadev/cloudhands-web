@@ -3,9 +3,10 @@
 
 import argparse
 import logging
+import os.path
 import platform
-import sys
 import sqlite3
+import sys
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
@@ -49,12 +50,19 @@ def top_page(request):
     status = con.session.query(
         DCStatus).join(Touch).order_by(Touch.at.desc()).first()
     
+    paths = {p: os.path.dirname(request.static_url(
+        "cloudhands.web:static/{}/{}".format(p, f)))
+        for p, f in (
+            ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
+
     p = Page()
     if status:
         state = status.changes[-1].state
         p.push(status, (state.fsm, state.name))
 
-    return dict(p.dump())
+    rv = {"paths": paths}
+    rv.update(dict(p.dump()))
+    return rv
 
 
 def macauth_creds(request):
