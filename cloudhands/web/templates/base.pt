@@ -16,18 +16,28 @@
 </head>
 <body>
 <div class="pure-g">
-<div class="pure-u-3-5">
-<a class="jasmin-nav-root" href="#">JASMIN</a>
-</div>
-<div class="pure-u-2-5">
-<nav class="pure-menu pure-menu-open pure-menu-horizontal">
-<ul>
-<li class="pure-menu-disabled"><a href="#">Console</a></li>
-<li><a href="#">Documentation</a></li>
-<li><a href="#">Contact</a></li>
-</ul>
-</nav>
-</div>
+    <div class="pure-u-1-12">
+        <nav class="pure-menu pure-menu-open">
+            <ul>
+            <li class="pure-menu-heading" ><a href="#">JASMIN</a></li>
+            <li><a href="#">Account</a></li>
+            <li><a href="#">JVO</a></li>
+            <li><a href="#">VMs</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="pure-u-5-12">
+        <p>Lorem dipsum</p>
+    </div>
+    <div class="pure-u-1-2">
+        <div class="pure-menu pure-menu-open pure-menu-horizontal">
+            <ul>
+            <li class="pure-menu-disabled"><a href="#">Console</a></li>
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+    </div>
 </div>
 </body>
 </html>

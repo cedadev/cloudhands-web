@@ -111,9 +111,9 @@ def wsgi_app():
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/creds.pt")
 
-    config.add_static_view(name="css", path="topicmob.web:static/css")
-    #config.add_static_view(name="js", path="topicmob.web:static/js")
-    config.add_static_view(name="img", path="topicmob.web:static/img")
+    config.add_static_view(name="css", path="cloudhands.web:static/css")
+    config.add_static_view(name="js", path="cloudhands.web:static/js")
+    config.add_static_view(name="img", path="cloudhands.web:static/img")
 
     policy = AuthenticationStackPolicy()
     policy.add_policy(

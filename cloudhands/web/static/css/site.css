@@ -3,8 +3,16 @@ border-bottom-color:#dfdfdf
 border-bottom-style:solid;
 border-bottom-width:1px;
 color:#565d64;
-font-size:90%;
+display:block;
+font-size:120%;
+line-height:1.5em;
 margin-top:.5em;
+padding:5px 20px;
+text-decoration:none;
 text-transform:uppercase;
+white-space:nowrap;
 }
 
+.1-pad {
+padding: 1em;
+}
