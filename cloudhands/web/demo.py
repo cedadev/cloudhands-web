@@ -24,9 +24,10 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 __doc__ = """
-    select a.uuid, n.name, ips.value, t.at from touches as t
+    select a.uuid, s.name, n.name, ips.value, t.at from touches as t
         join resources as r on r.id = t.id
         join artifacts as a on t.artifact_id = a.id
+        join states as s on t.state_id = s.id
         left outer join ipaddresses as ips on ips.id = r.id
         left outer join nodes as n on n.id = r.id;
 """
