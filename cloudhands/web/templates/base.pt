@@ -27,7 +27,8 @@
         </nav>
     </div>
     <div class="pure-u-5-12">
-        <p>Lorem dipsum</p>
+        <section metal:define-slot="summary">
+        </section>
     </div>
     <div class="pure-u-1-2">
         <div class="pure-menu pure-menu-open pure-menu-horizontal">
@@ -37,6 +38,8 @@
             <li><a href="#">Contact</a></li>
             </ul>
         </div>
+        <section metal:define-slot="detail">
+        </section>
     </div>
 </div>
 </body>
