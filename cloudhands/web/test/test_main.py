@@ -4,6 +4,8 @@
 import re
 import unittest
 
+from pyramid import testing
+
 import cloudhands.common
 
 import cloudhands.web
@@ -28,6 +30,16 @@ class TopLevelTests(unittest.TestCase):
     def teardownClass(class_):
         cloudhands.web.main.authenticated_userid = class_.auth_unpatch
 
+    def setUp(self):
+        self.request = testing.DummyRequest()
+        self.config = testing.setUp(request=self.request)
+        self.config.add_static_view(
+            name="css", path="cloudhands.web:static/css")
+        self.config.add_static_view(
+            name="js", path="cloudhands.web:static/js")
+        self.config.add_static_view(
+            name="img", path="cloudhands.web:static/img")
+
     def test_version_option(self):
         p = parser()
         rv = p.parse_args(["--version"])
@@ -36,10 +48,10 @@ class TopLevelTests(unittest.TestCase):
     def test_version_json(self):
         self.assertEqual(
             cloudhands.web.__version__,
-            top_page(None)["info"]["versions"]["cloudhands.web"])
+            top_page(self.request)["info"]["versions"]["cloudhands.web"])
         self.assertEqual(
             cloudhands.common.__version__,
-            top_page(None)["info"]["versions"]["cloudhands.common"])
+            top_page(self.request)["info"]["versions"]["cloudhands.common"])
 
 if __name__ == "__main__":
     unittest.main()
