@@ -12,22 +12,41 @@ import uuid
 from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 
+from cloudhands.common.fsm import HostState
+
+import cloudhands.common.schema
+from cloudhands.common.schema import Host
+from cloudhands.common.schema import IPAddress
+from cloudhands.common.schema import Node
+from cloudhands.common.schema import Resource
+from cloudhands.common.schema import State
+from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
+
+__doc__ = """
+    select a.uuid, n.name, ips.value, t.at from touches as t
+        join resources as r on r.id = t.id
+        join artifacts as a on t.artifact_id = a.id
+        left outer join ipaddresses as ips on ips.id = r.id
+        left outer join nodes as n on n.id = r.id;
+"""
+
 DFLT_DB = ":memory:"
 
 nodes = [
-("METAFOR", "portal" "up", "130.246.184.156"),
-("METAFOR", "worker 01" "up", "192.168.1.3"),
-("METAFOR", "worker 02" "up", "192.168.1.4"),
-("METAFOR", "worker 03" "down", "192.168.1.5"),
-("METAFOR", "worker 04" "down", "192.168.1.6"),
-("METAFOR", "worker 05" "up", "192.168.1.7"),
-("METAFOR", "worker 06" "up", "192.168.1.8"),
-("METAFOR", "worker 07" "up", "192.168.1.9"),
-("METAFOR", "worker 08" "up", "192.168.1.10"),
-("METAFOR", "worker 09" "up", "192.168.1.11"),
-("METAFOR", "worker 10" "down", "192.168.1.12"),
-("METAFOR", "worker 11" "up", "192.168.1.13"),
-("METAFOR", "worker 12" "up", "192.168.1.14"),
+("METAFOR", "portal", "up", "130.246.184.156"),
+("METAFOR", "worker 01", "up", "192.168.1.3"),
+("METAFOR", "worker 02", "up", "192.168.1.4"),
+("METAFOR", "worker 03", "down", "192.168.1.5"),
+("METAFOR", "worker 04", "down", "192.168.1.6"),
+("METAFOR", "worker 05", "up", "192.168.1.7"),
+("METAFOR", "worker 06", "up", "192.168.1.8"),
+("METAFOR", "worker 07", "up", "192.168.1.9"),
+("METAFOR", "worker 08", "up", "192.168.1.10"),
+("METAFOR", "worker 09", "up", "192.168.1.11"),
+("METAFOR", "worker 10", "down", "192.168.1.12"),
+("METAFOR", "worker 11", "up", "192.168.1.13"),
+("METAFOR", "worker 12", "up", "192.168.1.14"),
 ]
 
 class DemoLoader(Initialiser):
@@ -38,8 +57,58 @@ class DemoLoader(Initialiser):
         self.session = Session()
 
 
-    def dump(self):
-        print(*self.engine.iterdump(), sep="\n")
+    def load_nodes_for_hosts(self):
+
+        # 0. Set up User
+        user = User(handle="Ben Campbell", uuid=uuid.uuid4().hex)
+        # TODO: Add Organisation context
+
+        for jvo, hostname, status, addr in nodes:
+            # 1. User creates a new host
+            now = datetime.datetime.utcnow()
+            requested = self.session.query(HostState).filter(
+                HostState.name == "requested").one()
+            host = Host(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                name=hostname
+                )
+            host.changes.append(
+                Touch(artifact=host, actor=user, state=requested, at=now))
+            self.session.add(host)
+            self.session.commit()
+
+            now = datetime.datetime.utcnow()
+            scheduling = self.session.query(HostState).filter(
+                HostState.name == "scheduling").one()
+            host.changes.append(
+                Touch(artifact=host, actor=user, state=scheduling, at=now))
+            self.session.commit()
+
+            # 2. Burst controller raises a node
+            now = datetime.datetime.utcnow()
+            act = Touch(artifact=host, actor=user, state=scheduling, at=now)
+            host.changes.append(act)
+            node = Node(name=host.name, touch=act)
+            self.session.add(node)
+            self.session.commit()
+
+            # 3. Burst controller allocates an IP
+            now = datetime.datetime.utcnow()
+            act = Touch(artifact=host, actor=user, state=scheduling, at=now)
+            host.changes.append(act)
+            ip = IPAddress(value=addr, touch=act)
+            self.session.add(ip)
+            self.session.commit()
+
+            # 4. Burst controller marks Host as unknown
+            now = datetime.datetime.utcnow()
+            state = self.session.query(HostState).filter(
+                HostState.name == status).one()
+            host.changes.append(
+                Touch(artifact=host, actor=user, state=state, at=now))
+            self.session.commit()
+
 
 def main(args):
     rv = 1
@@ -49,6 +118,7 @@ def main(args):
     log = logging.getLogger("cloudhands.burst")
 
     ldr = DemoLoader(config=ConfigParser(), path=args.db)
+    ldr.load_nodes_for_hosts()
 
     return rv
 
