@@ -76,6 +76,7 @@ class Region(NamedList):
 
         return rv.name("{}_{:05}".format(self.name, len(self))).load(session)
 
+
 class Page(object):
 
     _navi = {}
@@ -102,7 +103,8 @@ class Page(object):
 
     def push(self, artifact, state=None):
         for region in [
-            self.navi, self.info, self.user, self.evts]:
+            self.navi, self.info, self.user, self.evts
+        ]:
             widget = region.present(artifact, state)
             if widget:
                 region.append(widget)

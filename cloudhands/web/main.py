@@ -39,7 +39,7 @@ class Connection(Initialiser):
     def __init__(self, path=DFLT_DB):
         self.engine = self.connect(sqlite3, path=path)
         self.session = Session()
-        
+
 
 def top_page(request):
     #userId = authenticated_userid(request)
@@ -49,7 +49,7 @@ def top_page(request):
     con = Connection()
     status = con.session.query(
         DCStatus).join(Touch).order_by(Touch.at.desc()).first()
-    
+
     paths = {p: os.path.dirname(request.static_url(
         "cloudhands.web:static/{}/{}".format(p, f)))
         for p, f in (
