@@ -24,12 +24,13 @@ setup(
     ],
     namespace_packages=["cloudhands"],
     packages=["cloudhands.web"],
-    package_data={"cloudhands.web": [
-                    "templates/*.pt",
-                    "static/css/*.css",
-                    "static/js/*.js",
-                    "static/img/*.jpg",
-                    ]},
+    package_data={
+        "cloudhands.web": [
+            "templates/*.pt",
+            "static/css/*.css",
+            "static/js/*.js",
+            "static/img/*.jpg",
+            ]},
     install_requires=[
         "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",
@@ -41,7 +42,8 @@ setup(
         ],
     entry_points={
         "console_scripts": [
-            "chweb-serve = cloudhands.web.main:run"
+            "cloud-webserve = cloudhands.web.main:run",
+            "cloud-demoload = cloudhands.web.demo:run",
         ],
     },
     zip_safe=False
