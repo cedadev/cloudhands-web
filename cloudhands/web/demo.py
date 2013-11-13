@@ -13,10 +13,13 @@ from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 
 from cloudhands.common.fsm import HostState
+from cloudhands.common.fsm import MembershipState
 
 import cloudhands.common.schema
+from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
@@ -55,7 +58,7 @@ class DemoLoader(Initialiser):
         ("METAFOR", "worker 12", "up", "192.168.1.14"),
     ]
 
-    def demouser_email(req=None):
+    def demo_email(req=None):
         return "ben.campbell@durham.ac.uk"
 
     def __init__(self, config, path=DFLT_DB):
@@ -63,14 +66,36 @@ class DemoLoader(Initialiser):
         self.engine = self.connect(sqlite3, path=path)
         self.session = Session()
 
-    def load_nodes_for_hosts(self):
+    def grant_user_membership(self):
 
-        # 0. Set up User
-        handle = DemoLoader.demouser_email().split(
-            '@')[0].replace('.', ' ').capitalize()
+        # 1. Create User
+        handle = ' '.join(
+            i.capitalize() for i in DemoLoader.demo_email().split(
+                '@')[0].split('.'))
         user = User(handle=handle, uuid=uuid.uuid4().hex)
-        # TODO: Add Organisation context
 
+        # 2. Add a new Membership
+        mship = Membership(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation="METAFOR",
+            role="user")
+        self.session.add(mship)
+        self.session.commit()
+
+        # 3. Grant Membership with an EmailAddress
+        granted = self.session.query(
+            MembershipState).filter(MembershipState.name == "granted").one()
+        now = datetime.datetime.utcnow()
+
+        grant = Touch(artifact=mship, actor=user, state=granted, at=now)
+        mship.changes.append(grant)
+        ea = EmailAddress(value=DemoLoader.demo_email(), touch=grant)
+        self.session.add(ea)
+        self.session.commit()
+        return user
+
+    def load_hosts_for_user(self, user):
         for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
@@ -109,7 +134,7 @@ class DemoLoader(Initialiser):
             self.session.add(ip)
             self.session.commit()
 
-            # 4. Burst controller marks Host as unknown
+            # 4. Burst controller marks Host with operating state
             now = datetime.datetime.utcnow()
             state = self.session.query(HostState).filter(
                 HostState.name == status).one()
@@ -124,9 +149,10 @@ def main(args):
     log = logging.getLogger("cloudhands.burst")
 
     ldr = DemoLoader(config=ConfigParser(), path=args.db)
-    ldr.load_nodes_for_hosts()
+    user = ldr.grant_user_membership()
+    ldr.load_hosts_for_user(user)
 
-    cloudhands.web.main.authenticated_userid = DemoLoader.demouser_email
+    cloudhands.web.main.authenticated_userid = DemoLoader.demo_email
 
     app = cloudhands.web.main.wsgi_app()
     cloudhands.web.main.serve(
