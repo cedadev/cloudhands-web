@@ -9,6 +9,7 @@ import sqlite3
 import sys
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.interfaces import IAuthenticationPolicy
@@ -19,9 +20,13 @@ from pyramid_macauth import MACAuthenticationPolicy
 
 from waitress import serve
 
+from cloudhands.common.fsm import MembershipState
 from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 from cloudhands.common.schema import DCStatus
+from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import Host
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Touch
 #import cloudhands.common
 import cloudhands.web
@@ -41,6 +46,13 @@ class Connection(Initialiser):
         self.session = Session()
 
 
+def paths(request):
+    return {p: os.path.dirname(request.static_url(
+        "cloudhands.web:static/{}/{}".format(p, f)))
+        for p, f in (
+            ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
+
+
 def top_page(request):
     userId = authenticated_userid(request)
     if userId is None:
@@ -50,17 +62,35 @@ def top_page(request):
     status = con.session.query(
         DCStatus).join(Touch).order_by(Touch.at.desc()).first()
 
-    paths = {p: os.path.dirname(request.static_url(
-        "cloudhands.web:static/{}/{}".format(p, f)))
-        for p, f in (
-            ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
-
     p = Page()
     if status:
         state = status.changes[-1].state
         p.push(status, (state.fsm, state.name))
 
-    rv = {"paths": paths}
+    rv = {"paths": paths(request)}
+    rv.update(dict(p.dump()))
+    return rv
+
+
+def hosts_page(request):
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    p = Page()
+    con = Connection()
+    granted = con.session.query(MembershipState).filter(
+        MembershipState.name == "granted").one()
+    grant = con.session.query(EmailAddress).filter(
+        EmailAddress.value == userId).filter(
+        EmailAddress.touch.state == granted).first()
+
+    if not grant:
+        return {"oops": userId}
+
+    #hosts = con.session.query(Host).join(Touch)
+
+    rv = {"paths": paths(request), "user": vars(grant.actor)}
     rv.update(dict(p.dump()))
     return rv
 
@@ -84,8 +114,7 @@ def macauth_creds(request):
 
 
 def wsgi_app():
-    # Configuration to be done programmatically so
-    # that settings can be shared with, eg: Nginx config
+    # TODO: pick up settings by discovery
     settings = {
         "persona.secret": "FON85B9O3VCMQ90517Z1",
         "persona.audiences": [
@@ -100,10 +129,16 @@ def wsgi_app():
     config.add_route("top", "/")
     config.add_view(
         top_page, route_name="top", request_method="GET",
+        renderer="cloudhands.web:templates/base.pt")
+
+    config.add_route("hosts", "/hosts")
+    config.add_view(
+        top_page, route_name="hosts", request_method="GET",
         renderer="json", accept="application/json", xhr=True)
     config.add_view(
-        top_page, route_name="top", request_method="GET",
-        renderer="cloudhands.web:templates/base.pt")
+        hosts_page, route_name="hosts", request_method="GET",
+        renderer="json", accept="application/json")
+        #renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(
@@ -115,19 +150,21 @@ def wsgi_app():
     config.add_static_view(name="js", path="cloudhands.web:static/js")
     config.add_static_view(name="img", path="cloudhands.web:static/img")
 
-    policy = AuthenticationStackPolicy()
-    policy.add_policy(
+    authn_policy = AuthenticationStackPolicy()
+    authn_policy.add_policy(
         "email",
         AuthTktAuthenticationPolicy(
             settings["persona.secret"],
             callback=None)
         )
-    policy.add_policy(
+    authn_policy.add_policy(
         "apimac",
         MACAuthenticationPolicy(
             settings["macauth.master_secret"],
         ))
-    config.set_authentication_policy(policy)
+    authz_policy = ACLAuthorizationPolicy()
+    config.set_authentication_policy(authn_policy)
+    config.set_authorization_policy(authz_policy)
     config.scan()
 
     app = config.make_wsgi_app()

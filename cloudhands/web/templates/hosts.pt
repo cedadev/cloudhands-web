@@ -1,0 +1,13 @@
+<html metal:use-macro="load: base.pt" lang="en">
+<section metal:fill-slot="summary">
+<h1>Virtual machines</h1>
+<table class="pure-table pure-table-horizontal">
+<thead>
+</thead>
+<tbody>
+<tr><td>Nothing</td><td>here.</td></tr>
+</tbody>
+</table>
+</section>
+</html>
+

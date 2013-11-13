@@ -9,6 +9,7 @@ except ImportError:
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
+from cloudhands.common.schema import Host
 from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
 
@@ -57,7 +58,22 @@ class EmailWasWithdrawn(Facet):
     pass
 
 
+class HostIsDown(Facet):
+    pass
+
+
+class HostIsUnknown(Facet):
+    pass
+
+
+class HostIsUp(Facet):
+    pass
+
+
 class Region(NamedList):
+
+    def load_facet(obj, session):
+        return obj.name("{}_{:05}".format(self.name, len(self))).load(session)
 
     @singledispatch
     def present(self, artifact, session=None, state=None):
@@ -77,25 +93,33 @@ class Region(NamedList):
         return rv.name("{}_{:05}".format(self.name, len(self))).load(session)
 
 
-class Page(object):
+class InfoRegion(Region):
 
-    _navi = {}
-    _info = {
-        ("resource", "unknown"): [DCStatusUnknown],
-        ("resource", "down"): [DCStatusSaidDown],
-        ("resource", "up"): [DCStatusSaidUp],
-    }
-    _user = {
-        ("credential", "untrusted"): [EmailIsUntrusted],
-        ("credential", "trusted"): [EmailIsTrusted],
-        ("credential", "expired"): [EmailHasExpired],
-        ("credential", "withdrawn"): [EmailWasWithdrawn],
-    }
-    _evts = {}
+    @singledispatch
+    def present(self, artifact, session=None, state=None):
+        return None
+
+    @present.register(Host)
+    def present(self, artifact, state, session=None):
+        try:
+            value = state[1]
+            facet = {
+                "down": HostIsDown,
+                "up": HostIsUp,
+            }.get(value, HostIsUnknown)
+
+        except TypeError:
+            facet = HostIsUnknown
+
+        rv = facet(vars(artifact))
+        return self.load_facet(rv, session)
+
+
+class Page(object):
 
     def __init__(self):
         self.navi = Region().name("navi")
-        self.info = Region([
+        self.info = InfoRegion([
             VersionsAreVisible().name("versions")
         ]).name("info")
         self.user = Region().name("user")

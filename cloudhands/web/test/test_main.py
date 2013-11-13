@@ -13,6 +13,12 @@ from cloudhands.web.main import parser
 from cloudhands.web.main import top_page
 
 
+class ACLTests(unittest.TestCase):
+
+    def test_access_control(self):
+        self.fail("Not doing it yet")
+
+
 class TopLevelTests(unittest.TestCase):
 
     @classmethod
