@@ -23,6 +23,8 @@ from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+import cloudhands.web.main
+
 __doc__ = """
     select a.uuid, s.name, n.name, ips.value, t.at from touches as t
         join resources as r on r.id = t.id
@@ -34,37 +36,42 @@ __doc__ = """
 
 DFLT_DB = ":memory:"
 
-nodes = [
-("METAFOR", "portal", "up", "130.246.184.156"),
-("METAFOR", "worker 01", "up", "192.168.1.3"),
-("METAFOR", "worker 02", "up", "192.168.1.4"),
-("METAFOR", "worker 03", "down", "192.168.1.5"),
-("METAFOR", "worker 04", "down", "192.168.1.6"),
-("METAFOR", "worker 05", "up", "192.168.1.7"),
-("METAFOR", "worker 06", "up", "192.168.1.8"),
-("METAFOR", "worker 07", "up", "192.168.1.9"),
-("METAFOR", "worker 08", "up", "192.168.1.10"),
-("METAFOR", "worker 09", "up", "192.168.1.11"),
-("METAFOR", "worker 10", "down", "192.168.1.12"),
-("METAFOR", "worker 11", "up", "192.168.1.13"),
-("METAFOR", "worker 12", "up", "192.168.1.14"),
-]
 
 class DemoLoader(Initialiser):
+
+    nodes = [
+        ("METAFOR", "portal", "up", "130.246.184.156"),
+        ("METAFOR", "worker 01", "up", "192.168.1.3"),
+        ("METAFOR", "worker 02", "up", "192.168.1.4"),
+        ("METAFOR", "worker 03", "down", "192.168.1.5"),
+        ("METAFOR", "worker 04", "down", "192.168.1.6"),
+        ("METAFOR", "worker 05", "up", "192.168.1.7"),
+        ("METAFOR", "worker 06", "up", "192.168.1.8"),
+        ("METAFOR", "worker 07", "up", "192.168.1.9"),
+        ("METAFOR", "worker 08", "up", "192.168.1.10"),
+        ("METAFOR", "worker 09", "up", "192.168.1.11"),
+        ("METAFOR", "worker 10", "down", "192.168.1.12"),
+        ("METAFOR", "worker 11", "up", "192.168.1.13"),
+        ("METAFOR", "worker 12", "up", "192.168.1.14"),
+    ]
+
+    def demouser_email(req=None):
+        return "ben.campbell@durham.ac.uk"
 
     def __init__(self, config, path=DFLT_DB):
         self.config = config
         self.engine = self.connect(sqlite3, path=path)
         self.session = Session()
 
-
     def load_nodes_for_hosts(self):
 
         # 0. Set up User
-        user = User(handle="Ben Campbell", uuid=uuid.uuid4().hex)
+        handle = DemoLoader.demouser_email().split(
+            '@')[0].replace('.', ' ').capitalize()
+        user = User(handle=handle, uuid=uuid.uuid4().hex)
         # TODO: Add Organisation context
 
-        for jvo, hostname, status, addr in nodes:
+        for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
             requested = self.session.query(HostState).filter(
@@ -113,28 +120,22 @@ class DemoLoader(Initialiser):
 
 def main(args):
     rv = 1
-    logging.basicConfig(
-        level=args.log_level,
-        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    model = cloudhands.web.main.configure(args)
     log = logging.getLogger("cloudhands.burst")
 
     ldr = DemoLoader(config=ConfigParser(), path=args.db)
     ldr.load_nodes_for_hosts()
 
+    cloudhands.web.main.authenticated_userid = DemoLoader.demouser_email
+
+    app = cloudhands.web.main.wsgi_app()
+    cloudhands.web.main.serve(
+        app, host="localhost", port=args.port, url_scheme="http")
     return rv
 
 
-def parser():
-    rv = argparse.ArgumentParser(description=__doc__)
-    rv.add_argument(
-        "-v", "--verbose", required=False,
-        action="store_const", dest="log_level",
-        const=logging.DEBUG, default=logging.INFO,
-        help="Increase the verbosity of output")
-    rv.add_argument(
-        "--db", default=DFLT_DB,
-        help="Set the path to the database [{}]".format(DFLT_DB))
-
+def parser(description=__doc__):
+    rv = cloudhands.web.main.parser(description)
     return rv
 
 

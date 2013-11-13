@@ -42,9 +42,9 @@ class Connection(Initialiser):
 
 
 def top_page(request):
-    #userId = authenticated_userid(request)
-    #if userId is None:
-    #    raise Forbidden()
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
 
     con = Connection()
     status = con.session.query(
@@ -148,8 +148,8 @@ def main(args):
     return 1
 
 
-def parser():
-    rv = argparse.ArgumentParser(description=__doc__)
+def parser(description=__doc__):
+    rv = argparse.ArgumentParser(description)
     rv.add_argument(
         "--version", action="store_true", default=False,
         help="Print the current version number")

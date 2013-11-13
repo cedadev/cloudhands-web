@@ -43,7 +43,7 @@ setup(
     entry_points={
         "console_scripts": [
             "cloud-webserve = cloudhands.web.main:run",
-            "cloud-demoload = cloudhands.web.demo:run",
+            "cloud-demoserve = cloudhands.web.demo:run",
         ],
     },
     zip_safe=False
