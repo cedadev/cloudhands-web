@@ -72,7 +72,7 @@ class HostIsUp(Facet):
 
 class Region(NamedList):
 
-    def load_facet(obj, session):
+    def load_facet(self, obj, session):
         return obj.name("{}_{:05}".format(self.name, len(self))).load(session)
 
     @singledispatch
