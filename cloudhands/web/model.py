@@ -93,7 +93,7 @@ class Region(NamedList):
         return rv.name("{}_{:05}".format(self.name, len(self))).load(session)
 
 
-class InfoRegion(Region):
+class HostCollection(Region):
 
     @singledispatch
     def present(self, artifact, session=None, state=None):
@@ -118,17 +118,15 @@ class InfoRegion(Region):
 class Page(object):
 
     def __init__(self):
-        self.navi = Region().name("navi")
-        self.info = InfoRegion([
-            VersionsAreVisible().name("versions")
-        ]).name("info")
-        self.user = Region().name("user")
-        self.evts = Region().name("evts")
+        self.regions = [
+            Region([
+                VersionsAreVisible().name("versions")
+            ]).name("info"),
+            HostCollection().name("items"),
+        ]
 
     def push(self, artifact, state=None):
-        for region in [
-            self.navi, self.info, self.user, self.evts
-        ]:
+        for region in self.regions:
             widget = region.present(artifact, state)
             if widget:
                 region.append(widget)
@@ -136,4 +134,4 @@ class Page(object):
     def dump(self):
         return [(region.name, OrderedDict([(widget.name, widget)
                 for widget in region]))
-                for region in (self.navi, self.info, self.user, self.evts)]
+                for region in self.regions]

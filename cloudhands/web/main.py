@@ -90,8 +90,10 @@ def hosts_page(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User == user).all() # JVOs are containers for hosts
     p = Page()
-    rv = {"paths": paths(request), "user": user.handle}
+    rv = {"paths": paths(request)}
     rv.update(dict(p.dump()))
     return rv
 

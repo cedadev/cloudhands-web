@@ -21,6 +21,7 @@ from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
+from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
@@ -67,19 +68,33 @@ class DemoLoader(Initialiser):
         self.config = config
         self.con = cloudhands.web.main.Connection(path)
 
+    def create_organisations(self):
+        for name in {i[0] for i in DemoLoader.nodes}:
+            org = Organisation(name=name)
+            try:
+                self.con.session.add(org)
+                self.con.session.commit()
+            except Exception as e:
+                self.con.session.rollback()
+
     def grant_user_membership(self):
+        org = self.con.session.query(Organisation).one()  # FIXME
         return create_user_grant_email_membership(
-            self.con.session, DemoLoader.demo_email(), org="METAFOR")
+            self.con.session, org, DemoLoader.demo_email())
 
     def load_hosts_for_user(self, user):
         for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
+            org = self.con.session.query(
+                Organisation).filter(Organisation.name == jvo).one()
+                
             requested = self.con.session.query(HostState).filter(
                 HostState.name == "requested").one()
             host = Host(
                 uuid=uuid.uuid4().hex,
                 model=cloudhands.common.__version__,
+                organisation=org,
                 name=hostname
                 )
             host.changes.append(
@@ -125,6 +140,7 @@ def main(args):
     log = logging.getLogger("cloudhands.burst")
 
     ldr = DemoLoader(config=ConfigParser(), path=args.db)
+    ldr.create_organisations()
     user = ldr.grant_user_membership()
     ldr.load_hosts_for_user(user)
 
