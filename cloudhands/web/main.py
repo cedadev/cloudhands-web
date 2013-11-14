@@ -12,6 +12,7 @@ from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
+from pyramid.exceptions import NotFound
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import authenticated_userid
 
@@ -28,6 +29,7 @@ from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
@@ -41,9 +43,13 @@ CRED_TABLE = {}
 
 class Connection(Initialiser):
 
+    _shared_state = {}
+
     def __init__(self, path=DFLT_DB):
+        self.__dict__ = self._shared_state
         self.engine = self.connect(sqlite3, path=path)
-        self.session = Session()
+        if not hasattr(self, "session"):
+            self.session = Session(autoflush=False)
 
 
 def paths(request):
@@ -77,20 +83,15 @@ def hosts_page(request):
     if userId is None:
         raise Forbidden()
 
-    p = Page()
     con = Connection()
-    granted = con.session.query(MembershipState).filter(
-        MembershipState.name == "granted").one()
-    grant = con.session.query(EmailAddress).filter(
-        EmailAddress.value == userId).filter(
-        EmailAddress.touch.state == granted).first()
+    user = con.session.query(User).join(Touch).join(
+            EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        # TODO: create
+        raise NotFound("User not found for {}".format(userId))
 
-    if not grant:
-        return {"oops": userId}
-
-    #hosts = con.session.query(Host).join(Touch)
-
-    rv = {"paths": paths(request), "user": vars(grant.actor)}
+    p = Page()
+    rv = {"paths": paths(request), "user": user.handle}
     rv.update(dict(p.dump()))
     return rv
 

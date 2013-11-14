@@ -26,6 +26,8 @@ from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.common.tricks import create_user_grant_email_membership
+
 import cloudhands.web.main
 
 __doc__ = """
@@ -63,43 +65,17 @@ class DemoLoader(Initialiser):
 
     def __init__(self, config, path=DFLT_DB):
         self.config = config
-        self.engine = self.connect(sqlite3, path=path)
-        self.session = Session()
+        self.con = cloudhands.web.main.Connection(path)
 
     def grant_user_membership(self):
-
-        # 1. Create User
-        handle = ' '.join(
-            i.capitalize() for i in DemoLoader.demo_email().split(
-                '@')[0].split('.'))
-        user = User(handle=handle, uuid=uuid.uuid4().hex)
-
-        # 2. Add a new Membership
-        mship = Membership(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            organisation="METAFOR",
-            role="user")
-        self.session.add(mship)
-        self.session.commit()
-
-        # 3. Grant Membership with an EmailAddress
-        granted = self.session.query(
-            MembershipState).filter(MembershipState.name == "granted").one()
-        now = datetime.datetime.utcnow()
-
-        grant = Touch(artifact=mship, actor=user, state=granted, at=now)
-        mship.changes.append(grant)
-        ea = EmailAddress(value=DemoLoader.demo_email(), touch=grant)
-        self.session.add(ea)
-        self.session.commit()
-        return user
+        return create_user_grant_email_membership(
+            self.con.session, DemoLoader.demo_email(), org="METAFOR")
 
     def load_hosts_for_user(self, user):
         for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
-            requested = self.session.query(HostState).filter(
+            requested = self.con.session.query(HostState).filter(
                 HostState.name == "requested").one()
             host = Host(
                 uuid=uuid.uuid4().hex,
@@ -108,39 +84,39 @@ class DemoLoader(Initialiser):
                 )
             host.changes.append(
                 Touch(artifact=host, actor=user, state=requested, at=now))
-            self.session.add(host)
-            self.session.commit()
+            self.con.session.add(host)
+            self.con.session.commit()
 
             now = datetime.datetime.utcnow()
-            scheduling = self.session.query(HostState).filter(
+            scheduling = self.con.session.query(HostState).filter(
                 HostState.name == "scheduling").one()
             host.changes.append(
                 Touch(artifact=host, actor=user, state=scheduling, at=now))
-            self.session.commit()
+            self.con.session.commit()
 
             # 2. Burst controller raises a node
             now = datetime.datetime.utcnow()
             act = Touch(artifact=host, actor=user, state=scheduling, at=now)
             host.changes.append(act)
             node = Node(name=host.name, touch=act)
-            self.session.add(node)
-            self.session.commit()
+            self.con.session.add(node)
+            self.con.session.commit()
 
             # 3. Burst controller allocates an IP
             now = datetime.datetime.utcnow()
             act = Touch(artifact=host, actor=user, state=scheduling, at=now)
             host.changes.append(act)
             ip = IPAddress(value=addr, touch=act)
-            self.session.add(ip)
-            self.session.commit()
+            self.con.session.add(ip)
+            self.con.session.commit()
 
             # 4. Burst controller marks Host with operating state
             now = datetime.datetime.utcnow()
-            state = self.session.query(HostState).filter(
+            state = self.con.session.query(HostState).filter(
                 HostState.name == status).one()
             host.changes.append(
                 Touch(artifact=host, actor=user, state=state, at=now))
-            self.session.commit()
+            self.con.session.commit()
 
 
 def main(args):
