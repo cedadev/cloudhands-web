@@ -19,7 +19,7 @@
     <div class="pure-u-1-12">
         <nav class="pure-menu pure-menu-open">
             <ul>
-            <li class="pure-menu-heading" ><a href="#">JASMIN</a></li>
+            <li class="pure-menu-heading" ><a href="/">JASMIN</a></li>
             <li><a href="#">Account</a></li>
             <li><a href="#">JVO</a></li>
             <li><a href="/hosts">VMs</a></li>
