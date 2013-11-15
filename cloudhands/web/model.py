@@ -117,6 +117,7 @@ class HostCollection(Region):
 
         resources = [r for i in artifact.changes for r in i.resources]
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
+        item["state"] = artifact.changes[-1].state
         item["ips"] = [i.value for i in resources if isinstance(i, IPAddress)]
         item["nodes"] = [i.name for i in resources if isinstance(i, Node)]
         item["_links"] = [

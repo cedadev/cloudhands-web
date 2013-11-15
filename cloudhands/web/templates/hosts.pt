@@ -3,9 +3,18 @@
 <h1>Virtual machines</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
+<tr><th>Host</th><th>Status</th><th>IP</th><th>Actions</th></tr>
 </thead>
 <tbody>
-<tr><td>Nothing</td><td>here.</td></tr>
+<tr
+tal:repeat="(itemId, item) items.items()"
+tal:attributes="
+id itemId
+"><td>${item['name']}</td>
+<td tal:content="python: 'running' if item['state'].name == 'up' else 'stopped'"></td>
+<td tal:content="python: item['ips'][0]"></td>
+<td><a tal:attributes="href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'))">Edit</a></td>
+</tr>
 </tbody>
 </table>
 </section>

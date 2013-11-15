@@ -147,8 +147,7 @@ def wsgi_app():
         renderer="json", accept="application/json", xhr=True)
     config.add_view(
         hosts_page, route_name="hosts", request_method="GET",
-        renderer="json", accept="application/json")
-        #renderer="cloudhands.web:templates/hosts.pt")
+        renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(
