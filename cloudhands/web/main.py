@@ -35,6 +35,7 @@ from cloudhands.common.schema import User
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
+from cloudhands.web.model import HostsPage
 from cloudhands.web.model import Page
 
 DFLT_PORT = 8080
@@ -92,9 +93,11 @@ def hosts_page(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
-    hosts = con.session.query(Host).join(Touch).join(User).filter(
-        User == user).all() # JVOs are containers for hosts
-    p = Page()
+    # FIXME!
+    #hosts = con.session.query(Host).join(Touch).join(User).filter(
+    #    User == user).all() # JVOs are containers for hosts
+    hosts = con.session.query(Host).all()
+    p = HostsPage()
     for h in hosts:
         p.push(h)
     rv = {"paths": paths(request)}

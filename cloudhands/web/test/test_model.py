@@ -72,7 +72,7 @@ class TestPage(unittest.TestCase):
         p.push(status)
         self.assertIn(status.uuid, str(p.dump()))
 
-    def test_hateoas_hosts(self):
+    def test_hostspage_hateoas(self):
         user = User(handle="Sam Guy", uuid=uuid.uuid4().hex)
         org = Organisation(name="TestOrg")
         state = HostState(name="requested")
