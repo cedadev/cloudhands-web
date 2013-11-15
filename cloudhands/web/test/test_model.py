@@ -19,6 +19,7 @@ from cloudhands.common.schema import User
 
 from cloudhands.web.model import Page
 from cloudhands.web.model import HostCollection
+from cloudhands.web.model import HostsPage
 from cloudhands.web.model import InfoCollection
 from cloudhands.web.model import EmailIsUntrusted
 from cloudhands.web.model import EmailIsTrusted
@@ -83,7 +84,7 @@ class TestPage(unittest.TestCase):
             now = datetime.datetime.utcnow()
             h.changes.append(
                 Touch(artifact=h, actor=user, state=state, at=now))
-        p = Page()
+        p = HostsPage()
         for h in hosts:
             p.push(h)
         self.assertEqual(10, len(dict(p.dump())["items"]))

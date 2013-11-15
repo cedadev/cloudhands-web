@@ -121,8 +121,7 @@ class Page(object):
         self.regions = [
             InfoCollection([
                 VersionsAreVisible().name("versions")
-            ]).name("info"),
-            HostCollection().name("items"),
+            ]).name("info")
         ]
 
     def push(self, artifact, state=None):
@@ -135,3 +134,15 @@ class Page(object):
         return [(region.name, OrderedDict([(widget.name, widget)
                 for widget in region]))
                 for region in self.regions]
+
+
+class HostsPage(Page):
+
+    def __init__(self):
+        self.regions = [
+            InfoCollection([
+                VersionsAreVisible().name("versions")
+            ]).name("info"),
+            HostCollection().name("items"),
+        ]
+
