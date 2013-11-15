@@ -28,6 +28,8 @@ from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 #import cloudhands.common
@@ -90,9 +92,11 @@ def hosts_page(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
-    mships = con.session.query(Membership).join(Touch).join(User).filter(
+    hosts = con.session.query(Host).join(Touch).join(User).filter(
         User == user).all() # JVOs are containers for hosts
     p = Page()
+    for h in hosts:
+        p.push(h)
     rv = {"paths": paths(request)}
     rv.update(dict(p.dump()))
     return rv

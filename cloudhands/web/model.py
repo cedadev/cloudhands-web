@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+import logging
+
 from collections import OrderedDict
 try:
     from functools import singledispatch  # Python 3.4
@@ -112,6 +114,7 @@ class HostCollection(Region):
             facet = HostIsUnknown
 
         rv = facet(vars(artifact))
+        logging.info(rv)
         return self.load_facet(rv, session)
 
 
