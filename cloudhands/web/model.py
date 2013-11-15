@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
-import logging
-
 from collections import OrderedDict
-try:
-    from functools import singledispatch  # Python 3.4
-except ImportError:
-    from singledispatch import singledispatch
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
@@ -77,12 +71,17 @@ class Region(NamedList):
     def load_facet(self, obj, session):
         return obj.name("{}_{:05}".format(self.name, len(self))).load(session)
 
-    @singledispatch
-    def present(self, artifact, session=None, state=None):
+    def present(self, artifact, state=None, session=None):
+        return self.presenters.get(
+            type(artifact), self.present_none)(self, artifact, state, session)
+
+    def present_none(self, *args, **kwargs):
         return None
 
-    @present.register(DCStatus)
-    def present(self, artifact, state, session=None):
+
+class InfoCollection(Region):
+
+    def present_dcstatus(self, artifact, state, session=None):
         if not state:
             rv = DCStatusUnknown(vars(artifact))
         elif state[1] == "down":
@@ -92,17 +91,14 @@ class Region(NamedList):
         else:
             rv = DCStatusUnknown(vars(artifact))
 
-        return rv.name("{}_{:05}".format(self.name, len(self))).load(session)
+        return self.load_facet(rv, session)
+
+    presenters = {DCStatus: present_dcstatus}
 
 
 class HostCollection(Region):
 
-    @singledispatch
-    def present(self, artifact, session=None, state=None):
-        return None
-
-    @present.register(Host)
-    def present(self, artifact, state, session=None):
+    def present_host(self, artifact, state, session=None):
         try:
             value = state[1]
             facet = {
@@ -114,15 +110,16 @@ class HostCollection(Region):
             facet = HostIsUnknown
 
         rv = facet(vars(artifact))
-        logging.info(rv)
         return self.load_facet(rv, session)
+
+    presenters = {Host: present_host}
 
 
 class Page(object):
 
     def __init__(self):
         self.regions = [
-            Region([
+            InfoCollection([
                 VersionsAreVisible().name("versions")
             ]).name("info"),
             HostCollection().name("items"),

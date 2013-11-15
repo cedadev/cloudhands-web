@@ -18,7 +18,8 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 from cloudhands.web.model import Page
-from cloudhands.web.model import Region
+from cloudhands.web.model import HostCollection
+from cloudhands.web.model import InfoCollection
 from cloudhands.web.model import EmailIsUntrusted
 from cloudhands.web.model import EmailIsTrusted
 from cloudhands.web.model import EmailHasExpired
@@ -28,7 +29,7 @@ from cloudhands.web.model import EmailWasWithdrawn
 class TestRegion(unittest.TestCase):
 
     def test_info_region_returns_named_dict(self):
-        region = Region().name("test region")
+        region = InfoCollection().name("test region")
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -40,7 +41,7 @@ class TestRegion(unittest.TestCase):
         self.assertIsInstance(rv.name, Sequence)
 
     def test_info_region_makes_unique_names(self):
-        region = Region().name("test region")
+        region = InfoCollection().name("test region")
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -66,6 +67,7 @@ class TestPage(unittest.TestCase):
             name="DC under test")
         p = Page()
         p.push(status)
+        self.assertIn(status.uuid, str(p.dump()))
 
     def test_hateoas_hosts(self):
         user = User(handle="Sam Guy", uuid=uuid.uuid4().hex)
@@ -81,4 +83,9 @@ class TestPage(unittest.TestCase):
             now = datetime.datetime.utcnow()
             h.changes.append(
                 Touch(artifact=h, actor=user, state=state, at=now))
-        self.fail(hosts) 
+        p = Page()
+        for h in hosts:
+            p.push(h)
+        self.assertEqual(10, len(dict(p.dump())["items"]))
+        for i in p.dump():
+            print(i)
