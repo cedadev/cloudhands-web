@@ -2,15 +2,21 @@
 # encoding: UTF-8
 
 from collections import OrderedDict
+from collections import namedtuple
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import IPAddress
+from cloudhands.common.schema import Node
+
 from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
 
 import cloudhands.web
 
+
+Link = namedtuple("Link", ["rel", "typ", "ref"])
 
 class Facet(NamedDict):
 
@@ -109,8 +115,14 @@ class HostCollection(Region):
         except TypeError:
             facet = HostIsUnknown
 
-        rv = facet(vars(artifact))
-        return self.load_facet(rv, session)
+        resources = [r for i in artifact.changes for r in i.resources]
+        item = {k: getattr(artifact, k) for k in ("uuid", "name")}
+        item["ips"] = [i.value for i in resources if isinstance(i, IPAddress)]
+        item["nodes"] = [i.name for i in resources if isinstance(i, Node)]
+        item["_links"] = [
+            Link("self", "/host", artifact.uuid),
+            Link("parent", "/organisation", artifact.organisation.name)]
+        return self.load_facet(facet(item), session)
 
     presenters = {Host: present_host}
 

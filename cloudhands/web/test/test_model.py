@@ -13,6 +13,8 @@ from cloudhands.common.fsm import HostState
 
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import IPAddress
+from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -80,10 +82,13 @@ class TestPage(unittest.TestCase):
             organisation=org,
             name="host_{:02}".format(i)
             ) for i in range(10)]
-        for h in hosts:
+        for n, h in enumerate(hosts):
             now = datetime.datetime.utcnow()
-            h.changes.append(
-                Touch(artifact=h, actor=user, state=state, at=now))
+            t = Touch(artifact=h, actor=user, state=state, at=now)
+            ip = IPAddress(value="192.168.1.{}".format(n), touch=t)
+            node = Node(name="vm{:05}".format(n), touch=t)
+            t.resources.extend([ip, node])
+            h.changes.append(t)
         p = HostsPage()
         for h in hosts:
             p.push(h)
