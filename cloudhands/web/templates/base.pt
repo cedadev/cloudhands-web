@@ -22,7 +22,7 @@
             <li class="pure-menu-heading" ><a href="#">JASMIN</a></li>
             <li><a href="#">Account</a></li>
             <li><a href="#">JVO</a></li>
-            <li><a href="#">VMs</a></li>
+            <li><a href="/hosts">VMs</a></li>
             </ul>
         </nav>
     </div>
