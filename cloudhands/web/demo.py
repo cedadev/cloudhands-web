@@ -27,7 +27,9 @@ from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.common.tricks import allocate_ip
 from cloudhands.common.tricks import create_user_grant_email_membership
+from cloudhands.common.tricks import handle_from_email
 
 import cloudhands.web.main
 
@@ -79,10 +81,13 @@ class DemoLoader(Initialiser):
 
     def grant_user_membership(self):
         org = self.con.session.query(Organisation).one()  # FIXME
-        return create_user_grant_email_membership(
-            self.con.session, org, DemoLoader.demo_email())
+        handle = handle_from_email(DemoLoader.demo_email())
+        return (create_user_grant_email_membership(
+            self.con.session, org, DemoLoader.demo_email(), handle) or
+            self.con.session.query(User).filter(User.handle == handle).one())
 
     def load_hosts_for_user(self, user):
+        log = logging.getLogger("cloudhands.web.demo")
         for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
@@ -118,12 +123,7 @@ class DemoLoader(Initialiser):
             self.con.session.commit()
 
             # 3. Burst controller allocates an IP
-            now = datetime.datetime.utcnow()
-            act = Touch(artifact=host, actor=user, state=scheduling, at=now)
-            host.changes.append(act)
-            ip = IPAddress(value=addr, touch=act)
-            self.con.session.add(ip)
-            self.con.session.commit()
+            ip = allocate_ip(self.con.session, host, addr)
 
             # 4. Burst controller marks Host with operating state
             now = datetime.datetime.utcnow()
