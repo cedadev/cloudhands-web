@@ -107,6 +107,14 @@ class DemoLoader(Initialiser):
             self.con.session.add(host)
             self.con.session.commit()
 
+    def load_resources_for_user(self, user):
+        log = logging.getLogger("cloudhands.web.demo")
+        for jvo, hostname, status, addr in DemoLoader.nodes:
+            host = self.con.session.query(
+                Host).filter(Host.name == hostname).first()
+            if not host:
+                continue
+
             now = datetime.datetime.utcnow()
             scheduling = self.con.session.query(HostState).filter(
                 HostState.name == "scheduling").one()
@@ -134,6 +142,7 @@ class DemoLoader(Initialiser):
             self.con.session.commit()
 
 
+
 def main(args):
     rv = 1
     model = cloudhands.web.main.configure(args)
@@ -143,6 +152,7 @@ def main(args):
     ldr.create_organisations()
     user = ldr.grant_user_membership()
     ldr.load_hosts_for_user(user)
+    ldr.load_resources_for_user(user)
 
     cloudhands.web.main.authenticated_userid = DemoLoader.demo_email
 
