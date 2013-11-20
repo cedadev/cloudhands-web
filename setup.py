@@ -23,14 +23,16 @@ setup(
         "License :: OSI Approved :: BSD License"
     ],
     namespace_packages=["cloudhands"],
-    packages=["cloudhands.web"],
+    packages=["cloudhands.web", "cloudhands.web.test"],
     package_data={
         "cloudhands.web": [
             "templates/*.pt",
             "static/css/*.css",
             "static/js/*.js",
             "static/img/*.jpg",
-            ]},
+            ],
+        "cloudhands.web.test": []
+        },
     install_requires=[
         "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",

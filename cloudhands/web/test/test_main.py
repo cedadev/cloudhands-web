@@ -2,11 +2,14 @@
 # encoding: UTF-8
 
 import re
+import sqlite3
 import unittest
 
 from pyramid import testing
 
 import cloudhands.common
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
 
 import cloudhands.web
 from cloudhands.web.main import parser
@@ -37,6 +40,8 @@ class TopLevelTests(unittest.TestCase):
         cloudhands.web.main.authenticated_userid = class_.auth_unpatch
 
     def setUp(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        initialise(session)
         self.request = testing.DummyRequest()
         self.config = testing.setUp(request=self.request)
         self.config.add_static_view(
@@ -45,6 +50,9 @@ class TopLevelTests(unittest.TestCase):
             name="js", path="cloudhands.web:static/js")
         self.config.add_static_view(
             name="img", path="cloudhands.web:static/img")
+
+    def tearDown(self):
+        Registry().disconnect(sqlite3, ":memory:")
 
     def test_version_option(self):
         p = parser()

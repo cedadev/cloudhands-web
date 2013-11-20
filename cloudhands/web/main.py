@@ -22,8 +22,8 @@ from pyramid_macauth import MACAuthenticationPolicy
 from waitress import serve
 
 from cloudhands.common.fsm import MembershipState
-from cloudhands.common.connectors import Initialiser
-from cloudhands.common.connectors import Session
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
@@ -43,17 +43,9 @@ DFLT_DB = ":memory:"
 
 CRED_TABLE = {}
 
-
-class Connection(Initialiser):
-
-    _shared_state = {}
-
-    def __init__(self, path=DFLT_DB):
-        self.__dict__ = self._shared_state
-        if not hasattr(self, "engine"):
-            self.engine = self.connect(sqlite3, path=path)
-            self.session = Session(autoflush=False)
-
+def registered_connection():
+    r = Registry()
+    return r.connect(*next(iter(r.items)))
 
 def paths(request):
     return {p: os.path.dirname(request.static_url(
@@ -67,7 +59,7 @@ def top_page(request):
     if userId is None:
         raise Forbidden()
 
-    con = Connection()
+    con = registered_connection()
     status = con.session.query(
         DCStatus).join(Touch).order_by(Touch.at.desc()).first()
 
@@ -86,7 +78,7 @@ def hosts_page(request):
     if userId is None:
         raise Forbidden()
 
-    con = Connection()
+    con = registered_connection()
     user = con.session.query(User).join(Touch).join(
             EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
@@ -184,11 +176,14 @@ def configure(args):
     logging.basicConfig(
         level=args.log_level,
         format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
-    return None
+    r = Registry()
+    session = r.connect(sqlite3, args.db).session
+    initialise(session)
+    return session
 
 
 def main(args):
-    model = configure(args)
+    session = configure(args)
     app = wsgi_app()
     serve(app, host="localhost", port=args.port, url_scheme="http")
     return 1
