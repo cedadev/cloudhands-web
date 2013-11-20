@@ -50,7 +50,7 @@ class Connection(Initialiser):
 
     def __init__(self, path=DFLT_DB):
         self.__dict__ = self._shared_state
-        if not hasattr(self, "session"):
+        if not hasattr(self, "engine"):
             self.engine = self.connect(sqlite3, path=path)
             self.session = Session(autoflush=False)
 

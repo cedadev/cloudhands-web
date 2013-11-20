@@ -45,7 +45,7 @@ __doc__ = """
 DFLT_DB = ":memory:"
 
 
-class DemoLoader(Initialiser):
+class DemoLoader(object):
 
     nodes = [
         ("METAFOR", "portal", "up", "130.246.184.156"),
@@ -66,35 +66,31 @@ class DemoLoader(Initialiser):
     def demo_email(req=None):
         return "ben.campbell@durham.ac.uk"
 
-    def __init__(self, config, path=DFLT_DB):
-        self.config = config
-        self.con = cloudhands.web.main.Connection(path)
-
-    def create_organisations(self):
+    def create_organisations(session):
         for name in {i[0] for i in DemoLoader.nodes}:
             org = Organisation(name=name)
             try:
-                self.con.session.add(org)
-                self.con.session.commit()
+                session.add(org)
+                session.commit()
             except Exception as e:
-                self.con.session.rollback()
+                session.rollback()
 
-    def grant_user_membership(self):
-        org = self.con.session.query(Organisation).one()  # FIXME
+    def grant_user_membership(session):
+        org = session.query(Organisation).one()  # FIXME
         handle = handle_from_email(DemoLoader.demo_email())
         return (create_user_grant_email_membership(
-            self.con.session, org, DemoLoader.demo_email(), handle) or
-            self.con.session.query(User).filter(User.handle == handle).one())
+            session, org, DemoLoader.demo_email(), handle) or
+            session.query(User).filter(User.handle == handle).one())
 
-    def load_hosts_for_user(self, user):
+    def load_hosts_for_user(session, user):
         log = logging.getLogger("cloudhands.web.demo")
         for jvo, hostname, status, addr in DemoLoader.nodes:
             # 1. User creates a new host
             now = datetime.datetime.utcnow()
-            org = self.con.session.query(
+            org = session.query(
                 Organisation).filter(Organisation.name == jvo).one()
                 
-            requested = self.con.session.query(HostState).filter(
+            requested = session.query(HostState).filter(
                 HostState.name == "requested").one()
             host = Host(
                 uuid=uuid.uuid4().hex,
@@ -104,42 +100,42 @@ class DemoLoader(Initialiser):
                 )
             host.changes.append(
                 Touch(artifact=host, actor=user, state=requested, at=now))
-            self.con.session.add(host)
-            self.con.session.commit()
+            session.add(host)
+            session.commit()
 
-    def load_resources_for_user(self, user):
+    def load_resources_for_user(session, user):
         log = logging.getLogger("cloudhands.web.demo")
         for jvo, hostname, status, addr in DemoLoader.nodes:
-            host = self.con.session.query(
+            host = session.query(
                 Host).filter(Host.name == hostname).first()
             if not host:
                 continue
 
             now = datetime.datetime.utcnow()
-            scheduling = self.con.session.query(HostState).filter(
+            scheduling = session.query(HostState).filter(
                 HostState.name == "scheduling").one()
             host.changes.append(
                 Touch(artifact=host, actor=user, state=scheduling, at=now))
-            self.con.session.commit()
+            session.commit()
 
             # 2. Burst controller raises a node
             now = datetime.datetime.utcnow()
             act = Touch(artifact=host, actor=user, state=scheduling, at=now)
             host.changes.append(act)
             node = Node(name=host.name, touch=act)
-            self.con.session.add(node)
-            self.con.session.commit()
+            session.add(node)
+            session.commit()
 
             # 3. Burst controller allocates an IP
-            ip = allocate_ip(self.con.session, host, addr)
+            ip = allocate_ip(session, host, addr)
 
             # 4. Burst controller marks Host with operating state
             now = datetime.datetime.utcnow()
-            state = self.con.session.query(HostState).filter(
+            state = session.query(HostState).filter(
                 HostState.name == status).one()
             host.changes.append(
                 Touch(artifact=host, actor=user, state=state, at=now))
-            self.con.session.commit()
+            session.commit()
 
 
 
@@ -148,11 +144,10 @@ def main(args):
     model = cloudhands.web.main.configure(args)
     log = logging.getLogger("cloudhands.burst")
 
-    ldr = DemoLoader(config=ConfigParser(), path=args.db)
-    ldr.create_organisations()
-    user = ldr.grant_user_membership()
-    ldr.load_hosts_for_user(user)
-    ldr.load_resources_for_user(user)
+    DemoLoader.create_organisations(session)
+    user = DemoLoader.grant_user_membership(session)
+    DemoLoader.load_hosts_for_user(session, user)
+    DemoLoader.load_resources_for_user(session, user)
 
     cloudhands.web.main.authenticated_userid = DemoLoader.demo_email
 
