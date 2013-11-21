@@ -2,8 +2,8 @@
 # encoding: UTF-8
 
 import datetime
+from collections.abc import Callable
 from collections.abc import MutableMapping
-from collections.abc import Sequence
 import unittest
 import uuid
 
@@ -19,10 +19,9 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.web.model import Facet
 from cloudhands.web.model import Page
-from cloudhands.web.model import HostCollection
-from cloudhands.web.model import HostsPage
-from cloudhands.web.model import InfoCollection
+from cloudhands.web.model import InfoRegion
 from cloudhands.web.model import EmailIsUntrusted
 from cloudhands.web.model import EmailIsTrusted
 from cloudhands.web.model import EmailHasExpired
@@ -31,33 +30,17 @@ from cloudhands.web.model import EmailWasWithdrawn
 
 class TestRegion(unittest.TestCase):
 
-    def test_info_region_returns_named_dict(self):
-        region = InfoCollection().name("test region")
+    def test_pushed_region_returns_unnamed_dictionary(self):
+        region = InfoRegion().name("test region")
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
             uri="host.domain",
             name="DC under test")
-        rv = region.present(status, ("resource", "up"))
+        rv = region.push(status, ("resource", "up"))
         self.assertTrue(rv)
         self.assertIsInstance(rv, MutableMapping)
-        self.assertIsInstance(rv.name, Sequence)
-
-    def test_info_region_makes_unique_names(self):
-        region = InfoCollection().name("test region")
-        status = DCStatus(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            uri="host.domain",
-            name="DC under test")
-
-        n = 10000
-        for i in range(n):
-            widget = region.present(status, ("resource", "up"))
-            region.append(widget)
-
-        names = {i.name for i in region}
-        self.assertEqual(n, len(names))
+        self.assertIsInstance(rv.name, Callable)
 
 
 class TestPage(unittest.TestCase):
@@ -69,8 +52,25 @@ class TestPage(unittest.TestCase):
             uri="host.domain",
             name="DC under test")
         p = Page()
-        p.push(status)
-        self.assertIn(status.uuid, str(p.dump()))
+        p.info.push(status)
+        self.assertIn(status.uuid, str(dict(p.termination())))
+
+    def test_info_region_makes_unique_names(self):
+        page = Page()
+        status = DCStatus(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            uri="host.domain",
+            name="DC under test")
+
+        n = 10000
+        for i in range(n):
+            facet = page.info.push(status, ("resource", "up"))
+
+        self.assertTrue(all(isinstance(i, Facet) for i in page.info))
+        output = dict(page.termination())
+        names = {i.name for i in page.info}
+        self.assertEqual(n + 1, len(names))  # Version information is in info
 
     def test_hostspage_hateoas(self):
         user = User(handle="Sam Guy", uuid=uuid.uuid4().hex)
@@ -89,9 +89,7 @@ class TestPage(unittest.TestCase):
             node = Node(name="vm{:05}".format(n), touch=t)
             t.resources.extend([ip, node])
             h.changes.append(t)
-        p = HostsPage()
+        hostsPage = Page()
         for h in hosts:
-            p.push(h)
-        self.assertEqual(10, len(dict(p.dump())["items"]))
-        for i in p.dump():
-            print(i)
+            hostsPage.items.push(h)
+        self.assertEqual(10, len(dict(hostsPage.termination())["items"]))

@@ -74,37 +74,48 @@ class HostIsUp(Facet):
 
 class Region(NamedList):
 
-    def load_facet(self, obj, session):
-        return obj.name("{}_{:05}".format(self.name, len(self))).load(session)
-
-    def present(self, artifact, state=None, session=None):
-        return self.presenters.get(
-            type(artifact), self.present_none)(self, artifact, state, session)
-
-    def present_none(self, *args, **kwargs):
+    def base_handler(*args, **kwargs):
         return None
 
+    def push(self, obj, state=None, session=None):
+        rv = None
+        handler = self.handlers.get(type(obj), self.base_handler)
+        facet = handler(self, obj, state, session)
+        if facet:
+            rv = facet.load(session)
+            self.append(rv)
+        return rv
 
-class InfoCollection(Region):
+    handlers = {}
 
-    def present_dcstatus(self, artifact, state, session=None):
+
+class InfoRegion(Region):
+
+    def handle_dcstatus(self, obj, state, session=None):
         if not state:
-            rv = DCStatusUnknown(vars(artifact))
+            rv = DCStatusUnknown(vars(obj))
         elif state[1] == "down":
-            rv = DCStatusSaidDown(vars(artifact))
+            rv = DCStatusSaidDown(vars(obj))
         elif state[1] == "up":
-            rv = DCStatusSaidUp(vars(artifact))
+            rv = DCStatusSaidUp(vars(obj))
         else:
-            rv = DCStatusUnknown(vars(artifact))
+            rv = DCStatusUnknown(vars(obj))
 
-        return self.load_facet(rv, session)
+        return rv
 
-    presenters = {DCStatus: present_dcstatus}
+    handlers = {DCStatus: handle_dcstatus}
 
 
-class HostCollection(Region):
+class PathsRegion(Region):
 
-    def present_host(self, artifact, state, session=None):
+    def handle_dict(self, obj, state=None, session=None):
+        return Facet(obj)
+
+    handlers = {dict: handle_dict}
+
+class ItemsRegion(Region):
+
+    def handle_host(self, artifact, state, session=None):
         try:
             value = state[1]
             facet = {
@@ -127,41 +138,35 @@ class HostCollection(Region):
             Link("parent", "/organisation",
                  artifact.organisation.name, "get", [])
         ]
-        return self.load_facet(facet(item), session)
+        return facet(item)
 
-    presenters = {Host: present_host}
+    handlers = {Host: handle_host}
+
+class OptionsRegion(Region):
+    pass
 
 # TODO: class HostControl
 
 class Page(object):
 
     def __init__(self):
-        self.regions = [
-            InfoCollection([
+        self.info = InfoRegion([
                 VersionsAreVisible().name("versions")
             ]).name("info")
-        ]
+        self.paths = PathsRegion().name("paths")
+        self.items = ItemsRegion().name("items")
+        self.options = OptionsRegion().name("options")
 
-    def push(self, artifact, state=None):
-        for region in self.regions:
-            widget = region.present(artifact, state)
-            if widget:
-                region.append(widget)
+    def termination(self, info=None, paths=None, items=None, options=None):
+        for region, size in ((self.info, info), (self.paths, paths),
+                             (self.items, items), (self.options, options)):
 
-    def dump(self):
-        return [(region.name, OrderedDict([(widget.name, widget)
-                for widget in region]))
-                for region in self.regions]
+            for n, facet in enumerate(region):
+                size = size if size is not None else len(region)
+                try:
+                    facet.name("{:05}_{:05}".format(n + 1, size))
+                except TypeError:
+                    continue
 
-
-class HostsPage(Page):
-
-    def __init__(self):
-        self.regions = [
-            InfoCollection([
-                VersionsAreVisible().name("versions")
-            ]).name("info"),
-            HostCollection().name("items"),
-            #HostControl().name("actions"),
-        ]
-
+            yield (region.name,
+                   OrderedDict([(facet.name, facet) for facet in region]))

@@ -37,7 +37,6 @@ from cloudhands.common.schema import User
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
-from cloudhands.web.model import HostsPage
 from cloudhands.web.model import Page
 
 DFLT_PORT = 8080
@@ -78,7 +77,7 @@ def top_page(request):
         p.push(status, (state.fsm, state.name))
 
     rv = {"paths": paths(request)}
-    rv.update(dict(p.dump()))
+    rv.update(dict(p.termination()))
     return rv
 
 
@@ -98,13 +97,14 @@ def hosts_page(request):
     #hosts = con.session.query(Host).join(Touch).join(User).filter(
     #    User == user).all() # JVOs are containers for hosts
     hosts = con.session.query(Host).all()
-    p = HostsPage()
+    page = Page()
+    page.paths.push(paths(request))
     for h in hosts:
-        p.push(h)
-    # TODO: p.push(organisation)
-    rv = {"paths": paths(request)}
-    rv.update(dict(p.dump()))
-    return rv
+        page.items.push(h)
+
+    # TODO: Find organisations for user
+    # for o in organisations: page.options.push(o)
+    return dict(page.termination())
 
 
 def macauth_creds(request):
