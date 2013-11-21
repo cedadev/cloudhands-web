@@ -14,6 +14,7 @@ from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
 from pyramid.interfaces import IAuthenticationPolicy
+from pyramid.renderers import JSON
 from pyramid.security import authenticated_userid
 
 from pyramid_authstack import AuthenticationStackPolicy
@@ -30,6 +31,7 @@ from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Resource
+from cloudhands.common.schema import Serializable
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 #import cloudhands.common
@@ -53,6 +55,8 @@ def paths(request):
         for p, f in (
             ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
 
+def record_adapter(obj, request):
+    return obj.as_dict()
 
 def top_page(request):
     userId = authenticated_userid(request)
@@ -128,6 +132,10 @@ def wsgi_app():
     config.include("pyramid_chameleon")
     config.include("pyramid_persona")
 
+    hateoas = JSON(indent=4)
+    hateoas.add_adapter(Serializable, record_adapter)
+    config.add_renderer("hateoas", hateoas)
+
     config.add_route("top", "/")
     config.add_view(
         top_page, route_name="top", request_method="GET",
@@ -135,11 +143,11 @@ def wsgi_app():
 
     config.add_route("hosts", "/hosts")
     config.add_view(
-        top_page, route_name="hosts", request_method="GET",
-        renderer="json", accept="application/json", xhr=True)
-    config.add_view(
         hosts_page, route_name="hosts", request_method="GET",
-        renderer="cloudhands.web:templates/hosts.pt")
+        renderer="hateoas", accept="application/json", xhr=None)
+    #config.add_view(
+    #    hosts_page, route_name="hosts", request_method="GET",
+    #    renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(

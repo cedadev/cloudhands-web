@@ -9,7 +9,7 @@ import sqlite3
 import sys
 import uuid
 
-from cloudhands.burst.demo import BurstFixture
+from cloudhands.burst.test.fixtures import BurstFixture
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry

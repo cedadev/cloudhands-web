@@ -12,7 +12,7 @@ tal:attributes="
 id itemId
 "><td>${item['name']}</td>
 <td tal:content="python: 'running' if item['state'].name == 'up' else 'stopped'"></td>
-<td tal:content="python: item['ips'][0]"></td>
+<td tal:content="python: item['ips'][0] if item['ips'] else None"></td>
 <td><a tal:attributes="href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'))">Edit</a></td>
 </tr>
 </tbody>
