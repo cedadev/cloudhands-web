@@ -16,7 +16,7 @@ from cloudhands.common.types import NamedList
 import cloudhands.web
 
 
-Link = namedtuple("Link", ["rel", "typ", "ref"])
+Link = namedtuple("Link", ["rel", "typ", "ref", "method", "parameters"])
 
 class Facet(NamedDict):
 
@@ -117,16 +117,21 @@ class HostCollection(Region):
 
         resources = [r for i in artifact.changes for r in i.resources]
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
-        item["state"] = artifact.changes[-1].state
-        item["ips"] = [i.value for i in resources if isinstance(i, IPAddress)]
-        item["nodes"] = [i.name for i in resources if isinstance(i, Node)]
+        item["states"] = [artifact.changes[-1].state]
+        item["data"] = {
+            "nodes": [i.name for i in resources if isinstance(i, Node)],
+            "ips": [i.value for i in resources if isinstance(i, IPAddress)]
+        }
         item["_links"] = [
-            Link("self", "/host", artifact.uuid),
-            Link("parent", "/organisation", artifact.organisation.name)]
+            Link("self", "/host", artifact.uuid, "get", []),
+            Link("parent", "/organisation",
+                 artifact.organisation.name, "get", [])
+        ]
         return self.load_facet(facet(item), session)
 
     presenters = {Host: present_host}
 
+# TODO: class HostControl
 
 class Page(object):
 
@@ -157,5 +162,6 @@ class HostsPage(Page):
                 VersionsAreVisible().name("versions")
             ]).name("info"),
             HostCollection().name("items"),
+            #HostControl().name("actions"),
         ]
 

@@ -56,7 +56,12 @@ def paths(request):
             ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
 
 def record_adapter(obj, request):
-    return obj.as_dict()
+    rv = obj.as_dict()
+    try:
+        del rv["id"]
+    except KeyError:
+        pass
+    return rv
 
 def top_page(request):
     userId = authenticated_userid(request)
@@ -96,6 +101,7 @@ def hosts_page(request):
     p = HostsPage()
     for h in hosts:
         p.push(h)
+    # TODO: p.push(organisation)
     rv = {"paths": paths(request)}
     rv.update(dict(p.dump()))
     return rv
