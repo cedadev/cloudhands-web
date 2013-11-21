@@ -9,6 +9,7 @@ from math import log10
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Node
 
@@ -19,6 +20,7 @@ import cloudhands.web
 
 
 Link = namedtuple("Link", ["rel", "typ", "ref", "method", "parameters"])
+Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 class Facet(NamedDict):
 
@@ -47,7 +49,7 @@ class DCStatusSaidUp(Facet):
 class DCStatusSaidDown(Facet):
     pass
 
-
+# TODO: Tidy up
 class EmailIsUntrusted(Facet):
     pass
 
@@ -63,6 +65,21 @@ class EmailHasExpired(Facet):
 class EmailWasWithdrawn(Facet):
     pass
 
+
+class MembershipIsUntrusted(Facet):
+    pass
+
+
+class MembershipIsTrusted(Facet):
+    pass
+
+
+class MembershipHasExpired(Facet):
+    pass
+
+
+class MembershipWasWithdrawn(Facet):
+    pass
 
 class HostIsDown(Facet):
     pass
@@ -145,9 +162,34 @@ class ItemsRegion(Region):
     handlers = {Host: handle_host}
 
 class OptionsRegion(Region):
-    pass
 
-# TODO: class HostControl
+    def handle_membership(self, artifact, state, session=None):
+        try:
+            value = state[1]
+            facet = {
+                "granted": MembershipIsTrusted,
+                "expired": MembershipHasExpired,
+                "withdrawn": MembershipWasWithdrawn,
+            }.get(value, MembershipIsUntrusted)
+
+        except TypeError:
+            facet = MembershipIsUntrusted
+
+        item = {}
+        item["data"] = {
+            "role": artifact.role,
+            "organisation": artifact.organisation.name
+        }
+        item["_links"] = [
+            Link("collection", "/organisation",
+                 artifact.organisation.name, "post", [
+                Parameter("hostname", True, "", []),
+            ])
+        ]
+
+        return facet(item)
+
+    handlers = {Membership: handle_membership}
 
 class Page(object):
 

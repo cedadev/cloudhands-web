@@ -83,6 +83,7 @@ def top_page(request):
 
 
 def hosts_page(request):
+    log = logging.getLogger("cloudhands.web.hosts")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -94,6 +95,10 @@ def hosts_page(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
+    memberships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id == user.id).all()
+    log.info(memberships)
+
     # FIXME!
     #hosts = con.session.query(Host).join(Touch).join(User).filter(
     #    User == user).all() # JVOs are containers for hosts
@@ -102,6 +107,8 @@ def hosts_page(request):
     page.info.push(PathInfo(paths(request)))
     for h in hosts:
         page.items.push(h)
+    for m in memberships:
+        page.options.push(m)
 
     # TODO: Find organisations for user
     # for o in organisations: page.options.push(o)
