@@ -38,6 +38,7 @@ from cloudhands.common.schema import User
 import cloudhands.web
 from cloudhands.web import __version__
 from cloudhands.web.model import Page
+from cloudhands.web.model import PathInfo
 
 DFLT_PORT = 8080
 DFLT_DB = ":memory:"
@@ -98,7 +99,7 @@ def hosts_page(request):
     #    User == user).all() # JVOs are containers for hosts
     hosts = con.session.query(Host).all()
     page = Page()
-    page.paths.push(paths(request))
+    page.info.push(PathInfo(paths(request)))
     for h in hosts:
         page.items.push(h)
 

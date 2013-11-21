@@ -3,6 +3,8 @@
 
 from collections import OrderedDict
 from collections import namedtuple
+from math import ceil
+from math import log10
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
@@ -24,13 +26,15 @@ class Facet(NamedDict):
         return self
 
 
-class VersionsAreVisible(Facet):
+class VersionInfo(Facet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update({i.__name__: i.__version__
                     for i in [cloudhands.web, cloudhands.common]})
 
+class PathInfo(Facet):
+    pass
 
 class DCStatusUnknown(Facet):
     pass
@@ -103,15 +107,13 @@ class InfoRegion(Region):
 
         return rv
 
-    handlers = {DCStatus: handle_dcstatus}
+    def handle_pathinfo(self, obj, state=None, session=None):
+        return obj.name("paths")
 
+    handlers = {
+        PathInfo: handle_pathinfo,
+        DCStatus: handle_dcstatus}
 
-class PathsRegion(Region):
-
-    def handle_dict(self, obj, state=None, session=None):
-        return Facet(obj)
-
-    handlers = {dict: handle_dict}
 
 class ItemsRegion(Region):
 
@@ -151,20 +153,21 @@ class Page(object):
 
     def __init__(self):
         self.info = InfoRegion([
-                VersionsAreVisible().name("versions")
+                VersionInfo().name("versions"),
             ]).name("info")
-        self.paths = PathsRegion().name("paths")
         self.items = ItemsRegion().name("items")
         self.options = OptionsRegion().name("options")
 
     def termination(self, info=None, paths=None, items=None, options=None):
-        for region, size in ((self.info, info), (self.paths, paths),
-                             (self.items, items), (self.options, options)):
+        for region, size in ((self.info, info), (self.items, items),
+            (self.options, options)
+        ):
 
             for n, facet in enumerate(region):
                 size = size if size is not None else len(region)
                 try:
-                    facet.name("{:05}_{:05}".format(n + 1, size))
+                    template = "{{:0{0}}}_{{:0{0}}}".format(ceil(log10(size)))
+                    facet.name(template.format(n + 1, size))
                 except TypeError:
                     continue
 
