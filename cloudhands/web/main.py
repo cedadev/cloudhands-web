@@ -72,14 +72,14 @@ def top_page(request):
     status = con.session.query(
         DCStatus).join(Touch).order_by(Touch.at.desc()).first()
 
-    p = Page()
+    page = Page()
     if status:
         state = status.changes[-1].state
-        p.push(status, (state.fsm, state.name))
+        page.items.push(status, (state.fsm, state.name))
 
-    rv = {"paths": paths(request)}
-    rv.update(dict(p.termination()))
-    return rv
+    page.info.push(PathInfo(paths(request)))
+
+    return dict(page.termination())
 
 
 def hosts_page(request):

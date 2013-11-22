@@ -21,18 +21,23 @@ id itemId
 </section>
 <section>
 <ul>
-<li tal:repeat="option options.values()" >
+<li tal:repeat="option options.values()">
 <form class="pure-form"
 tal:define="link option['_links'][0]"
 tal:attributes="
 name string:${link.rel}_${link.method};
 method link.method;
-action '#';
+action string:${link.typ}/${link.ref};
 id string:option_${repeat['option'].index}">
 <fieldset>
 <legend>Legend</legend>
-<div tal:repeat="field link.parameters" >
-<label tal:content="python:field.name.capitalize()"></label>
+<div tal:omit-tag="" tal:repeat="field link.parameters" >
+<label tal:attributes="for field.name">
+<input tal:attributes="
+id field.name;
+value field.name;
+required python:'required' if field.required else None" />
+</label>
 </div>
 <button type="submit" class="pure-button pure-button-primary">Button</button>
 </fieldset>
