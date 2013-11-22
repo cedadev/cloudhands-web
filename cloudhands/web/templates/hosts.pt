@@ -1,6 +1,6 @@
 <html metal:use-macro="load: base.pt" lang="en">
 <div metal:fill-slot="summary">
-<section>
+<section id="items">
 <h1>Virtual machines</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
@@ -19,7 +19,7 @@ id itemId
 </tbody>
 </table>
 </section>
-<section>
+<section id="options">
 <ul>
 <li tal:repeat="option options.values()">
 <form class="pure-form"
@@ -30,7 +30,7 @@ method link.method;
 action string:${link.typ}/${link.ref};
 id string:option_${repeat['option'].index}">
 <fieldset>
-<legend>Legend</legend>
+<legend>${link.name}</legend>
 <div tal:omit-tag="" tal:repeat="field link.parameters" >
 <label tal:attributes="for field.name">
 <input tal:attributes="
@@ -39,7 +39,7 @@ value field.name;
 required python:'required' if field.required else None" />
 </label>
 </div>
-<button type="submit" class="pure-button pure-button-primary">Button</button>
+<button type="submit" class="pure-button pure-button-primary">${link.action}</button>
 </fieldset>
 </form>
 </li>

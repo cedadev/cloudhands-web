@@ -19,7 +19,8 @@ from cloudhands.common.types import NamedList
 import cloudhands.web
 
 
-Link = namedtuple("Link", ["rel", "typ", "ref", "method", "parameters"])
+Link = namedtuple(
+    "Link", ["name", "rel", "typ", "ref", "method", "parameters", "action"])
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 class Facet(NamedDict):
@@ -153,9 +154,9 @@ class ItemsRegion(Region):
             "ips": [i.value for i in resources if isinstance(i, IPAddress)]
         }
         item["_links"] = [
-            Link("self", "/host", artifact.uuid, "get", []),
-            Link("parent", "/organisation",
-                 artifact.organisation.name, "get", [])
+            Link("Edit", "self", "/host", artifact.uuid, "get", [], "edit"),
+            Link("Settings", "parent", "/organisation",
+                 artifact.organisation.name, "get", [], "settings")
         ]
         return facet(item)
 
@@ -181,10 +182,10 @@ class OptionsRegion(Region):
             "organisation": artifact.organisation.name
         }
         item["_links"] = [
-            Link("collection", "/organisation",
+            Link("New host", "collection", "/organisation",
                  artifact.organisation.name, "post", [
                 Parameter("hostname", True, "", []),
-            ])
+            ], "Add")
         ]
 
         return facet(item)
