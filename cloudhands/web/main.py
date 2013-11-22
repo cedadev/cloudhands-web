@@ -110,8 +110,6 @@ def hosts_page(request):
     for m in memberships:
         page.options.push(m)
 
-    # TODO: Find organisations for user
-    # for o in organisations: page.options.push(o)
     return dict(page.termination())
 
 
@@ -156,12 +154,12 @@ def wsgi_app():
         renderer="cloudhands.web:templates/base.pt")
 
     config.add_route("hosts", "/hosts")
-    config.add_view(
-        hosts_page, route_name="hosts", request_method="GET",
-        renderer="hateoas", accept="application/json", xhr=None)
     #config.add_view(
     #    hosts_page, route_name="hosts", request_method="GET",
-    #    renderer="cloudhands.web:templates/hosts.pt")
+    #    renderer="hateoas", accept="application/json", xhr=None)
+    config.add_view(
+        hosts_page, route_name="hosts", request_method="GET",
+        renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(

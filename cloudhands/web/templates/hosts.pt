@@ -1,5 +1,6 @@
 <html metal:use-macro="load: base.pt" lang="en">
-<section metal:fill-slot="summary">
+<div metal:fill-slot="summary">
+<section>
 <h1>Virtual machines</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
@@ -11,12 +12,34 @@ tal:repeat="(itemId, item) items.items()"
 tal:attributes="
 id itemId
 "><td>${item['name']}</td>
-<td tal:content="python: 'running' if item['state'].name == 'up' else 'stopped'"></td>
-<td tal:content="python: item['ips'][0] if item['ips'] else None"></td>
+<td tal:content="python: 'running' if 'up' in [s.name for s in item.states] else 'stopped'"></td>
+<td tal:content="python: item.data['ips'][0] if item.data['ips'] else None"></td>
 <td><a tal:attributes="href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'))">Edit</a></td>
 </tr>
 </tbody>
 </table>
 </section>
+<section>
+<ul>
+<li tal:repeat="option options.values()" >
+<form class="pure-form"
+tal:define="link option['_links'][0]"
+tal:attributes="
+name string:${link.rel}_${link.method};
+method link.method;
+action '#';
+id string:option_${repeat['option'].index}">
+<fieldset>
+<legend>Legend</legend>
+<div tal:repeat="field link.parameters" >
+<label tal:content="python:field.name.capitalize()"></label>
+</div>
+<button type="submit" class="pure-button pure-button-primary">Button</button>
+</fieldset>
+</form>
+</li>
+</ul>
+</section>
+</div>
 </html>
 

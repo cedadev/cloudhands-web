@@ -6,7 +6,7 @@
 
 <!-- purecss.io -->
 <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.3.0/pure-min.css">
-<link rel="stylesheet" type="text/css" href="${paths.css}/site.css" media="screen" />
+<link rel="stylesheet" type="text/css" href="${info["paths"].css}/site.css" media="screen" />
 
 <!-- Persona authentication -->
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
