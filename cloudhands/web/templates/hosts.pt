@@ -14,7 +14,11 @@ id itemId
 "><td>${item['name']}</td>
 <td tal:content="python: 'running' if 'up' in [s.name for s in item.states] else 'stopped'"></td>
 <td tal:content="python: item.data['ips'][0] if item.data['ips'] else None"></td>
-<td><a tal:attributes="href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'))">Edit</a></td>
+<td><a class="pure-button" tal:repeat="link item['_links']" tal:attributes=
+"href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'));
+">
+<i class="icon-shopping-cart icon-large"></i>
+${link.action.capitalize()}</a></td>
 </tr>
 </tbody>
 </table>

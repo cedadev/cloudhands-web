@@ -154,6 +154,7 @@ class ItemsRegion(Region):
             "ips": [i.value for i in resources if isinstance(i, IPAddress)]
         }
         item["_links"] = [
+            # TODO: 'Start' or 'stop' actions
             Link("Edit", "self", "/host", artifact.uuid, "get", [], "edit"),
             Link("Settings", "parent", "/organisation",
                  artifact.organisation.name, "get", [], "settings")

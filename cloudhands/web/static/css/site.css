@@ -2,6 +2,15 @@
 padding: 1em;
 }
 
+nav {
+margin-left: 1em;
+margin-top: 5em;
+}
+
+#items {
+margin-left: 2em;
+}
+
 #options ul {
 list-style-type: none;
 }
