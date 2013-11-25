@@ -59,7 +59,7 @@ class WebFixture(object):
             now = datetime.datetime.utcnow()
             org = session.query(
                 Organisation).filter(Organisation.name == jvo).one()
-                
+
             requested = session.query(HostState).filter(
                 HostState.name == "requested").one()
             host = Host(
@@ -72,6 +72,3 @@ class WebFixture(object):
                 Touch(artifact=host, actor=user, state=requested, at=now))
             session.add(host)
             session.commit()
-
-
-

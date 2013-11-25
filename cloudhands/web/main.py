@@ -45,15 +45,18 @@ DFLT_DB = ":memory:"
 
 CRED_TABLE = {}
 
+
 def registered_connection():
     r = Registry()
     return r.connect(*next(iter(r.items)))
+
 
 def paths(request):
     return {p: os.path.dirname(request.static_url(
         "cloudhands.web:static/{}/{}".format(p, f)))
         for p, f in (
             ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
+
 
 def record_adapter(obj, request):
     rv = obj.as_dict()
@@ -62,6 +65,7 @@ def record_adapter(obj, request):
     except KeyError:
         pass
     return rv
+
 
 def top_page(request):
     userId = authenticated_userid(request)
@@ -90,7 +94,7 @@ def hosts_page(request):
 
     con = registered_connection()
     user = con.session.query(User).join(Touch).join(
-            EmailAddress).filter(EmailAddress.value == userId).first()
+        EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
         # TODO: create
         raise NotFound("User not found for {}".format(userId))

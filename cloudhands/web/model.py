@@ -23,6 +23,7 @@ Link = namedtuple(
     "Link", ["name", "rel", "typ", "ref", "method", "parameters", "action"])
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
+
 class Facet(NamedDict):
 
     def load(self, session=None):
@@ -36,8 +37,10 @@ class VersionInfo(Facet):
         self.update({i.__name__: i.__version__
                     for i in [cloudhands.web, cloudhands.common]})
 
+
 class PathInfo(Facet):
     pass
+
 
 class DCStatusUnknown(Facet):
     pass
@@ -49,6 +52,7 @@ class DCStatusSaidUp(Facet):
 
 class DCStatusSaidDown(Facet):
     pass
+
 
 # TODO: Tidy up
 class EmailIsUntrusted(Facet):
@@ -81,6 +85,7 @@ class MembershipHasExpired(Facet):
 
 class MembershipWasWithdrawn(Facet):
     pass
+
 
 class HostIsDown(Facet):
     pass
@@ -163,6 +168,7 @@ class ItemsRegion(Region):
 
     handlers = {Host: handle_host}
 
+
 class OptionsRegion(Region):
 
     def handle_membership(self, artifact, state, session=None):
@@ -183,28 +189,30 @@ class OptionsRegion(Region):
             "organisation": artifact.organisation.name
         }
         item["_links"] = [
-            Link("New host", "collection", "/organisation",
-                 artifact.organisation.name, "post", [
-                Parameter("hostname", True, "", []),
-            ], "Add")
+            Link(
+                "New host", "collection", "/organisation",
+                artifact.organisation.name, "post",
+                [
+                    Parameter("hostname", True, "", []),
+                ], "Add")
         ]
 
         return facet(item)
 
     handlers = {Membership: handle_membership}
 
+
 class Page(object):
 
     def __init__(self):
-        self.info = InfoRegion([
-                VersionInfo().name("versions"),
-            ]).name("info")
+        self.info = InfoRegion(
+            [VersionInfo().name("versions")]).name("info")
         self.items = ItemsRegion().name("items")
         self.options = OptionsRegion().name("options")
 
     def termination(self, info=None, paths=None, items=None, options=None):
-        for region, size in ((self.info, info), (self.items, items),
-            (self.options, options)
+        for region, size in (
+            (self.info, info), (self.items, items), (self.options, options)
         ):
 
             for n, facet in enumerate(region):
