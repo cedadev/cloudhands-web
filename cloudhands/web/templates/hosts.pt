@@ -31,7 +31,8 @@ ${link.action.capitalize()}</a></td>
 </tbody>
 </table>
 </section>
-<section id="options">
+</div>
+<section metal:fill-slot="detail" id="options">
 <ul>
 <li tal:repeat="option options.values()">
 <form class="pure-form"
@@ -57,5 +58,4 @@ required python:'required' if field.required else None" />
 </li>
 </ul>
 </section>
-</div>
 </html>

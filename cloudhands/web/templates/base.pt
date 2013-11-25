@@ -34,7 +34,7 @@
         </section>
     </div>
     <div class="pure-u-1-2">
-        <div class="pure-menu pure-menu-open pure-menu-horizontal">
+        <div id="helpmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
             <ul>
             <li class="pure-menu-disabled"><a href="#">Documentation</a></li>
             <li class="pure-menu-disabled"><a href="#">Contact</a></li>
