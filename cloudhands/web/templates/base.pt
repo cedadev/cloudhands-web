@@ -9,7 +9,7 @@
 <link rel="stylesheet" type="text/css" href="${info['paths'].css}/site.css" media="screen" />
 
 <!-- Font icons -->
-<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
+<link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
 
 <!-- Persona authentication -->
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
@@ -20,7 +20,7 @@
 <body>
 <div class="pure-g">
     <div class="pure-u-1-12">
-        <nav class="pure-menu pure-menu-open">
+        <nav metal:define-slot="nav" class="pure-menu pure-menu-open">
             <ul>
             <li class="pure-menu-heading" ><a href="/">JASMIN</a></li>
             <li><a href="#">Account</a></li>

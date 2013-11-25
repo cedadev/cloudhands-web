@@ -1,4 +1,12 @@
 <html metal:use-macro="load: base.pt" lang="en">
+<nav metal:fill-slot="nav" class="pure-menu pure-menu-open">
+    <ul>
+    <li class="pure-menu-heading" ><a href="/">JASMIN</a></li>
+    <li><a href="#">Account</a></li>
+    <li><a href="#">JVO</a></li>
+    <li class="pure-menu-selected" ><a href="/hosts">VMs</a></li>
+    </ul>
+</nav>
 <div metal:fill-slot="summary">
 <section id="items">
 <h1>Virtual machines</h1>
@@ -17,7 +25,7 @@ id itemId
 <td><a class="pure-button" tal:repeat="link item['_links']" tal:attributes=
 "href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'));
 ">
-<i class="icon-shopping-cart icon-large"></i>
+<i tal:condition="link.action == 'settings'" class="fa fa-cog"></i>
 ${link.action.capitalize()}</a></td>
 </tr>
 </tbody>
@@ -51,4 +59,3 @@ required python:'required' if field.required else None" />
 </section>
 </div>
 </html>
-
