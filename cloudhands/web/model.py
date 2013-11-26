@@ -88,21 +88,12 @@ class MembershipWasWithdrawn(Facet):
 
 
 class HostFacet(Facet):
-    parameters = [
-        Parameter("hostname", True, "", [])
-    ]
 
-
-class HostIsDown(HostFacet):
-    pass
-
-
-class HostIsUnknown(HostFacet):
-    pass
-
-
-class HostIsUp(HostFacet):
-    pass
+    @property
+    def parameters(self):
+        return [
+            Parameter("hostname", True, "", [])
+        ]
 
 
 class Region(NamedList):
@@ -110,10 +101,10 @@ class Region(NamedList):
     def base_handler(*args, **kwargs):
         return None
 
-    def push(self, obj, state=None, session=None):
+    def push(self, obj, session=None):
         rv = None
         handler = self.handlers.get(type(obj), self.base_handler)
-        facet = handler(self, obj, state, session)
+        facet = handler(self, obj, session)
         if facet:
             rv = facet.load(session)
             self.append(rv)
@@ -124,19 +115,10 @@ class Region(NamedList):
 
 class InfoRegion(Region):
 
-    def handle_dcstatus(self, obj, state, session=None):
-        if not state:
-            rv = DCStatusUnknown(vars(obj))
-        elif state[1] == "down":
-            rv = DCStatusSaidDown(vars(obj))
-        elif state[1] == "up":
-            rv = DCStatusSaidUp(vars(obj))
-        else:
-            rv = DCStatusUnknown(vars(obj))
+    def handle_dcstatus(self, obj, session=None):
+        return DCStatusUnknown(vars(obj))
 
-        return rv
-
-    def handle_pathinfo(self, obj, state=None, session=None):
+    def handle_pathinfo(self, obj, session=None):
         return obj.name("paths")
 
     handlers = {
@@ -147,16 +129,6 @@ class InfoRegion(Region):
 class ItemsRegion(Region):
 
     def handle_host(self, artifact, state, session=None):
-        try:
-            value = state[1]
-            facet = {
-                "down": HostIsDown,
-                "up": HostIsUp,
-            }.get(value, HostIsUnknown)
-
-        except TypeError:
-            facet = HostIsUnknown
-
         resources = [r for i in artifact.changes for r in i.resources]
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
         item["states"] = [artifact.changes[-1].state]
@@ -170,38 +142,28 @@ class ItemsRegion(Region):
             Link("Settings", "parent", "/organisation/{}",
                  artifact.organisation.name, "get", [], "settings")
         ]
-        return facet(item)
+        return HostFacet(item)
 
     handlers = {Host: handle_host}
 
 
 class OptionsRegion(Region):
 
-    def handle_membership(self, artifact, state, session=None):
-        try:
-            value = state[1]
-            facet = {
-                "granted": MembershipIsTrusted,
-                "expired": MembershipHasExpired,
-                "withdrawn": MembershipWasWithdrawn,
-            }.get(value, MembershipIsUntrusted)
-
-        except TypeError:
-            facet = MembershipIsUntrusted
-
+    def handle_membership(self, artifact, session=None):
         item = {}
         item["data"] = {
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
+        hf = HostFacet(organisation=artifact.organisation.name).load(session)
         item["_links"] = [
             Link(
                 artifact.organisation.name, "collection",
                 "/organisation/{}/hosts", artifact.organisation.name, "post",
-                HostFacet.parameters, "Add")
+                hf.parameters, "Add")
         ]
 
-        return facet(item)
+        return MembershipIsUntrusted(item)
 
     handlers = {Membership: handle_membership}
 

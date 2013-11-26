@@ -18,7 +18,8 @@
 <tr
 tal:repeat="(itemId, item) items.items()"
 tal:attributes="
-id itemId
+id itemId;
+class python:' '.join('{0.fsm} {0.name}'.format(s) for s in item['states']);
 ">
 <td tal:content="python: [i.ref for i in item['_links'] if i.rel == 'parent'][0]"></td>
 <td>${item['name']}</td>

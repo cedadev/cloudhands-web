@@ -82,8 +82,7 @@ def top_page(request):
 
     page = Page()
     if status:
-        state = status.changes[-1].state
-        page.items.push(status, (state.fsm, state.name))
+        page.items.push(status)
 
     page.info.push(PathInfo(paths(request)))
 
