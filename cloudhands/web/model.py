@@ -160,8 +160,8 @@ class ItemsRegion(Region):
         }
         item["_links"] = [
             # TODO: 'Start' or 'stop' actions
-            Link("Edit", "self", "/host", artifact.uuid, "get", [], "edit"),
-            Link("Settings", "parent", "/organisation",
+            Link("Edit", "self", "/host/{}", artifact.uuid, "get", [], "edit"),
+            Link("Settings", "parent", "/organisation/{}",
                  artifact.organisation.name, "get", [], "settings")
         ]
         return facet(item)
@@ -190,7 +190,7 @@ class OptionsRegion(Region):
         }
         item["_links"] = [
             Link(
-                "New host", "collection", "/organisation",
+                "New host", "collection", "/organisation/{}/hosts",
                 artifact.organisation.name, "post",
                 [
                     Parameter("hostname", True, "", []),

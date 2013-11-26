@@ -22,9 +22,8 @@ id itemId
 "><td>${item['name']}</td>
 <td tal:content="python: 'running' if 'up' in [s.name for s in item.states] else 'stopped'"></td>
 <td tal:content="python: item.data['ips'][0] if item.data['ips'] else None"></td>
-<td><a class="pure-button" tal:repeat="link item['_links']" tal:attributes=
-"href python: '/'.join(getattr([i for i in item['_links'] if i.rel == 'self'][0], v) for v in ('typ', 'ref'));
-">
+<td><a class="pure-button" tal:repeat="link item['_links']"
+tal:attributes="href link.typ.format(link.ref)">
 <i tal:condition="link.action == 'settings'" class="fa fa-cog"></i>
 ${link.action.capitalize()}</a></td>
 </tr>
@@ -40,14 +39,15 @@ tal:define="link option['_links'][0]"
 tal:attributes="
 name string:${link.rel}_${link.method};
 method link.method;
-action string:${link.typ}/${link.ref};
+action link.typ.format(link.ref);
 id string:option_${repeat['option'].index}">
 <fieldset>
 <legend>${link.name}</legend>
 <div tal:omit-tag="" tal:repeat="field link.parameters" >
 <label tal:attributes="for field.name">
 <input tal:attributes="
-id field.name;
+id string:${link.ref}_${link.method}_${field.name};
+name field.name;
 value field.name;
 required python:'required' if field.required else None" />
 </label>

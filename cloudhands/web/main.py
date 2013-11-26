@@ -2,17 +2,20 @@
 #   encoding: UTF-8
 
 import argparse
+import datetime
 import logging
 import os.path
 import platform
 import sqlite3
 import sys
+import uuid
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
+from pyramid.httpexceptions import HTTPFound
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.renderers import JSON
 from pyramid.security import authenticated_userid
@@ -25,6 +28,7 @@ from waitress import serve
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
@@ -117,6 +121,44 @@ def hosts_page(request):
     return dict(page.termination())
 
 
+def organisation_hosts_add(request):
+    log = logging.getLogger("cloudhands.web.organisation")
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        # TODO: create
+        raise NotFound("User not found for {}".format(userId))
+
+    oN = request.matchdict["org_name"]
+    org = con.session.query(Organisation).filter(
+        Organisation.name == oN).first()
+    if not org:
+        raise NotFound("Organisation '{}' not found".format(oN))
+
+    data = request.POST
+    log.info(data)
+    now = datetime.datetime.utcnow()
+    requested = con.session.query(HostState).filter(
+        HostState.name == "requested").one()
+    host = Host(
+        uuid=uuid.uuid4().hex,
+        model=cloudhands.common.__version__,
+        organisation=org,
+        name=data["hostname"]
+        )
+    host.changes.append(
+        Touch(artifact=host, actor=user, state=requested, at=now))
+    log.info(host)
+    con.session.add(host)
+    con.session.commit()
+    raise HTTPFound(location=request.route_url("hosts"))
+
+
 def macauth_creds(request):
     userId = authenticated_userid(request)
     if userId is None:
@@ -163,6 +205,12 @@ def wsgi_app():
     #    renderer="hateoas", accept="application/json", xhr=None)
     config.add_view(
         hosts_page, route_name="hosts", request_method="GET",
+        renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
+    config.add_view(
+        organisation_hosts_add,
+        route_name="organisation_hosts", request_method="POST",
         renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("creds", "/creds")
