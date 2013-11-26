@@ -87,15 +87,21 @@ class MembershipWasWithdrawn(Facet):
     pass
 
 
-class HostIsDown(Facet):
+class HostFacet(Facet):
+    parameters = [
+        Parameter("hostname", True, "", [])
+    ]
+
+
+class HostIsDown(HostFacet):
     pass
 
 
-class HostIsUnknown(Facet):
+class HostIsUnknown(HostFacet):
     pass
 
 
-class HostIsUp(Facet):
+class HostIsUp(HostFacet):
     pass
 
 
@@ -192,9 +198,7 @@ class OptionsRegion(Region):
             Link(
                 "New host", "collection", "/organisation/{}/hosts",
                 artifact.organisation.name, "post",
-                [
-                    Parameter("hostname", True, "", []),
-                ], "Add")
+                HostFacet.parameters, "Add")
         ]
 
         return facet(item)
