@@ -12,7 +12,7 @@
 <h1>Virtual machines</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
-<tr><th>Organisation</th><th>Host</th><th>Status</th><th>IP</th><th>Actions</th></tr>
+<tr><th>Organisation</th><th>Host</th><th>IP</th><th>Actions</th></tr>
 </thead>
 <tbody>
 <tr
@@ -23,8 +23,10 @@ class python:' '.join('{0.fsm} {0.name}'.format(s) for s in item['states']);
 ">
 <td tal:content="python: [i.ref for i in item['_links'] if i.rel == 'parent'][0]"></td>
 <td>${item['name']}</td>
-<td tal:content="python: 'running' if 'up' in [s.name for s in item.states] else 'stopped'"></td>
-<td tal:content="python: item.data['ips'][0] if item.data['ips'] else None"></td>
+<td tal:switch="python: [s.name for s in item['states'] if s.fsm == 'host'][0]">
+<i tal:case="'requested'" class="fa fa-spinner fa-spin"></i>
+<p tal:omit-tag="" tal:content="python: item.data['ips'][0] if item.data['ips'] else None">
+</td>
 <td><a class="pure-button" tal:repeat="link item['_links']"
 tal:attributes="href link.typ.format(link.ref)">
 <i tal:condition="link.action == 'settings'" class="fa fa-cog"></i>

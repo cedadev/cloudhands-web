@@ -152,12 +152,23 @@ class ItemsRegion(Region):
             "nodes": [i.name for i in resources if isinstance(i, Node)],
             "ips": [i.value for i in resources if isinstance(i, IPAddress)]
         }
-        item["_links"] = [
-            # TODO: 'Start' or 'stop' actions
-            Link("Edit", "self", "/host/{}", artifact.uuid, "get", [], "edit"),
+        
+        item["_links"] = []
+
+        state = item["states"][0].name
+        item["_links"] = []
+
+        if state == "up":
+            item["_links"].append(
+                Link("Send", "self", "/host/{}/commands", artifact.uuid,
+                "post", [], "stop"))
+        elif state == "down":
+            item["_links"].append(
+                Link("Send", "self", "/host/{}/commands", artifact.uuid,
+                "post", [], "start"))
+        item["_links"].append(
             Link("Settings", "parent", "/organisation/{}",
-                 artifact.organisation.name, "get", [], "settings")
-        ]
+            artifact.organisation.name, "get", [], "settings"))
         return HostData(item)
 
     handlers = {Host: handle_host}

@@ -14,3 +14,13 @@ margin-left: 2em;
 #options ul {
 list-style-type: none;
 }
+
+.host.down {
+font-weight: lighter;
+background-color: gainsboro;
+}
+
+.host.requested {
+font-weight: lighter;
+background-color: gainsboro;
+}
