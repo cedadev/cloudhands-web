@@ -19,8 +19,8 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
-from cloudhands.web.model import Facet
-from cloudhands.web.model import HostFacet
+from cloudhands.web.model import Fragment
+from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
 from cloudhands.web.model import InfoRegion
 from cloudhands.web.model import EmailIsUntrusted
@@ -29,20 +29,55 @@ from cloudhands.web.model import EmailHasExpired
 from cloudhands.web.model import EmailWasWithdrawn
 
 
-class TestHostFacet(unittest.TestCase):
+class TestHostData(unittest.TestCase):
 
     def test_host_validation_mandatory(self):
-        h = HostFacet()
+        h = HostData()
         self.assertTrue(h.invalid)
-        self.assertTrue(any(i in h.invalid if i.name == "hostname"))
+        self.assertTrue(any(i for i in h.invalid if i.name == "hostname"))
         
-        h = HostFacet(hostname="goodname")
+        h = HostData(hostname="goodname")
+        self.assertTrue(h.invalid)
+    
+        h = HostData(hostname="goodname", organisation="nodeparent")
         self.assertFalse(h.invalid)
     
     def test_hostname_validation_length(self):
-        h = HostFacet(hostname="a" * (Host.name.type.length + 1))
+        h = HostData(
+            organisation="nodeparent",
+            hostname="a" * (Host.name.type.length + 1))
         self.assertTrue(h.invalid)
-    
+
+        h = HostData(organisation="nodeparent",hostname="a" * 7)
+        self.assertTrue(h.invalid)
+ 
+        h = HostData(organisation="nodeparent",hostname="a" * 8)
+        self.assertFalse(h.invalid)
+
+        h = HostData(
+            organisation="nodeparent",
+            hostname="a" * Host.name.type.length)
+        self.assertFalse(h.invalid)
+
+
+    def test_organisation_validation_length(self):
+        h = HostData(
+            hostname="hostname",
+            organisation="a" * (Organisation.name.type.length + 1))
+        self.assertTrue(h.invalid)
+
+        h = HostData(hostname="hostname", organisation="a" * 5)
+        self.assertTrue(h.invalid)
+ 
+        h = HostData(hostname="hostname", organisation="a" * 7)
+        self.assertFalse(h.invalid)
+
+        h = HostData(
+            hostname="hostname",
+            organisation="a" * Organisation.name.type.length)
+        self.assertFalse(h.invalid)
+
+
 class TestRegion(unittest.TestCase):
 
     def test_pushed_region_returns_unnamed_dictionary(self):
@@ -82,7 +117,7 @@ class TestPage(unittest.TestCase):
         for i in range(n):
             facet = page.info.push(status, ("resource", "up"))
 
-        self.assertTrue(all(isinstance(i, Facet) for i in page.info))
+        self.assertTrue(all(isinstance(i, Fragment) for i in page.info))
         output = dict(page.termination())
         names = {i.name for i in page.info}
         self.assertEqual(n + 1, len(names))  # Version information is in info

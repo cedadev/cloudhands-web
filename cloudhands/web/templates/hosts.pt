@@ -37,7 +37,7 @@ ${link.action.capitalize()}</a></td>
 <section metal:fill-slot="detail" id="options">
 <ul>
 <li tal:repeat="option options.values()">
-<form class="pure-form"
+<form class="pure-form pure-form-aligned"
 tal:define="link option['_links'][0]"
 tal:attributes="
 name string:${link.rel}_${link.method};
@@ -52,7 +52,8 @@ id string:option_${repeat['option'].index}">
 id string:${link.ref}_${link.method}_${field.name};
 name field.name;
 value field.name;
-required python:'required' if field.required else None" />
+required python:'required' if field.required else None;
+type python:'hidden' if field.name in ('organisation,') else 'text';"/>
 </label>
 </div>
 <button type="submit" class="pure-button pure-button-primary">${link.action}</button>

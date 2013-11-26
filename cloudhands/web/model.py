@@ -25,7 +25,7 @@ Link = namedtuple(
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 
-class Facet(NamedDict):
+class Fragment(NamedDict):
 
     @property
     def invalid(self):
@@ -43,7 +43,7 @@ class Facet(NamedDict):
         return self
 
 
-class VersionInfo(Facet):
+class VersionInfo(Fragment):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,61 +51,62 @@ class VersionInfo(Facet):
                     for i in [cloudhands.web, cloudhands.common]})
 
 
-class PathInfo(Facet):
+class PathInfo(Fragment):
     pass
 
 
-class DCStatusUnknown(Facet):
+class DCStatusUnknown(Fragment):
     pass
 
 
-class DCStatusSaidUp(Facet):
+class DCStatusSaidUp(Fragment):
     pass
 
 
-class DCStatusSaidDown(Facet):
+class DCStatusSaidDown(Fragment):
     pass
 
 
 # TODO: Tidy up
-class EmailIsUntrusted(Facet):
+class EmailIsUntrusted(Fragment):
     pass
 
 
-class EmailIsTrusted(Facet):
+class EmailIsTrusted(Fragment):
     pass
 
 
-class EmailHasExpired(Facet):
+class EmailHasExpired(Fragment):
     pass
 
 
-class EmailWasWithdrawn(Facet):
+class EmailWasWithdrawn(Fragment):
     pass
 
 
-class MembershipIsUntrusted(Facet):
+class MembershipIsUntrusted(Fragment):
     pass
 
 
-class MembershipIsTrusted(Facet):
+class MembershipIsTrusted(Fragment):
     pass
 
 
-class MembershipHasExpired(Facet):
+class MembershipHasExpired(Fragment):
     pass
 
 
-class MembershipWasWithdrawn(Facet):
+class MembershipWasWithdrawn(Fragment):
     pass
 
 
-class HostFacet(Facet):
+class HostData(Fragment):
 
     @property
     def parameters(self):
         return [
-            Parameter("hostname", True, re.compile(".*"), [])
+            Parameter("hostname", True, re.compile("\\w{8,128}$"), []),
+            Parameter("organisation", True, re.compile("\\w{6,64}$"), [])
         ]
 
 
@@ -155,7 +156,7 @@ class ItemsRegion(Region):
             Link("Settings", "parent", "/organisation/{}",
                  artifact.organisation.name, "get", [], "settings")
         ]
-        return HostFacet(item)
+        return HostData(item)
 
     handlers = {Host: handle_host}
 
@@ -168,7 +169,7 @@ class OptionsRegion(Region):
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
-        hf = HostFacet(organisation=artifact.organisation.name).load(session)
+        hf = HostData(organisation=artifact.organisation.name).load(session)
         item["_links"] = [
             Link(
                 artifact.organisation.name, "collection",
