@@ -12,14 +12,16 @@
 <h1>Virtual machines</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
-<tr><th>Host</th><th>Status</th><th>IP</th><th>Actions</th></tr>
+<tr><th>Organisation</th><th>Host</th><th>Status</th><th>IP</th><th>Actions</th></tr>
 </thead>
 <tbody>
 <tr
 tal:repeat="(itemId, item) items.items()"
 tal:attributes="
 id itemId
-"><td>${item['name']}</td>
+">
+<td tal:content="python: [i.ref for i in item['_links'] if i.rel == 'parent'][0]"></td>
+<td>${item['name']}</td>
 <td tal:content="python: 'running' if 'up' in [s.name for s in item.states] else 'stopped'"></td>
 <td tal:content="python: item.data['ips'][0] if item.data['ips'] else None"></td>
 <td><a class="pure-button" tal:repeat="link item['_links']"

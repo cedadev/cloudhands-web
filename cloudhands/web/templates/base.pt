@@ -29,11 +29,11 @@
             </ul>
         </nav>
     </div>
-    <div class="pure-u-5-12">
+    <div class="pure-u-7-12">
         <section metal:define-slot="summary">
         </section>
     </div>
-    <div class="pure-u-1-2">
+    <div class="pure-u-1-3">
         <div id="helpmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
             <ul>
             <li class="pure-menu-disabled"><a href="#">Documentation</a></li>

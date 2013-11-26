@@ -196,8 +196,8 @@ class OptionsRegion(Region):
         }
         item["_links"] = [
             Link(
-                "New host", "collection", "/organisation/{}/hosts",
-                artifact.organisation.name, "post",
+                artifact.organisation.name, "collection",
+                "/organisation/{}/hosts", artifact.organisation.name, "post",
                 HostFacet.parameters, "Add")
         ]
 
