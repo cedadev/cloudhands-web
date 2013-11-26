@@ -19,18 +19,18 @@ class WebFixture(object):
 
     nodes = [
         ("METAFOR", "portal", "up", "130.246.184.156"),
-        ("METAFOR", "worker 01", "up", "192.168.1.3"),
-        ("METAFOR", "worker 02", "up", "192.168.1.4"),
-        ("METAFOR", "worker 03", "down", "192.168.1.5"),
-        ("METAFOR", "worker 04", "down", "192.168.1.6"),
-        ("METAFOR", "worker 05", "up", "192.168.1.7"),
-        ("METAFOR", "worker 06", "up", "192.168.1.8"),
-        ("METAFOR", "worker 07", "up", "192.168.1.9"),
-        ("METAFOR", "worker 08", "up", "192.168.1.10"),
-        ("METAFOR", "worker 09", "up", "192.168.1.11"),
-        ("METAFOR", "worker 10", "down", "192.168.1.12"),
-        ("METAFOR", "worker 11", "up", "192.168.1.13"),
-        ("METAFOR", "worker 12", "up", "192.168.1.14"),
+        ("METAFOR", "worker_01", "up", "192.168.1.3"),
+        ("METAFOR", "worker_02", "up", "192.168.1.4"),
+        ("METAFOR", "worker_03", "down", "192.168.1.5"),
+        ("METAFOR", "worker_04", "down", "192.168.1.6"),
+        ("METAFOR", "worker_05", "up", "192.168.1.7"),
+        ("METAFOR", "worker_06", "up", "192.168.1.8"),
+        ("METAFOR", "worker_07", "up", "192.168.1.9"),
+        ("METAFOR", "worker_08", "up", "192.168.1.10"),
+        ("METAFOR", "worker_09", "up", "192.168.1.11"),
+        ("METAFOR", "worker_10", "down", "192.168.1.12"),
+        ("METAFOR", "worker_11", "up", "192.168.1.13"),
+        ("METAFOR", "worker_12", "up", "192.168.1.14"),
     ]
 
     def demo_email(req=None):

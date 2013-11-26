@@ -6,6 +6,7 @@ import datetime
 import logging
 import os.path
 import platform
+import re
 import sqlite3
 import sys
 import uuid
@@ -15,6 +16,7 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPFound
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.renderers import JSON
@@ -41,6 +43,7 @@ from cloudhands.common.schema import User
 #import cloudhands.common
 import cloudhands.web
 from cloudhands.web import __version__
+from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
 from cloudhands.web.model import PathInfo
 
@@ -60,6 +63,10 @@ def paths(request):
         "cloudhands.web:static/{}/{}".format(p, f)))
         for p, f in (
             ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
+
+
+def regex_adapter(obj, request):
+    return obj.pattern
 
 
 def record_adapter(obj, request):
@@ -133,14 +140,20 @@ def organisation_hosts_add(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
+    data = HostData(request.POST)
+    if data.invalid:
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
     oN = request.matchdict["org_name"]
+    if data["organisation"] != oN:
+        raise HTTPBadRequest("Mismatched organisation field")
+
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
     if not org:
         raise NotFound("Organisation '{}' not found".format(oN))
 
-    data = request.POST
-    log.info(data)
     now = datetime.datetime.utcnow()
     requested = con.session.query(HostState).filter(
         HostState.name == "requested").one()
@@ -190,6 +203,7 @@ def wsgi_app():
     config.include("pyramid_persona")
 
     hateoas = JSON(indent=4)
+    hateoas.add_adapter(type(re.compile("")), regex_adapter)
     hateoas.add_adapter(Serializable, record_adapter)
     config.add_renderer("hateoas", hateoas)
 

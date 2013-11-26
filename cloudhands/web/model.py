@@ -106,7 +106,9 @@ class HostData(Fragment):
     def parameters(self):
         return [
             Parameter("hostname", True, re.compile("\\w{8,128}$"), []),
-            Parameter("organisation", True, re.compile("\\w{6,64}$"), [])
+            Parameter(
+                "organisation", True, re.compile("\\w{6,64}$"),
+                [self["organisation"]] if "organisation" in self else [])
         ]
 
 
