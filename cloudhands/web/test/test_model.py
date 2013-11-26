@@ -20,6 +20,7 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 from cloudhands.web.model import Facet
+from cloudhands.web.model import HostFacet
 from cloudhands.web.model import Page
 from cloudhands.web.model import InfoRegion
 from cloudhands.web.model import EmailIsUntrusted
@@ -28,6 +29,20 @@ from cloudhands.web.model import EmailHasExpired
 from cloudhands.web.model import EmailWasWithdrawn
 
 
+class TestHostFacet(unittest.TestCase):
+
+    def test_host_validation_mandatory(self):
+        h = HostFacet()
+        self.assertTrue(h.invalid)
+        self.assertTrue(any(i in h.invalid if i.name == "hostname"))
+        
+        h = HostFacet(hostname="goodname")
+        self.assertFalse(h.invalid)
+    
+    def test_hostname_validation_length(self):
+        h = HostFacet(hostname="a" * (Host.name.type.length + 1))
+        self.assertTrue(h.invalid)
+    
 class TestRegion(unittest.TestCase):
 
     def test_pushed_region_returns_unnamed_dictionary(self):

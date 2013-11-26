@@ -5,6 +5,7 @@ from collections import OrderedDict
 from collections import namedtuple
 from math import ceil
 from math import log10
+import re
 
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
@@ -25,6 +26,18 @@ Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 
 class Facet(NamedDict):
+
+    @property
+    def invalid(self):
+        missing = [i for i in self.parameters
+                   if i.required and i.name not in self]
+        return missing or [
+            i for i in self.parameters
+            if i.name in self and not i.regex.match(self[i.name])]
+
+    @property
+    def parameters(self):
+        return []
 
     def load(self, session=None):
         return self
@@ -92,7 +105,7 @@ class HostFacet(Facet):
     @property
     def parameters(self):
         return [
-            Parameter("hostname", True, "", [])
+            Parameter("hostname", True, re.compile(".*"), [])
         ]
 
 
