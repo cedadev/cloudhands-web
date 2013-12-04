@@ -8,10 +8,11 @@ import uuid
 import cloudhands.common
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
-from cloudhands.common.tricks import create_user_grant_email_membership
+from cloudhands.common.tricks import create_user_from_email
 from cloudhands.common.tricks import handle_from_email
 
 
@@ -47,9 +48,14 @@ class WebFixture(object):
 
     def grant_user_membership(session):
         org = session.query(Organisation).one()  # FIXME
+        invitation = Membership(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            role="user")
         handle = handle_from_email(WebFixture.demo_email())
-        return (create_user_grant_email_membership(
-            session, org, WebFixture.demo_email(), handle) or
+        return (create_user_from_email(
+            session, WebFixture.demo_email(), handle, invitation) or
             session.query(User).filter(User.handle == handle).one())
 
     def load_hosts_for_user(session, user):
