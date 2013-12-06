@@ -31,6 +31,15 @@ ldap_attributes = {
     "sshPublicKey": True,
 }
 
+ldap_types = {
+    "cn": "ID",
+    "gecos": "TEXT",
+    "uid": "KEYWORD",
+    "uidNumber": "NUMERIC",
+    "gidNumber": "KEYWORD",
+    "sshPublicKey": "STORED",
+}
+
 def main(args):
     rv = 0
 
