@@ -41,6 +41,8 @@ setup(
         "pyramid_macauth>=0.3.0",
         "pyramid-persona>=1.5",
         "waitress>=0.8.7",
+        "python3-ldap>=0.6.7",
+        "Whoosh>=2.5.5",
         ],
     entry_points={
         "console_scripts": [
