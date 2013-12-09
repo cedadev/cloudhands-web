@@ -22,7 +22,6 @@ ldapsearch -x -H ldap://homer.esc.rl.ac.uk -s sub -b
 """
 
 DFLT_IX = "cloudhands.wsh"
-DFLT_IVAL_S = 1800
 
 ldap_search = {
     "host": "homer.esc.rl.ac.uk",
@@ -48,14 +47,9 @@ ldap_types = {
     "sshPublicKey": whoosh.fields.STORED(),
 }
 
-def main(args):
-    rv = 0
 
-    try:
-        os.mkdir(args.index)
-    except OSError:
-        pass
-
+def index(args, loop=None):
+    log = logging.getLogger("cloudhands.web.indexer")
     schema = whoosh.fields.Schema(dn=whoosh.fields.ID(),
         **{k: v for k, v in ldap_types.items() if ldap_attributes[k]})
 
@@ -84,25 +78,54 @@ def main(args):
             yield from c.response
 
     writer = ix.writer()
-    print("Indexing fields: {}".format(ix.schema.names()))
+    log.info("Indexing fields " + ", ".join(ix.schema.names()))
     for n, i in enumerate(pager()):
         writer.add_document(
             dn=i["dn"], **{k: v[0] if v else None for k, v in i["attributes"].items()})
+    log.info("Indexed {} records".format(n))
     writer.commit(mergetype=whoosh.writing.CLEAR)
 
     c.unbind()
+    if loop is not None:
+        log.debug("Rescheduling {}s later".format(args.interval))
+        loop.enter(args.interval, 0, index, (args, loop))
+    return n
 
-    qp = whoosh.qparser.QueryParser(
-        "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
-    q = qp.parse("David")
-    with ix.searcher() as searcher:
-        print("Searching {} records".format(searcher.doc_count()))
-        #print(list(searcher.lexicon("gecos")))
-        results = searcher.search(q, limit=20)
-        print("Found {} hits".format(results.estimated_length()))
-        print(*[i.fields() for i in results], sep="\n")
 
-    return rv
+def main(args):
+    logging.basicConfig(
+        level=args.log_level,
+        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    loop = sched.scheduler()
+
+    try:
+        os.mkdir(args.index)
+    except OSError:
+        pass
+
+    if args.query is not None:
+        ix = whoosh.index.open_dir(args.index)
+        qp = whoosh.qparser.QueryParser(
+            "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
+        q = qp.parse(args.query)
+        with ix.searcher() as searcher:
+            print("Searching {} records".format(searcher.doc_count()),
+                  file=sys.stderr)
+            results = searcher.search(q, limit=20)
+            print(
+                "Got {} hit{}".format(
+                    results.estimated_length(),
+                    "s" if results.estimated_length() > 1 else ""),
+                 file=sys.stderr)
+            print(*[i.fields() for i in results], sep="\n")
+        return 0
+
+    if args.interval is None:
+        return index(args) > 0
+    else:
+        loop.enter(args.interval, 0, index, (args, loop))
+        loop.run()
+        return 1
 
 
 def parser(descr=__doc__):
@@ -119,10 +142,11 @@ def parser(descr=__doc__):
         "--index", default=DFLT_IX,
         help="Set the path to the index directory [{}]".format(DFLT_IX))
     rv.add_argument(
-        "--interval", default=DFLT_IVAL_S,
-        help="Set the indexing interval (s) [{}]".format(DFLT_IVAL_S))
-
-
+        "--interval", default=None, type=int,
+        help="Set the indexing interval (s)")
+    rv.add_argument(
+        "--query", default=None,
+        help="Issue a query and then exit")
     return rv
 
 
