@@ -18,9 +18,11 @@ import whoosh.writing
 from cloudhands.common.discovery import settings
 
 __doc__ = """
-ldapsearch -x -H ldap://homer.esc.rl.ac.uk -s sub -b
-'ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk'
-'(&(objectclass=posixAccount)(objectclass=ldapPublicKey))'
+This utility collects data from an LDAP server and indexes it for local
+search. The operation may be scheduled to occur regularly by supplying a
+time interval.
+
+Simple queries are also possible for testing and administration purposes.
 """
 
 DFLT_IX = "cloudhands.wsh"
@@ -111,7 +113,7 @@ def main(args):
         return 0
 
     if args.interval is None:
-        return index(args, config) > 0
+        return 0 if index(args, config) > 0 else 1
     else:
         loop.enter(args.interval, 0, index, (args, config, loop))
         loop.run()
