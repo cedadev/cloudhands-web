@@ -4,9 +4,16 @@
 import argparse
 import functools
 import logging
+import os
+import sched
 import sys
 
 import ldap3
+import whoosh.fields
+import whoosh.index
+import whoosh.qparser
+import whoosh.query
+import whoosh.writing
 
 __doc__ = """
 ldapsearch -x -H ldap://homer.esc.rl.ac.uk -s sub -b
@@ -15,6 +22,7 @@ ldapsearch -x -H ldap://homer.esc.rl.ac.uk -s sub -b
 """
 
 DFLT_IX = "cloudhands.wsh"
+DFLT_IVAL_S = 1800
 
 ldap_search = {
     "host": "homer.esc.rl.ac.uk",
@@ -32,16 +40,27 @@ ldap_attributes = {
 }
 
 ldap_types = {
-    "cn": "ID",
-    "gecos": "TEXT",
-    "uid": "KEYWORD",
-    "uidNumber": "NUMERIC",
-    "gidNumber": "KEYWORD",
-    "sshPublicKey": "STORED",
+    "cn": whoosh.fields.ID(stored=True),
+    "gecos": whoosh.fields.TEXT(stored=True),
+    "uid": whoosh.fields.KEYWORD(stored=True),
+    "uidNumber": whoosh.fields.NUMERIC(stored=True),
+    "gidNumber": whoosh.fields.KEYWORD(stored=True),
+    "sshPublicKey": whoosh.fields.STORED(),
 }
 
 def main(args):
     rv = 0
+
+    try:
+        os.mkdir(args.index)
+    except OSError:
+        pass
+
+    schema = whoosh.fields.Schema(dn=whoosh.fields.ID(),
+        **{k: v for k, v in ldap_types.items() if ldap_attributes[k]})
+
+    ix = whoosh.index.create_in(args.index, schema=schema)
+    ix = whoosh.index.open_dir(args.index)
 
     s = ldap3.server.Server(
         ldap_search["host"],
@@ -64,10 +83,25 @@ def main(args):
             result = search(pagedSize=size, pagedCookie=cookie)
             yield from c.response
 
+    writer = ix.writer()
+    print("Indexing fields: {}".format(ix.schema.names()))
     for n, i in enumerate(pager()):
-        print(n, i["dn"], i["attributes"])
+        writer.add_document(
+            dn=i["dn"], **{k: v[0] if v else None for k, v in i["attributes"].items()})
+    writer.commit(mergetype=whoosh.writing.CLEAR)
 
     c.unbind()
+
+    qp = whoosh.qparser.QueryParser(
+        "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
+    q = qp.parse("David")
+    with ix.searcher() as searcher:
+        print("Searching {} records".format(searcher.doc_count()))
+        #print(list(searcher.lexicon("gecos")))
+        results = searcher.search(q, limit=20)
+        print("Found {} hits".format(results.estimated_length()))
+        print(*[i.fields() for i in results], sep="\n")
+
     return rv
 
 
@@ -84,6 +118,10 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--index", default=DFLT_IX,
         help="Set the path to the index directory [{}]".format(DFLT_IX))
+    rv.add_argument(
+        "--interval", default=DFLT_IVAL_S,
+        help="Set the indexing interval (s) [{}]".format(DFLT_IVAL_S))
+
 
     return rv
 
