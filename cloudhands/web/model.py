@@ -3,6 +3,7 @@
 
 from collections import OrderedDict
 from collections import namedtuple
+import functools
 from math import ceil
 from math import log10
 import re
@@ -134,6 +135,7 @@ class HostData(Fragment):
 class PersonData(Fragment):
     pass
 
+
 class Region(NamedList):
 
     def base_presenter(*args, **kwargs):
@@ -148,23 +150,11 @@ class Region(NamedList):
             self.append(rv)
         return rv
 
-    presenters = {}
-
-
-class InfoRegion(Region):
-
     def present_dcstatus(self, obj, session=None):
         return DCStatusUnknown(vars(obj))
 
     def present_pathinfo(self, obj, session=None):
         return obj.name("paths")
-
-    presenters = {
-        PathInfo: present_pathinfo,
-        DCStatus: present_dcstatus}
-
-
-class ItemsRegion(Region):
 
     def present_host(self, artifact):
         resources = [r for i in artifact.changes for r in i.resources]
@@ -184,13 +174,6 @@ class ItemsRegion(Region):
         }
         return PersonData(item)
 
-    presenters = {
-        Host: present_host,
-        Person: present_person}
-
-
-class OptionsRegion(Region):
-
     def present_membership(self, artifact, session=None):
         item = {}
         item["data"] = {
@@ -208,22 +191,31 @@ class OptionsRegion(Region):
 
         return MembershipIsUntrusted(item)
 
-    presenters = {Membership: present_membership}
+    presenters = {
+        DCStatus: present_dcstatus,
+        Host: present_host,
+        Membership: present_membership,
+        PathInfo: present_pathinfo,
+        Person: present_person,
+    }
 
 
 class Page(object):
 
-    def __init__(self, user=None):
-        self.user = user
-        self.info = InfoRegion(
-            [VersionInfo().name("versions")]).name("info")
-        self.items = ItemsRegion().name("items")
-        self.options = OptionsRegion().name("options")
+    Layout = namedtuple("Layout", ["info", "items", "options"])
 
-    def termination(self, info=None, paths=None, items=None, options=None):
-        for region, size in (
-            (self.info, info), (self.items, items), (self.options, options)
-        ):
+    def __init__(self, session=None, user=None):
+        self.layout = Page.Layout(
+            info=Region(
+                [VersionInfo().name("versions")]).name("info"),
+            items=Region().name("items"),
+            options=Region().name("options"))
+        for region in self.layout:
+            region.push = functools.partial(
+                region.push, session=session, user=user)
+
+    def termination(self, info=None, items=None, options=None):
+        for region, size in zip(self.layout, (info, items, options)):
 
             for n, facet in enumerate(region):
                 size = size if size is not None else len(region)

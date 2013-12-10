@@ -35,7 +35,7 @@ from cloudhands.web.indexer import people
 from cloudhands.web.model import Fragment
 from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
-from cloudhands.web.model import InfoRegion
+from cloudhands.web.model import Region
 from cloudhands.web.model import EmailIsUntrusted
 from cloudhands.web.model import EmailIsTrusted
 from cloudhands.web.model import EmailHasExpired
@@ -94,7 +94,7 @@ class TestHostData(unittest.TestCase):
 class TestRegion(unittest.TestCase):
 
     def test_pushed_region_returns_unnamed_dictionary(self):
-        region = InfoRegion().name("test region")
+        region = Region().name("test region")
         status = DCStatus(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -115,7 +115,7 @@ class TestGenericPage(unittest.TestCase):
             uri="host.domain",
             name="DC under test")
         p = Page()
-        p.info.push(status)
+        p.layout.info.push(status)
         self.assertIn(status.uuid, str(dict(p.termination())))
 
     def test_info_region_makes_unique_names(self):
@@ -128,11 +128,11 @@ class TestGenericPage(unittest.TestCase):
 
         n = 10000
         for i in range(n):
-            facet = page.info.push(status, ("resource", "up"))
+            facet = page.layout.info.push(status)
 
-        self.assertTrue(all(isinstance(i, Fragment) for i in page.info))
+        self.assertTrue(all(isinstance(i, Fragment) for i in page.layout.info))
         output = dict(page.termination())
-        names = {i.name for i in page.info}
+        names = {i.name for i in page.layout.info}
         self.assertEqual(n + 1, len(names))  # Version information is in info
 
 
@@ -157,7 +157,7 @@ class TestHostsPage(unittest.TestCase):
             h.changes.append(t)
         hostsPage = Page()
         for h in hosts:
-            hostsPage.items.push(h)
+            hostsPage.layout.items.push(h)
         self.assertEqual(10, len(dict(hostsPage.termination())["items"]))
 
 
@@ -178,7 +178,7 @@ class TestPeoplePage(unittest.TestCase):
 
             peoplePage = Page()
             for p in ppl:
-                peoplePage.items.push(p)
+                peoplePage.layout.items.push(p)
 
             output = dict(peoplePage.termination())
             print(output)

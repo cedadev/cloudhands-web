@@ -89,9 +89,9 @@ def top_page(request):
 
     page = Page()
     if status:
-        page.items.push(status)
+        page.layout.items.push(status)
 
-    page.info.push(PathInfo(paths(request)))
+    page.layout.info.push(PathInfo(paths(request)))
 
     return dict(page.termination())
 
@@ -118,11 +118,11 @@ def hosts_page(request):
     #    User == user).all() # JVOs are containers for hosts
     hosts = con.session.query(Host).all()
     page = Page()
-    page.info.push(PathInfo(paths(request)))
+    page.layout.info.push(PathInfo(paths(request)))
     for h in hosts:
-        page.items.push(h)
+        page.layout.items.push(h)
     for m in memberships:
-        page.options.push(m)
+        page.layout.options.push(m)
 
     return dict(page.termination())
 
