@@ -37,14 +37,25 @@ ldap_types = {
 }
 
 
-def index(args, config, loop=None):
-    log = logging.getLogger("cloudhands.web.indexer")
-    schema = whoosh.fields.Schema(dn=whoosh.fields.ID(),
+def create(path, **kwargs):
+    log = logging.getLogger("cloudhands.web.indexer.create")
+    schema = whoosh.fields.Schema(
+        id=whoosh.fields.ID(), **kwargs)
+    whoosh.index.create_in(path, schema=schema)
+    return indexer(path)
+
+
+def indexer(path):
+    return whoosh.index.open_dir(path)
+
+
+def ingest(args, config, loop=None):
+    log = logging.getLogger("cloudhands.web.indexer.ingest")
+
+    ix = create(
+        args.index, 
         **{k: v for k, v in ldap_types.items()
         if config.getboolean("ldap.attributes", k)})
-
-    ix = whoosh.index.create_in(args.index, schema=schema)
-    ix = whoosh.index.open_dir(args.index)
 
     s = ldap3.server.Server(
         config["ldap.search"]["host"],
@@ -72,7 +83,7 @@ def index(args, config, loop=None):
     log.info("Indexing fields " + ", ".join(ix.schema.names()))
     for n, i in enumerate(pager()):
         writer.add_document(
-            dn=i["dn"], **{k: v[0] if v else None for k, v in i["attributes"].items()})
+            id=i["dn"], **{k: v[0] if v else None for k, v in i["attributes"].items()})
     log.info("Indexed {} records".format(n))
     writer.commit(mergetype=whoosh.writing.CLEAR)
 
@@ -96,7 +107,7 @@ def main(args):
         pass
 
     if args.query is not None:
-        ix = whoosh.index.open_dir(args.index)
+        ix = indexer(args.index)
         qp = whoosh.qparser.QueryParser(
             "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
         q = qp.parse(args.query)
@@ -113,9 +124,9 @@ def main(args):
         return 0
 
     if args.interval is None:
-        return 0 if index(args, config) > 0 else 1
+        return 0 if ingest(args, config) > 0 else 1
     else:
-        loop.enter(args.interval, 0, index, (args, config, loop))
+        loop.enter(args.interval, 0, ingest, (args, config, loop))
         loop.run()
         return 1
 

@@ -4,10 +4,19 @@
 import datetime
 from collections.abc import Callable
 from collections.abc import MutableMapping
+import sqlite3
+import tempfile
 import unittest
 import uuid
 
+from whoosh.query import And
+from whoosh.query import Term
+
 import cloudhands.common
+
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
+
 from cloudhands.common.fsm import CredentialState
 from cloudhands.common.fsm import HostState
 
@@ -19,6 +28,8 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.web.indexer import create as create_index
+from cloudhands.web.indexer import indexer
 from cloudhands.web.model import Fragment
 from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
@@ -93,7 +104,7 @@ class TestRegion(unittest.TestCase):
         self.assertIsInstance(rv.name, Callable)
 
 
-class TestPage(unittest.TestCase):
+class TestGenericPage(unittest.TestCase):
 
     def test_push_simple_use(self):
         status = DCStatus(
@@ -122,6 +133,9 @@ class TestPage(unittest.TestCase):
         names = {i.name for i in page.info}
         self.assertEqual(n + 1, len(names))  # Version information is in info
 
+
+class TestHostsPage(unittest.TestCase):
+
     def test_hostspage_hateoas(self):
         user = User(handle="Sam Guy", uuid=uuid.uuid4().hex)
         org = Organisation(name="TestOrg")
@@ -143,3 +157,28 @@ class TestPage(unittest.TestCase):
         for h in hosts:
             hostsPage.items.push(h)
         self.assertEqual(10, len(dict(hostsPage.termination())["items"]))
+
+
+class TestUsersPage(unittest.TestCase):
+
+    def test_users_data_merge(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        session.add_all(User(
+            handle="User {}".format(n),
+            uuid=uuid.uuid4().hex) for n in range(10))
+        session.commit()
+        self.assertEqual(10, session.query(User).count())
+
+        with tempfile.TemporaryDirectory() as td:
+            ix = create_index(td)
+            wrtr = ix.writer()
+
+            for i in range(10):
+                wrtr.add_document(id=str(i))
+            wrtr.commit()
+
+            srch = ix.searcher()
+            query = And([Term("id", "0"), Term("id", "1")])
+            results = srch.search(query)
+            self.fail(results)
+
