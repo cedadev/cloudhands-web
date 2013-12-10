@@ -18,6 +18,7 @@ from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
 
 import cloudhands.web
+from cloudhands.web.indexer import Person
 
 
 Link = namedtuple(

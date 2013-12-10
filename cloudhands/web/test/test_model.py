@@ -174,9 +174,9 @@ class TestUsersPage(unittest.TestCase):
 
             srch = ix.searcher()
             query = Or([Term("id", "0"), Term("id", "9")])
-            results = srch.search(query)
+            people = srch.search(query)
             peoplePage = Page()
-            for r in results:
-                peoplePage.items.push(r)
+            for p in people:
+                peoplePage.items.push(p)
             self.assertEqual(2, len(dict(peoplePage.termination())["items"]))
 

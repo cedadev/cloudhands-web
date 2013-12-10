@@ -54,25 +54,30 @@ def indexer(path):
     return whoosh.index.open_dir(path)
 
 
-def people(path, query):
+def people(path, query, field="gecos"):
     log = logging.getLogger("cloudhands.web.indexer.people")
     ix = indexer(path)
     qp = whoosh.qparser.QueryParser(
-        "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
+        field, schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
     q = qp.parse(query)
+    results = []
     with ix.searcher() as searcher:
         log.debug("Searching {} records".format(searcher.doc_count()))
-        results = searcher.search(q, limit=20)
-        log.debug(
-            "Got {} hit{}".format(
-                results.estimated_length(),
-                "s" if results.estimated_length() > 1 else ""))
+        try:
+            results = searcher.search(q, limit=20)
+        except IndexError as e:
+            log.debug(e)
+        else:
+            log.debug(
+                "Got {} hit{}".format(
+                    results.estimated_length(),
+                    "s" if results.estimated_length() > 1 else ""))
         for r in results:
             try:
-                uid = r["uidNumber"]
-                gids = r["gidNumber"].split("\n")
+                uid = r.get("uidNumber", None)
+                gids = [i for i in r.get("gidNumber", "").split("\n") if i]
                 keys = [i for i in r.get("sshPublicKey", "").split("\n") if i]
-                yield Person(r["id"], uid, gids, r["gecos"], keys)
+                yield Person(r["id"], uid, gids, r.get(field, ""), keys)
             except KeyError:
                 continue
 
