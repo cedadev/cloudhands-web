@@ -8,6 +8,11 @@ from math import ceil
 from math import log10
 import re
 
+try:
+    from functools import singledispatch
+except ImportError:
+    from singledispatch import singledispatch
+
 import cloudhands.common
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
@@ -138,25 +143,28 @@ class PersonData(Fragment):
 
 class Region(NamedList):
 
-    def base_presenter(*args, **kwargs):
+    @singledispatch
+    def present(obj):
         return None
 
     def push(self, obj, session=None, user=None):
         rv = None
-        presenter = self.presenters.get(type(obj), self.base_presenter)
-        facet = presenter(self, obj)
+        facet = Region.present(obj)
         if facet:
             rv = facet.configure(session, user)
             self.append(rv)
         return rv
 
-    def present_dcstatus(self, obj, session=None):
+    @present.register(DCStatus)
+    def present_dcstatus(obj):
         return DCStatusUnknown(vars(obj))
 
-    def present_pathinfo(self, obj, session=None):
+    @present.register(PathInfo)
+    def present_pathinfo(obj, session=None):
         return obj.name("paths")
 
-    def present_host(self, artifact):
+    @present.register(Host)
+    def present_host(artifact):
         resources = [r for i in artifact.changes for r in i.resources]
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
         item["states"] = [artifact.changes[-1].state]
@@ -167,20 +175,22 @@ class Region(NamedList):
         }
         return HostData(item)
 
-    def present_person(self, obj, session=None):
+    @present.register(Person)
+    def present_person(obj):
         item = {k: getattr(obj, k) for k in ("designator", "description")}
         item["data"] = {
             "keys": obj.keys,
         }
         return PersonData(item)
 
-    def present_membership(self, artifact, session=None):
+    @present.register(Membership)
+    def present_membership(artifact):
         item = {}
         item["data"] = {
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
-        # TODO: move to MembershipXXX.load
+        # TODO: move to MembershipXXX.configure
         hf = HostData(organisation=artifact.organisation.name)
         item["_links"] = [
             Link(
@@ -190,14 +200,6 @@ class Region(NamedList):
         ]
 
         return MembershipIsUntrusted(item)
-
-    presenters = {
-        DCStatus: present_dcstatus,
-        Host: present_host,
-        Membership: present_membership,
-        PathInfo: present_pathinfo,
-        Person: present_person,
-    }
 
 
 class Page(object):
