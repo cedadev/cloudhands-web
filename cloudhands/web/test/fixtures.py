@@ -12,6 +12,7 @@ from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
 from cloudhands.common.tricks import create_user_from_email
 from cloudhands.common.tricks import handle_from_email
 
@@ -54,6 +55,7 @@ class WebFixture(object):
             organisation=org,
             role="user")
         handle = handle_from_email(WebFixture.demo_email())
+        # FIXME: use cloudhands.burst.membership.Activation
         return (create_user_from_email(
             session, WebFixture.demo_email(), handle, invitation) or
             session.query(User).filter(User.handle == handle).one())

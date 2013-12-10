@@ -40,7 +40,7 @@ class Fragment(NamedDict):
     def parameters(self):
         return []
 
-    def load(self, session=None):
+    def configure(self, session=None, user=None):
         return self
 
 
@@ -113,77 +113,92 @@ class HostData(Fragment):
         ]
 
 
+    def configure(self, session, user=None):
+        state = self["states"][0].name
+        self["_links"] = []
+
+        if state == "up":
+            self["_links"].append(
+                Link("Send", "self", "/host/{}/commands", self["uuid"],
+                "post", [], "stop"))
+        elif state == "down":
+            self["_links"].append(
+                Link("Send", "self", "/host/{}/commands", self["uuid"],
+                "post", [], "start"))
+        self["_links"].append(
+            Link("Settings", "parent", "/organisation/{}",
+            self["data"]["organisation"], "get", [], "settings"))
+        return self
+
+
+class PersonData(Fragment):
+    pass
+
 class Region(NamedList):
 
-    def base_handler(*args, **kwargs):
+    def base_presenter(*args, **kwargs):
         return None
 
-    def push(self, obj, session=None):
+    def push(self, obj, session=None, user=None):
         rv = None
-        handler = self.handlers.get(type(obj), self.base_handler)
-        facet = handler(self, obj, session)
+        presenter = self.presenters.get(type(obj), self.base_presenter)
+        facet = presenter(self, obj)
         if facet:
-            rv = facet.load(session)
+            rv = facet.configure(session, user)
             self.append(rv)
         return rv
 
-    handlers = {}
+    presenters = {}
 
 
 class InfoRegion(Region):
 
-    def handle_dcstatus(self, obj, session=None):
+    def present_dcstatus(self, obj, session=None):
         return DCStatusUnknown(vars(obj))
 
-    def handle_pathinfo(self, obj, session=None):
+    def present_pathinfo(self, obj, session=None):
         return obj.name("paths")
 
-    handlers = {
-        PathInfo: handle_pathinfo,
-        DCStatus: handle_dcstatus}
+    presenters = {
+        PathInfo: present_pathinfo,
+        DCStatus: present_dcstatus}
 
 
 class ItemsRegion(Region):
 
-    def handle_host(self, artifact, state, session=None):
+    def present_host(self, artifact):
         resources = [r for i in artifact.changes for r in i.resources]
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
         item["states"] = [artifact.changes[-1].state]
         item["data"] = {
+            "organisation": artifact.organisation.name,
             "nodes": [i.name for i in resources if isinstance(i, Node)],
             "ips": [i.value for i in resources if isinstance(i, IPAddress)]
         }
-        
-        item["_links"] = []
-
-        state = item["states"][0].name
-        item["_links"] = []
-
-        if state == "up":
-            item["_links"].append(
-                Link("Send", "self", "/host/{}/commands", artifact.uuid,
-                "post", [], "stop"))
-        elif state == "down":
-            item["_links"].append(
-                Link("Send", "self", "/host/{}/commands", artifact.uuid,
-                "post", [], "start"))
-        item["_links"].append(
-            Link("Settings", "parent", "/organisation/{}",
-            artifact.organisation.name, "get", [], "settings"))
         return HostData(item)
 
-    handlers = {Host: handle_host}
+    def present_person(self, obj, session=None):
+        item = {k: getattr(obj, k) for k in ("designator", "description")}
+        item["data"] = {
+            "keys": obj.keys,
+        }
+        return PersonData(item)
+
+    presenters = {
+        Host: present_host,
+        Person: present_person}
 
 
 class OptionsRegion(Region):
 
-    def handle_membership(self, artifact, session=None):
+    def present_membership(self, artifact, session=None):
         item = {}
         item["data"] = {
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
-        hf = HostData(organisation=artifact.organisation.name).load(session)
+        # TODO: move to MembershipXXX.load
+        hf = HostData(organisation=artifact.organisation.name)
         item["_links"] = [
             Link(
                 artifact.organisation.name, "collection",
@@ -193,12 +208,13 @@ class OptionsRegion(Region):
 
         return MembershipIsUntrusted(item)
 
-    handlers = {Membership: handle_membership}
+    presenters = {Membership: present_membership}
 
 
 class Page(object):
 
-    def __init__(self):
+    def __init__(self, user=None):
+        self.user = user
         self.info = InfoRegion(
             [VersionInfo().name("versions")]).name("info")
         self.items = ItemsRegion().name("items")

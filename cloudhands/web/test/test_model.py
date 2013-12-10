@@ -31,6 +31,7 @@ from cloudhands.common.schema import User
 
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
+from cloudhands.web.indexer import people
 from cloudhands.web.model import Fragment
 from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
@@ -160,7 +161,7 @@ class TestHostsPage(unittest.TestCase):
         self.assertEqual(10, len(dict(hostsPage.termination())["items"]))
 
 
-class TestUsersPage(unittest.TestCase):
+class TestPeoplePage(unittest.TestCase):
 
     def test_people_data_comes_from_index(self):
 
@@ -172,11 +173,14 @@ class TestUsersPage(unittest.TestCase):
                 wrtr.add_document(id=str(i), descr="User {}".format(i))
             wrtr.commit()
 
-            srch = ix.searcher()
-            query = Or([Term("id", "0"), Term("id", "9")])
-            people = srch.search(query)
+            ppl = list(people(td, "User", "descr"))
+            self.assertEqual(10, len(ppl))
+
             peoplePage = Page()
-            for p in people:
+            for p in ppl:
                 peoplePage.items.push(p)
-            self.assertEqual(2, len(dict(peoplePage.termination())["items"]))
+
+            output = dict(peoplePage.termination())
+            print(output)
+            self.assertEqual(10, len(output["items"]))
 
