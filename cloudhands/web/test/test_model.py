@@ -9,7 +9,8 @@ import tempfile
 import unittest
 import uuid
 
-from whoosh.query import And
+import whoosh.fields
+from whoosh.query import Or
 from whoosh.query import Term
 
 import cloudhands.common
@@ -161,24 +162,21 @@ class TestHostsPage(unittest.TestCase):
 
 class TestUsersPage(unittest.TestCase):
 
-    def test_users_data_merge(self):
-        session = Registry().connect(sqlite3, ":memory:").session
-        session.add_all(User(
-            handle="User {}".format(n),
-            uuid=uuid.uuid4().hex) for n in range(10))
-        session.commit()
-        self.assertEqual(10, session.query(User).count())
+    def test_people_data_comes_from_index(self):
 
         with tempfile.TemporaryDirectory() as td:
-            ix = create_index(td)
+            ix = create_index(td, descr=whoosh.fields.TEXT(stored=True))
             wrtr = ix.writer()
 
             for i in range(10):
-                wrtr.add_document(id=str(i))
+                wrtr.add_document(id=str(i), descr="User {}".format(i))
             wrtr.commit()
 
             srch = ix.searcher()
-            query = And([Term("id", "0"), Term("id", "1")])
+            query = Or([Term("id", "0"), Term("id", "9")])
             results = srch.search(query)
-            self.fail(results)
+            peoplePage = Page()
+            for r in results:
+                peoplePage.items.push(r)
+            self.assertEqual(2, len(dict(peoplePage.termination())["items"]))
 

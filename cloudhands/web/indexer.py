@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 import argparse
+from collections import namedtuple
 import functools
 import logging
 import os
@@ -36,17 +37,44 @@ ldap_types = {
     "sshPublicKey": whoosh.fields.STORED(),
 }
 
+Person = namedtuple(
+    "PeopleType",
+    ["designator", "uid", "gids", "description", "keys"]
+)
 
 def create(path, **kwargs):
     log = logging.getLogger("cloudhands.web.indexer.create")
     schema = whoosh.fields.Schema(
-        id=whoosh.fields.ID(), **kwargs)
+        id=whoosh.fields.ID(stored=True), **kwargs)
     whoosh.index.create_in(path, schema=schema)
     return indexer(path)
 
 
 def indexer(path):
     return whoosh.index.open_dir(path)
+
+
+def people(path, query):
+    log = logging.getLogger("cloudhands.web.indexer.people")
+    ix = indexer(path)
+    qp = whoosh.qparser.QueryParser(
+        "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
+    q = qp.parse(query)
+    with ix.searcher() as searcher:
+        log.debug("Searching {} records".format(searcher.doc_count()))
+        results = searcher.search(q, limit=20)
+        log.debug(
+            "Got {} hit{}".format(
+                results.estimated_length(),
+                "s" if results.estimated_length() > 1 else ""))
+        for r in results:
+            try:
+                uid = r["uidNumber"]
+                gids = r["gidNumber"].split("\n")
+                keys = [i for i in r.get("sshPublicKey", "").split("\n") if i]
+                yield Person(r["id"], uid, gids, r["gecos"], keys)
+            except KeyError:
+                continue
 
 
 def ingest(args, config, loop=None):
@@ -83,7 +111,8 @@ def ingest(args, config, loop=None):
     log.info("Indexing fields " + ", ".join(ix.schema.names()))
     for n, i in enumerate(pager()):
         writer.add_document(
-            id=i["dn"], **{k: v[0] if v else None for k, v in i["attributes"].items()})
+            id=i["dn"],
+            **{k: '\n'.join(v) if v else None for k, v in i["attributes"].items()})
     log.info("Indexed {} records".format(n))
     writer.commit(mergetype=whoosh.writing.CLEAR)
 
@@ -107,20 +136,8 @@ def main(args):
         pass
 
     if args.query is not None:
-        ix = indexer(args.index)
-        qp = whoosh.qparser.QueryParser(
-            "gecos", schema=ix.schema, termclass=whoosh.query.FuzzyTerm)
-        q = qp.parse(args.query)
-        with ix.searcher() as searcher:
-            print("Searching {} records".format(searcher.doc_count()),
-                  file=sys.stderr)
-            results = searcher.search(q, limit=20)
-            print(
-                "Got {} hit{}".format(
-                    results.estimated_length(),
-                    "s" if results.estimated_length() > 1 else ""),
-                 file=sys.stderr)
-            print(*[i.fields() for i in results], sep="\n")
+        for p in people(args.index, args.query):
+            print(p)
         return 0
 
     if args.interval is None:
