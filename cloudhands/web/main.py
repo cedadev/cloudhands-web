@@ -187,7 +187,7 @@ def people_page(request):
     except Exception:
         log.warning("No access to index {}".format(index))
         raise HTTPInternalServerError(
-            location=request.route_url("hosts"),
+            location=request.route_url("people"),
             detail="Temporary loss of index. Please try again later.")
     return dict(page.termination())
 

@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from pyramid import testing
+from pyramid.httpexceptions import HTTPInternalServerError
 
 import cloudhands.common
 from cloudhands.common.connectors import initialise
@@ -82,10 +83,24 @@ class PeoplePageTests(ServerTests):
         self.td = tempfile.TemporaryDirectory()
         Args = namedtuple("Arguments", ["index"])
         self.config.add_settings({"args": Args(self.td.name)})
+        self.config.add_route("people", "/people")
 
     def tearDown(self):
         self.td.cleanup()
         super().tearDown()
+
+    def test_500_error_raised_without_index(self):
+        self.assertRaises(
+            HTTPInternalServerError,
+            people_page, self.request)
+
+    def test_page_regions(self):
+        create_index(self.td.name, **ldap_types)
+        page = people_page(self.request)
+        self.assertIn("info", page)
+        self.assertIn("items", page)
+        self.assertIn("options", page)
+        self.assertIn("paths", page)
 
     def test_user_search(self):
         ix = create_index(self.td.name, **ldap_types)
@@ -94,8 +109,6 @@ class PeoplePageTests(ServerTests):
         for i in range(10):
             wrtr.add_document(id=str(i), gecos="User {}".format(i))
         wrtr.commit()
-
-        self.fail(people_page(self.request))
 
 if __name__ == "__main__":
     unittest.main()
