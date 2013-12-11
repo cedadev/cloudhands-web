@@ -110,5 +110,8 @@ class PeoplePageTests(ServerTests):
             wrtr.add_document(id=str(i), gecos="User {}".format(i))
         wrtr.commit()
 
+        page = people_page(self.request)
+        self.fail(page)
+
 if __name__ == "__main__":
     unittest.main()

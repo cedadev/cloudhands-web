@@ -181,8 +181,9 @@ def people_page(request):
     page = Page()
     page.layout.info.push(PathInfo(paths(request)))
     index = request.registry.settings["args"].index
+    query = dict(request.GET).get("q", "") # TODO: validate
     try:
-        for p in people(index, "Davi"):
+        for p in people(index, query):
             page.layout.items.push(p)
     except Exception:
         log.warning("No access to index {}".format(index))
@@ -251,7 +252,8 @@ def wsgi_app(args):
     config.add_route("people", "/people")
     config.add_view(
         people_page, route_name="people", request_method="GET",
-        renderer="hateoas", accept="application/json", xhr=None)
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/people.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(
