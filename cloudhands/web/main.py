@@ -18,6 +18,7 @@ from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.renderers import JSON
 from pyramid.security import authenticated_userid
@@ -180,8 +181,14 @@ def people_page(request):
     page = Page()
     page.layout.info.push(PathInfo(paths(request)))
     index = request.registry.settings["args"].index
-    for p in people(index, "Davi"):
-        page.layout.items.push(p)
+    try:
+        for p in people(index, "Davi"):
+            page.layout.items.push(p)
+    except Exception:
+        log.warning("No access to index {}".format(index))
+        raise HTTPInternalServerError(
+            location=request.route_url("hosts"),
+            detail="Temporary loss of index. Please try again later.")
     return dict(page.termination())
 
 

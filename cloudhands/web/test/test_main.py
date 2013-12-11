@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+from collections import namedtuple
 import re
 import sqlite3
+import tempfile
 import unittest
 
 from pyramid import testing
@@ -12,8 +14,12 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
 import cloudhands.web
+from cloudhands.web.indexer import create as create_index
+from cloudhands.web.indexer import indexer
+from cloudhands.web.indexer import ldap_types
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_page
+from cloudhands.web.main import people_page
 
 
 class ACLTests(unittest.TestCase):
@@ -22,7 +28,7 @@ class ACLTests(unittest.TestCase):
         self.fail("Not doing it yet")
 
 
-class TopLevelTests(unittest.TestCase):
+class ServerTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(class_):
@@ -54,6 +60,8 @@ class TopLevelTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
 
+class VersionInfoTests(ServerTests):
+
     def test_version_option(self):
         p = parser()
         rv = p.parse_args(["--version"])
@@ -66,6 +74,28 @@ class TopLevelTests(unittest.TestCase):
         self.assertEqual(
             cloudhands.common.__version__,
             top_page(self.request)["info"]["versions"]["cloudhands.common"])
+
+class PeoplePageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.td = tempfile.TemporaryDirectory()
+        Args = namedtuple("Arguments", ["index"])
+        self.config.add_settings({"args": Args(self.td.name)})
+
+    def tearDown(self):
+        self.td.cleanup()
+        super().tearDown()
+
+    def test_user_search(self):
+        ix = create_index(self.td.name, **ldap_types)
+        wrtr = ix.writer()
+
+        for i in range(10):
+            wrtr.add_document(id=str(i), gecos="User {}".format(i))
+        wrtr.commit()
+
+        self.fail(people_page(self.request))
 
 if __name__ == "__main__":
     unittest.main()
