@@ -47,7 +47,7 @@ setup(
     entry_points={
         "console_scripts": [
             "cloud-webserve = cloudhands.web.main:run",
-            "cloud-demoserve = cloudhands.web.demo:run",
+            #"cloud-demoserve = cloudhands.web.demo:run",
             "cloud-index = cloudhands.web.indexer:run",
         ],
     },

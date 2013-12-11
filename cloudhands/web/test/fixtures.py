@@ -5,6 +5,10 @@ import datetime
 import logging
 import uuid
 
+from cloudhands.burst.membership import handle_from_email
+from cloudhands.burst.membership import Activation
+from cloudhands.burst.membership import Invitation
+
 import cloudhands.common
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
@@ -12,9 +16,6 @@ from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
-
-from cloudhands.common.tricks import create_user_from_email
-from cloudhands.common.tricks import handle_from_email
 
 
 class WebFixture(object):

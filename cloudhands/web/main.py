@@ -41,6 +41,7 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 #import cloudhands.common
 import cloudhands.web
+from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
@@ -48,6 +49,7 @@ from cloudhands.web.model import PathInfo
 
 DFLT_PORT = 8080
 DFLT_DB = ":memory:"
+DFLT_IX = "cloudhands.wsh"
 
 CRED_TABLE = {}
 
@@ -170,6 +172,19 @@ def organisation_hosts_add(request):
     raise HTTPFound(location=request.route_url("hosts"))
 
 
+def people_page(request):
+    log = logging.getLogger("cloudhands.web.people")
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+    page = Page()
+    page.layout.info.push(PathInfo(paths(request)))
+    index = request.registry.settings["args"].index
+    for p in people(index, "Davi"):
+        page.layout.items.push(p)
+    return dict(page.termination())
+
+
 def macauth_creds(request):
     userId = authenticated_userid(request)
     if userId is None:
@@ -188,7 +203,7 @@ def macauth_creds(request):
     return {"id": id, "key": key}
 
 
-def wsgi_app():
+def wsgi_app(args):
     # TODO: pick up settings by discovery
     settings = {
         "persona.secret": "FON85B9O3VCMQ90517Z1",
@@ -196,6 +211,7 @@ def wsgi_app():
             "http://{}:80".format(platform.node()),
             "http://localhost:8080"],
         "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
+        "args": args
         }
     config = Configurator(settings=settings)
     config.include("pyramid_chameleon")
@@ -224,6 +240,11 @@ def wsgi_app():
         organisation_hosts_add,
         route_name="organisation_hosts", request_method="POST",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("people", "/people")
+    config.add_view(
+        people_page, route_name="people", request_method="GET",
+        renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("creds", "/creds")
     config.add_view(
@@ -268,7 +289,7 @@ def configure(args):
 
 def main(args):
     session = configure(args)
-    app = wsgi_app()
+    app = wsgi_app(args)
     serve(app, host="localhost", port=args.port, url_scheme="http")
     return 1
 
@@ -289,6 +310,9 @@ def parser(description=__doc__):
     rv.add_argument(
         "--db", default=DFLT_DB,
         help="Set the path to the database [{}]".format(DFLT_DB))
+    rv.add_argument(
+        "--index", default=DFLT_IX,
+        help="Set the path to the index directory [{}]".format(DFLT_IX))
     return rv
 
 
