@@ -21,7 +21,6 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import CredentialState
 from cloudhands.common.fsm import HostState
 
-from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Node
@@ -32,14 +31,11 @@ from cloudhands.common.schema import User
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import people
+from cloudhands.web.indexer import Person
 from cloudhands.web.model import Fragment
 from cloudhands.web.model import HostData
 from cloudhands.web.model import Page
 from cloudhands.web.model import Region
-from cloudhands.web.model import EmailIsUntrusted
-from cloudhands.web.model import EmailIsTrusted
-from cloudhands.web.model import EmailHasExpired
-from cloudhands.web.model import EmailWasWithdrawn
 
 
 class TestHostData(unittest.TestCase):
@@ -95,12 +91,7 @@ class TestRegion(unittest.TestCase):
 
     def test_pushed_region_returns_unnamed_dictionary(self):
         region = Region().name("test region")
-        status = DCStatus(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            uri="host.domain",
-            name="DC under test")
-        rv = region.push(status, ("resource", "up"))
+        rv = region.push(Person(*(None,) * 5))
         self.assertTrue(rv)
         self.assertIsInstance(rv, MutableMapping)
         self.assertIsInstance(rv.name, Callable)
@@ -109,26 +100,18 @@ class TestRegion(unittest.TestCase):
 class TestGenericPage(unittest.TestCase):
 
     def test_push_simple_use(self):
-        status = DCStatus(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            uri="host.domain",
-            name="DC under test")
+        id = uuid.uuid4().hex
         p = Page()
-        p.layout.info.push(status)
-        self.assertIn(status.uuid, str(dict(p.termination())))
+        p.layout.info.push(Person(id, 0, [0], "me", []))
+        self.assertIn(id, str(dict(p.termination())))
 
     def test_info_region_makes_unique_names(self):
         page = Page()
-        status = DCStatus(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            uri="host.domain",
-            name="DC under test")
 
         n = 10000
         for i in range(n):
-            facet = page.layout.info.push(status)
+            facet = page.layout.info.push(
+                Person("P{0:5}".format(n), n, [n], "", []))
 
         self.assertTrue(all(isinstance(i, Fragment) for i in page.layout.info))
         output = dict(page.termination())

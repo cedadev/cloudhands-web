@@ -31,7 +31,6 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
-from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
@@ -84,8 +83,8 @@ def top_page(request):
         raise Forbidden()
 
     con = registered_connection()
-    status = con.session.query(
-        DCStatus).join(Touch).order_by(Touch.at.desc()).first()
+    status = con.session.query(Host).join(Touch).order_by(
+        Touch.at.desc()).first()
 
     page = Page()
     if status:

@@ -14,7 +14,6 @@ except ImportError:
     from singledispatch import singledispatch
 
 import cloudhands.common
-from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import IPAddress
@@ -62,50 +61,16 @@ class PathInfo(Fragment):
     pass
 
 
-class DCStatusUnknown(Fragment):
-    pass
+class MembershipData(Fragment):
 
-
-class DCStatusSaidUp(Fragment):
-    pass
-
-
-class DCStatusSaidDown(Fragment):
-    pass
-
-
-# TODO: Tidy up
-class EmailIsUntrusted(Fragment):
-    pass
-
-
-class EmailIsTrusted(Fragment):
-    pass
-
-
-class EmailHasExpired(Fragment):
-    pass
-
-
-class EmailWasWithdrawn(Fragment):
-    pass
-
-
-class MembershipIsUntrusted(Fragment):
-    pass
-
-
-class MembershipIsTrusted(Fragment):
-    pass
-
-
-class MembershipHasExpired(Fragment):
-    pass
-
-
-class MembershipWasWithdrawn(Fragment):
-    pass
-
+    def configure(self, session, user=None):
+        hf = HostData(organisation=self["data"]["organisation"])
+        item["_links"] = [
+            Link(
+                artifact.organisation.name, "collection",
+                "/organisation/{}/hosts", artifact.organisation.name, "post",
+                hf.parameters, "Add")
+        ]
 
 class HostData(Fragment):
 
@@ -155,11 +120,6 @@ class Region(NamedList):
             self.append(rv)
         return rv
 
-    @present.register(DCStatus)
-    def present_dcstatus(obj):
-        return DCStatusUnknown(vars(obj))
-
-    @present.register(PathInfo)
     def present_pathinfo(obj, session=None):
         return obj.name("paths")
 
@@ -190,16 +150,7 @@ class Region(NamedList):
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
-        # TODO: move to MembershipXXX.configure
-        hf = HostData(organisation=artifact.organisation.name)
-        item["_links"] = [
-            Link(
-                artifact.organisation.name, "collection",
-                "/organisation/{}/hosts", artifact.organisation.name, "post",
-                hf.parameters, "Add")
-        ]
-
-        return MembershipIsUntrusted(item)
+        return MembershipData(item)
 
 
 class Page(object):
