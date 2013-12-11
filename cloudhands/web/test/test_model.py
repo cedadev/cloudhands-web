@@ -33,55 +33,55 @@ from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import people
 from cloudhands.web.indexer import Person
 from cloudhands.web.model import Fragment
-from cloudhands.web.model import HostData
+from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
 from cloudhands.web.model import Region
 
 
-class TestHostData(unittest.TestCase):
+class TestHostView(unittest.TestCase):
 
     def test_host_validation_mandatory(self):
-        h = HostData()
+        h = HostView()
         self.assertTrue(h.invalid)
         self.assertTrue(any(i for i in h.invalid if i.name == "hostname"))
         
-        h = HostData(hostname="goodname")
+        h = HostView(hostname="goodname")
         self.assertTrue(h.invalid)
     
-        h = HostData(hostname="goodname", organisation="nodeparent")
+        h = HostView(hostname="goodname", organisation="nodeparent")
         self.assertFalse(h.invalid)
     
     def test_hostname_validation_length(self):
-        h = HostData(
+        h = HostView(
             organisation="nodeparent",
             hostname="a" * (Host.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostData(organisation="nodeparent",hostname="a" * 7)
+        h = HostView(organisation="nodeparent",hostname="a" * 7)
         self.assertTrue(h.invalid)
  
-        h = HostData(organisation="nodeparent",hostname="a" * 8)
+        h = HostView(organisation="nodeparent",hostname="a" * 8)
         self.assertFalse(h.invalid)
 
-        h = HostData(
+        h = HostView(
             organisation="nodeparent",
             hostname="a" * Host.name.type.length)
         self.assertFalse(h.invalid)
 
 
     def test_organisation_validation_length(self):
-        h = HostData(
+        h = HostView(
             hostname="hostname",
             organisation="a" * (Organisation.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostData(hostname="hostname", organisation="a" * 5)
+        h = HostView(hostname="hostname", organisation="a" * 5)
         self.assertTrue(h.invalid)
  
-        h = HostData(hostname="hostname", organisation="a" * 7)
+        h = HostView(hostname="hostname", organisation="a" * 7)
         self.assertFalse(h.invalid)
 
-        h = HostData(
+        h = HostView(
             hostname="hostname",
             organisation="a" * Organisation.name.type.length)
         self.assertFalse(h.invalid)
@@ -164,6 +164,5 @@ class TestPeoplePage(unittest.TestCase):
                 peoplePage.layout.items.push(p)
 
             output = dict(peoplePage.termination())
-            print(output)
             self.assertEqual(10, len(output["items"]))
 

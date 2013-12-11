@@ -61,18 +61,19 @@ class PathInfo(Fragment):
     pass
 
 
-class MembershipData(Fragment):
+class MembershipView(Fragment):
 
     def configure(self, session, user=None):
-        hf = HostData(organisation=self["data"]["organisation"])
-        item["_links"] = [
+        hf = HostView(organisation=self["data"]["organisation"])
+        self["_links"] = [
             Link(
                 artifact.organisation.name, "collection",
                 "/organisation/{}/hosts", artifact.organisation.name, "post",
                 hf.parameters, "Add")
         ]
+        return self
 
-class HostData(Fragment):
+class HostView(Fragment):
 
     @property
     def parameters(self):
@@ -102,7 +103,7 @@ class HostData(Fragment):
         return self
 
 
-class PersonData(Fragment):
+class PersonView(Fragment):
     pass
 
 
@@ -120,9 +121,6 @@ class Region(NamedList):
             self.append(rv)
         return rv
 
-    def present_pathinfo(obj, session=None):
-        return obj.name("paths")
-
     @present.register(Host)
     def present_host(artifact):
         resources = [r for i in artifact.changes for r in i.resources]
@@ -133,7 +131,11 @@ class Region(NamedList):
             "nodes": [i.name for i in resources if isinstance(i, Node)],
             "ips": [i.value for i in resources if isinstance(i, IPAddress)]
         }
-        return HostData(item)
+        return HostView(item)
+
+    @present.register(PathInfo)
+    def present_pathinfo(obj, session=None):
+        return obj.name("paths")
 
     @present.register(Person)
     def present_person(obj):
@@ -141,7 +143,7 @@ class Region(NamedList):
         item["data"] = {
             "keys": obj.keys,
         }
-        return PersonData(item)
+        return PersonView(item)
 
     @present.register(Membership)
     def present_membership(artifact):
@@ -150,7 +152,7 @@ class Region(NamedList):
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
-        return MembershipData(item)
+        return MembershipView(item)
 
 
 class Page(object):

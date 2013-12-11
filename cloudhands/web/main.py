@@ -44,7 +44,7 @@ from cloudhands.common.schema import User
 import cloudhands.web
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
-from cloudhands.web.model import HostData
+from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PathInfo
 
@@ -142,7 +142,7 @@ def organisation_hosts_add(request):
         # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
-    data = HostData(request.POST)
+    data = HostView(request.POST)
     if data.invalid:
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))

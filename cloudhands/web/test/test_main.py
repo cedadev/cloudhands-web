@@ -100,7 +100,7 @@ class PeoplePageTests(ServerTests):
         self.assertIn("info", page)
         self.assertIn("items", page)
         self.assertIn("options", page)
-        self.assertIn("paths", page)
+        self.assertIn("paths", page["info"])
 
     def test_user_search(self):
         ix = create_index(self.td.name, **ldap_types)
