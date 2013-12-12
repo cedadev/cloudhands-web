@@ -2,10 +2,12 @@
 # encoding: UTF-8
 
 from collections import namedtuple
+import datetime
 import re
 import sqlite3
 import tempfile
 import unittest
+import uuid
 
 from pyramid import testing
 from pyramid.httpexceptions import HTTPInternalServerError
@@ -13,6 +15,14 @@ from pyramid.httpexceptions import HTTPInternalServerError
 import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+
+from cloudhands.common.fsm import MembershipState
+
+from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
 
 import cloudhands.web
 from cloudhands.web.indexer import create as create_index
@@ -47,8 +57,8 @@ class ServerTests(unittest.TestCase):
         cloudhands.web.main.authenticated_userid = class_.auth_unpatch
 
     def setUp(self):
-        session = Registry().connect(sqlite3, ":memory:").session
-        initialise(session)
+        self.session = Registry().connect(sqlite3, ":memory:").session
+        initialise(self.session)
         self.request = testing.DummyRequest()
         self.config = testing.setUp(request=self.request)
         self.config.add_static_view(
@@ -122,6 +132,42 @@ class PeoplePageTests(ServerTests):
         request = testing.DummyRequest({"q": "User"})
         page = people_page(request)
         self.assertEqual(10, len(page["items"]))
+
+    def test_user_items_offer_open_invitation(self):
+
+        # create an organisation, membership of it, and a user
+        # for the authenticated email address of this test
+        org = Organisation(name="TestOrg")
+        adminMp = Membership(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            role="admin")
+        admin = User(handle="Test Admin", uuid=uuid.uuid4().hex)
+        ea = EmailAddress(
+            value=cloudhands.web.main.authenticated_userid(),
+            provider="test admin's email provider")
+
+        # make the authenticated user an admin
+        active = self.session.query(
+            MembershipState).filter(MembershipState.name == "active").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=adminMp, actor=admin, state=active, at=now)
+        ea.touch = act
+        adminMp.changes.append(act)
+        self.session.add(ea)
+        self.session.commit()
+
+        ix = create_index(self.td.name, **ldap_types)
+        wrtr = ix.writer()
+
+        for i in range(10):
+            wrtr.add_document(id=str(i), gecos="User {}".format(i))
+        wrtr.commit()
+
+        request = testing.DummyRequest({"q": "User"})
+        page = people_page(request)
+        self.assertTrue(all("_links" in i for i in page["items"]))
 
 if __name__ == "__main__":
     unittest.main()
