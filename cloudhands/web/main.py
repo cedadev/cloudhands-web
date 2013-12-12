@@ -242,6 +242,7 @@ def wsgi_app(args):
         hosts_page, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
 
+    # TODO: unify organisation/{} and organisation/{}/hosts (use options)
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
     config.add_view(
         organisation_hosts_add,

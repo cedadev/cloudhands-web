@@ -9,43 +9,100 @@ import sqlite3
 import sys
 import uuid
 
-from cloudhands.burst.test.fixtures import BurstFixture
+from cloudhands.burst.membership import handle_from_email
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.discovery import settings
+from cloudhands.common.fsm import MembershipState
 
+from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
+
+import cloudhands.web.indexer
 import cloudhands.web.main
 import cloudhands.common.schema
-from cloudhands.web.test.fixtures import WebFixture
 
 __doc__ = """
-    select a.uuid, s.name, n.name, ips.value, t.at from touches as t
-        join resources as r on r.id = t.id
-        join artifacts as a on t.artifact_id = a.id
-        join states as s on t.state_id = s.id
-        left outer join ipaddresses as ips on ips.id = r.id
-        left outer join nodes as n on n.id = r.id;
+This program creates a fictional scenario for the purpose
+of demonstrating the JASMIN web portal.
 """
 
 DFLT_DB = ":memory:"
 
 
+class WebFixture(object):
+
+    organisations = [
+        ("MARMITE", "vcloud"),
+    ]
+
+    def demo_email(req=None):
+        return "ben.campbell@universityoflife.ac.uk"
+
+    def create_organisations(session):
+        for name, provider in WebFixture.organisations:
+            org = Organisation(name=name)
+            try:
+                session.add(org)
+                session.commit()
+            except Exception as e:
+                session.rollback()
+
+    def grant_admin_memberships(session, user):
+        active = session.query(MembershipState).filter(
+            MembershipState.name == "active").one()
+        for name, provider in WebFixture.organisations:
+            org = session.query(Organisation).filter(
+                Organisation.name == name).one()
+            mship = Membership(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org,
+                role="admin")
+            ea = EmailAddress(
+                value=WebFixture.demo_email(),
+                provider=provider)
+
+            now = datetime.datetime.utcnow()
+            act = Touch(artifact=mship, actor=user, state=active, at=now)
+            ea.touch = act
+            mship.changes.append(act)
+            session.add(ea)
+            session.commit()
+            yield act
+
+
 def main(args):
-    rv = 1
-    log = logging.getLogger("cloudhands.burst")
+    logging.basicConfig(
+        level=args.log_level,
+        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    log = logging.getLogger("cloudhands.web.demo")
+
+    args.interval = None
+    args.query = None
+    log.info("Generating index at {}".format(args.index))
+    cloudhands.web.indexer.main(args)
+
     session = cloudhands.web.main.configure(args)
 
     WebFixture.create_organisations(session)
-    user = WebFixture.grant_user_membership(session)
-    WebFixture.load_hosts_for_user(session, user)
-    BurstFixture.load_resources_for_user(session, user, WebFixture.nodes)
+    user = User(handle=handle_from_email(WebFixture.demo_email()),
+                 uuid=uuid.uuid4().hex)
+    for t in WebFixture.grant_admin_memberships(session, user):
+        log.info("{} activated as admin for {}".format(
+            t.actor.handle,
+            t.artifact.organisation.name))
 
     cloudhands.web.main.authenticated_userid = WebFixture.demo_email
 
-    app = cloudhands.web.main.wsgi_app()
+    app = cloudhands.web.main.wsgi_app(args)
     cloudhands.web.main.serve(
         app, host="localhost", port=args.port, url_scheme="http")
-    return rv
+    return 0
 
 
 def parser(description=__doc__):
