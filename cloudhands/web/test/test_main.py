@@ -110,8 +110,13 @@ class PeoplePageTests(ServerTests):
             wrtr.add_document(id=str(i), gecos="User {}".format(i))
         wrtr.commit()
 
-        page = people_page(self.request)
-        self.fail(page)
+        request = testing.DummyRequest({"q": "Loser"})
+        page = people_page(request)
+        self.assertEqual(0, len(page["items"]))
+
+        request = testing.DummyRequest({"q": "User"})
+        page = people_page(request)
+        self.assertEqual(10, len(page["items"]))
 
 if __name__ == "__main__":
     unittest.main()
