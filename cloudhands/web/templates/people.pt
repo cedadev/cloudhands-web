@@ -40,8 +40,10 @@ id string:option_${repeat['option'].index}">
 <fieldset>
 <legend>${link.name}</legend>
 <div tal:omit-tag="" tal:repeat="field link.parameters" >
-<label tal:attributes="for field.name">
-<input tal:attributes="
+<label tal:condition="field.name == 'description'"
+tal:attributes="for field.name">
+<input  tal:condition="field.name == 'description'"
+tal:attributes="
 id string:${link.ref}_${link.method}_${field.name};
 name field.name;
 pattern field.regex.pattern;

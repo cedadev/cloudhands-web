@@ -175,9 +175,12 @@ def people_page(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
-    page = PeoplePage(paths=paths(request))
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    page = PeoplePage(session=con.session, user=user, paths=paths(request))
     index = request.registry.settings["args"].index
-    query = dict(request.GET).get("q", "") # TODO: validate
+    query = dict(request.GET).get("description", "") # TODO: validate
     try:
         for p in people(index, query):
             page.layout.items.push(p)

@@ -15,9 +15,12 @@ except ImportError:
 
 import cloudhands.common
 from cloudhands.common.schema import Host
-from cloudhands.common.schema import Membership
 from cloudhands.common.schema import IPAddress
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
+from cloudhands.common.schema import State
+from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
 
 from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
@@ -112,9 +115,33 @@ class PersonView(Fragment):
     @property
     def parameters(self):
         return [
-            Parameter("q", True, re.compile("\\w{2,}$"), []),
+            Parameter("description", True, re.compile("\\w{2,}$"), []),
+            Parameter("designator", True, re.compile("\\w{8,}$"), []),
         ]
 
+    def configure(self, sn, user):
+        """
+        Add links to Memberships in 'invited' state created by this user
+        """
+        try:
+            m = sn.query(Membership).join(Touch).join(User).join(State).filter(
+                User.id == user.id).filter(
+                State.fsm == "membership").filter(
+                State.name == "invite").first()
+        except AttributeError:
+            # Lack session or user
+            pass
+        else:
+            if m is not None:
+                print(m)
+                self["_links"] = [
+                    Link(
+                        m.organisation.name, "collection",
+                        "/membership/{}", m.uuid, "post",
+                        self.parameters, "Invite")
+                ]
+        finally:
+            return self
 
 class Region(NamedList):
 

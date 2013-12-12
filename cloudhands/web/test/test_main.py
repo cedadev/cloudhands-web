@@ -12,6 +12,8 @@ import uuid
 from pyramid import testing
 from pyramid.httpexceptions import HTTPInternalServerError
 
+from cloudhands.burst.membership import Invitation
+
 import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -125,17 +127,17 @@ class PeoplePageTests(ServerTests):
             wrtr.add_document(id=str(i), gecos="User {}".format(i))
         wrtr.commit()
 
-        request = testing.DummyRequest({"q": "Loser"})
+        request = testing.DummyRequest({"description": "Loser"})
         page = people_page(request)
         self.assertEqual(0, len(page["items"]))
 
-        request = testing.DummyRequest({"q": "User"})
+        request = testing.DummyRequest({"description": "User"})
         page = people_page(request)
         self.assertEqual(10, len(page["items"]))
 
     def test_user_items_offer_open_invitation(self):
 
-        # create an organisation, membership of it, and a user
+        # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
         org = Organisation(name="TestOrg")
         adminMp = Membership(
@@ -148,7 +150,7 @@ class PeoplePageTests(ServerTests):
             value=cloudhands.web.main.authenticated_userid(),
             provider="test admin's email provider")
 
-        # make the authenticated user an admin
+        # Make the authenticated user an admin
         active = self.session.query(
             MembershipState).filter(MembershipState.name == "active").one()
         now = datetime.datetime.utcnow()
@@ -158,16 +160,24 @@ class PeoplePageTests(ServerTests):
         self.session.add(ea)
         self.session.commit()
 
+        # Issue an invitation for the organisation
+        self.assertIsInstance(
+            Invitation(admin, org)(self.session),
+            Touch)
+
+        # Populate some people
         ix = create_index(self.td.name, **ldap_types)
         wrtr = ix.writer()
 
         for i in range(10):
-            wrtr.add_document(id=str(i), gecos="User {}".format(i))
+            wrtr.add_document(id=str(i), gecos="Person {}".format(i))
         wrtr.commit()
 
-        request = testing.DummyRequest({"q": "User"})
+        request = testing.DummyRequest({"description": "Person"})
         page = people_page(request)
-        self.assertTrue(all("_links" in i for i in page["items"]))
+        print(page)
+        items = list(page["items"])
+        self.assertTrue(all("_links" in i for i in items))
 
 if __name__ == "__main__":
     unittest.main()
