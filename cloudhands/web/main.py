@@ -46,7 +46,7 @@ from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
-from cloudhands.web.model import PathInfo
+from cloudhands.web.model import PeoplePage
 
 DFLT_PORT = 8080
 DFLT_DB = ":memory:"
@@ -89,11 +89,9 @@ def top_page(request):
     status = con.session.query(Host).join(Touch).order_by(
         Touch.at.desc()).first()
 
-    page = Page()
+    page = Page(paths=paths(request))
     if status:
         page.layout.items.push(status)
-
-    page.layout.info.push(PathInfo(paths(request)))
 
     return dict(page.termination())
 
@@ -119,8 +117,7 @@ def hosts_page(request):
     #hosts = con.session.query(Host).join(Touch).join(User).filter(
     #    User == user).all() # JVOs are containers for hosts
     hosts = con.session.query(Host).all()
-    page = Page()
-    page.layout.info.push(PathInfo(paths(request)))
+    page = Page(paths=paths(request))
     for h in hosts:
         page.layout.items.push(h)
     for m in memberships:
@@ -178,8 +175,7 @@ def people_page(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
-    page = Page()
-    page.layout.info.push(PathInfo(paths(request)))
+    page = PeoplePage(paths=paths(request))
     index = request.registry.settings["args"].index
     query = dict(request.GET).get("q", "") # TODO: validate
     try:

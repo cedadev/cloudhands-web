@@ -102,6 +102,11 @@ class PeoplePageTests(ServerTests):
         self.assertIn("options", page)
         self.assertIn("paths", page["info"])
 
+    def test_search_form(self):
+        create_index(self.td.name, **ldap_types)
+        page = people_page(self.request)
+        self.assertEqual(1, len(page["options"]))
+
     def test_user_search(self):
         ix = create_index(self.td.name, **ldap_types)
         wrtr = ix.writer()

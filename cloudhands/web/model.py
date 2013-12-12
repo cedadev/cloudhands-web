@@ -61,18 +61,6 @@ class PathInfo(Fragment):
     pass
 
 
-class MembershipView(Fragment):
-
-    def configure(self, session, user=None):
-        hf = HostView(organisation=self["data"]["organisation"])
-        self["_links"] = [
-            Link(
-                artifact.organisation.name, "collection",
-                "/organisation/{}/hosts", artifact.organisation.name, "post",
-                hf.parameters, "Add")
-        ]
-        return self
-
 class HostView(Fragment):
 
     @property
@@ -103,8 +91,29 @@ class HostView(Fragment):
         return self
 
 
+class MembershipView(Fragment):
+
+    def configure(self, session, user=None):
+        hf = HostView(organisation=self["data"]["organisation"])
+        self["_links"] = [
+            Link(
+                self["data"]["organisation"], "collection",
+                "/organisation/{}/hosts", self["data"]["organisation"], "post",
+                hf.parameters, "Add")
+        ]
+        return self
+
+
 class PersonView(Fragment):
-    pass
+    """
+    Used for free-text search of contacts list
+    """
+
+    @property
+    def parameters(self):
+        return [
+            Parameter("q", True, re.compile("\\w{2,}$"), []),
+        ]
 
 
 class Region(NamedList):
@@ -159,15 +168,19 @@ class Page(object):
 
     Layout = namedtuple("Layout", ["info", "items", "options"])
 
-    def __init__(self, session=None, user=None):
+    def __init__(self, session=None, user=None, paths={}):
         self.layout = Page.Layout(
             info=Region(
                 [VersionInfo().name("versions")]).name("info"),
             items=Region().name("items"),
             options=Region().name("options"))
+
+        # Bake in session and user to regions
         for region in self.layout:
             region.push = functools.partial(
                 region.push, session=session, user=user)
+
+        self.layout.info.push(PathInfo(paths))
 
     def termination(self, info=None, items=None, options=None):
         for region, size in zip(self.layout, (info, items, options)):
@@ -182,3 +195,15 @@ class Page(object):
 
             yield (region.name,
                    OrderedDict([(facet.name, facet) for facet in region]))
+
+class PeoplePage(Page):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.layout.options.append(Fragment(
+            {"_links": [
+            Link(
+                "Find people", "self",
+                "/people", "people", "get",
+                PersonView().parameters, "Search")]
+            }))
