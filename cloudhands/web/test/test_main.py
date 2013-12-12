@@ -175,8 +175,7 @@ class PeoplePageTests(ServerTests):
 
         request = testing.DummyRequest({"description": "Person"})
         page = people_page(request)
-        print(page)
-        items = list(page["items"])
+        items = page["items"].values()
         self.assertTrue(all("_links" in i for i in items))
 
 if __name__ == "__main__":

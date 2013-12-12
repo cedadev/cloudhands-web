@@ -115,8 +115,11 @@ class PersonView(Fragment):
     @property
     def parameters(self):
         return [
-            Parameter("description", True, re.compile("\\w{2,}$"), []),
-            Parameter("designator", True, re.compile("\\w{8,}$"), []),
+            Parameter("description", True, re.compile("\\w{2,}$"),
+                [self["description"]] if "description" in self else []),
+            Parameter(
+                "designator", True, re.compile("\\w{8,}$"),
+                [self["designator"]] if "designator" in self else [])
         ]
 
     def configure(self, sn, user):
@@ -133,10 +136,9 @@ class PersonView(Fragment):
             pass
         else:
             if m is not None:
-                print(m)
                 self["_links"] = [
                     Link(
-                        m.organisation.name, "collection",
+                        m.organisation.name, "parent",
                         "/membership/{}", m.uuid, "post",
                         self.parameters, "Invite")
                 ]

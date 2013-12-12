@@ -13,7 +13,7 @@
 <h1>People</h1>
 <table class="pure-table pure-table-horizontal">
 <thead>
-<tr><th>Name</th></tr>
+<tr><th>Name</th><th>Action</th></tr>
 </thead>
 <tbody>
 <tr
@@ -22,6 +22,10 @@ tal:attributes="
 id itemId;
 ">
 <td>${item['description']}</td>
+<td><a class="pure-button" tal:repeat="link item.get('_links', [])"
+tal:attributes="href link.typ.format(link.ref)">
+<i tal:condition="link.action == 'settings'" class="fa fa-cog"></i>
+${link.action.capitalize()}</a></td>
 </tr>
 </tbody>
 </table>
@@ -48,7 +52,7 @@ id string:${link.ref}_${link.method}_${field.name};
 name field.name;
 pattern field.regex.pattern;
 required python:'required' if field.required else None;
-type 'text';"/>
+type python:'hidden' if field.name in ('designator,') else 'text';"/>
 </label>
 </div>
 <button type="submit" class="pure-button pure-button-primary">${link.action}</button>
