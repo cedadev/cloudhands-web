@@ -126,6 +126,20 @@ def hosts_page(request):
     return dict(page.termination())
 
 
+def organisation_page(request):
+    log = logging.getLogger("cloudhands.web.hosts")
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        # TODO: create
+        raise NotFound("User not found for {}".format(userId))
+
+
 def organisation_hosts_add(request):
     log = logging.getLogger("cloudhands.web.organisation")
     userId = authenticated_userid(request)

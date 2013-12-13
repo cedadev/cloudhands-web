@@ -11,6 +11,7 @@ import uuid
 
 from pyramid import testing
 from pyramid.httpexceptions import HTTPInternalServerError
+from pyramid.httpexceptions import HTTPNotFound
 
 from cloudhands.burst.membership import Invitation
 
@@ -32,6 +33,7 @@ from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_page
+from cloudhands.web.main import organisation_page
 from cloudhands.web.main import people_page
 
 
@@ -73,6 +75,33 @@ class ServerTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
 
+
+    def make_test_user_admin(session):
+        # Create an organisation, membership of it, and a user
+        # for the authenticated email address of this test
+        org = Organisation(name="TestOrg")
+        adminMp = Membership(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            role="admin")
+        admin = User(handle="Test Admin", uuid=uuid.uuid4().hex)
+        ea = EmailAddress(
+            value=cloudhands.web.main.authenticated_userid(),
+            provider="test admin's email provider")
+
+        # Make the authenticated user an admin
+        active = session.query(
+            MembershipState).filter(MembershipState.name == "active").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=adminMp, actor=admin, state=active, at=now)
+        ea.touch = act
+        adminMp.changes.append(act)
+        session.add(ea)
+        session.commit()
+        return act
+
+
 class VersionInfoTests(ServerTests):
 
     def test_version_option(self):
@@ -87,6 +116,25 @@ class VersionInfoTests(ServerTests):
         self.assertEqual(
             cloudhands.common.__version__,
             top_page(self.request)["info"]["versions"]["cloudhands.common"])
+
+
+class OrganisationPageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route("organisation", "/organisation")
+
+    def test_nonadmin_user_cannot_add_membership(self):
+        self.assertRaises(
+            HTTPNotFound,
+            organisation_page, self.request)
+
+    def test_admin_user_can_add_membership(self):
+        self.fail("TBD")
+        self.assertRaises(
+            HTTPNotFound,
+            organisation_page, self.request)
+
 
 class PeoplePageTests(ServerTests):
 
@@ -137,28 +185,9 @@ class PeoplePageTests(ServerTests):
 
     def test_user_items_offer_open_invitation(self):
 
-        # Create an organisation, membership of it, and a user
-        # for the authenticated email address of this test
-        org = Organisation(name="TestOrg")
-        adminMp = Membership(
-            uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
-            organisation=org,
-            role="admin")
-        admin = User(handle="Test Admin", uuid=uuid.uuid4().hex)
-        ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid(),
-            provider="test admin's email provider")
-
-        # Make the authenticated user an admin
-        active = self.session.query(
-            MembershipState).filter(MembershipState.name == "active").one()
-        now = datetime.datetime.utcnow()
-        act = Touch(artifact=adminMp, actor=admin, state=active, at=now)
-        ea.touch = act
-        adminMp.changes.append(act)
-        self.session.add(ea)
-        self.session.commit()
+        act = ServerTests.make_test_user_admin(self.session)
+        admin = act.actor
+        org = act.artifact.organisation
 
         # Issue an invitation for the organisation
         self.assertIsInstance(
