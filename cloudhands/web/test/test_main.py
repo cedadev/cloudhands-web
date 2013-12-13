@@ -140,6 +140,9 @@ class OrganisationPageTests(ServerTests):
         data = [i for i in options if "name" in i.get("data", {})]
         self.assertTrue(data)
         self.assertEqual(org.name, data[0]["data"]["name"])
+        links = [i for i in options if "name" in i.get("_links", {})]
+        self.assertTrue(links)
+        #self.assertIn("_links", options)
 
 
 class PeoplePageTests(ServerTests):

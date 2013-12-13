@@ -108,6 +108,26 @@ class MembershipView(Fragment):
         return self
 
 
+class OrganisationView(Fragment):
+
+    def configure(self, session, user):
+        prvlg = session.query(Membership).join(Organisation).join(
+            Touch).join(User).filter(
+            User.id == user.id).filter(
+            Organisation.name == self["data"]["name"]).filter(
+            Membership.role == "admin").first()
+        if not prvlg or not prvlg.changes[-1].state.name == "active":
+            return self
+
+        self["_links"] = [
+            Link(
+                "New member of {}".format(self["data"]["name"]), "self",
+                "/organisation/{}", self["data"]["name"], "post",
+                [], "Invite")
+        ]
+        return self
+
+
 class PersonView(Fragment):
     """
     Used for free-text search of contacts list
@@ -145,6 +165,7 @@ class PersonView(Fragment):
                 ]
         finally:
             return self
+
 
 class Region(NamedList):
 
@@ -187,7 +208,7 @@ class Region(NamedList):
         item["data"] = {
             "name": obj.name,
         }
-        return Fragment(item)
+        return OrganisationView(item)
 
     @present.register(PathInfo)
     def present_pathinfo(obj):
@@ -233,6 +254,7 @@ class Page(object):
 
             yield (region.name,
                    OrderedDict([(facet.name, facet) for facet in region]))
+
 
 class PeoplePage(Page):
 

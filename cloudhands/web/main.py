@@ -139,7 +139,7 @@ def organisation_page(request):
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
-    page = Page(paths=paths(request))
+    page = Page(session=con.session, user=user, paths=paths(request))
     page.layout.options.push(org)
     return dict(page.termination())
 
