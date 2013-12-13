@@ -18,6 +18,7 @@ from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
+from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -171,8 +172,25 @@ class Region(NamedList):
         }
         return HostView(item)
 
+    @present.register(Membership)
+    def present_membership(artifact):
+        item = {}
+        item["data"] = {
+            "role": artifact.role,
+            "organisation": artifact.organisation.name
+        }
+        return MembershipView(item)
+
+    @present.register(Organisation)
+    def present_organisation(obj):
+        item = {}
+        item["data"] = {
+            "name": obj.name,
+        }
+        return Fragment(item)
+
     @present.register(PathInfo)
-    def present_pathinfo(obj, session=None):
+    def present_pathinfo(obj):
         return obj.name("paths")
 
     @present.register(Person)
@@ -182,15 +200,6 @@ class Region(NamedList):
             "keys": obj.keys,
         }
         return PersonView(item)
-
-    @present.register(Membership)
-    def present_membership(artifact):
-        item = {}
-        item["data"] = {
-            "role": artifact.role,
-            "organisation": artifact.organisation.name
-        }
-        return MembershipView(item)
 
 
 class Page(object):

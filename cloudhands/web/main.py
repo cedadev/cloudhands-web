@@ -106,7 +106,6 @@ def hosts_page(request):
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
-        # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
     memberships = con.session.query(Membership).join(Touch).join(User).filter(
@@ -127,7 +126,7 @@ def hosts_page(request):
 
 
 def organisation_page(request):
-    log = logging.getLogger("cloudhands.web.hosts")
+    log = logging.getLogger("cloudhands.web.organisation")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -136,8 +135,13 @@ def organisation_page(request):
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
-        # TODO: create
         raise NotFound("User not found for {}".format(userId))
+    oN = request.matchdict["org_name"]
+    org = con.session.query(Organisation).filter(
+        Organisation.name == oN).first()
+    page = Page(paths=paths(request))
+    page.layout.options.push(org)
+    return dict(page.termination())
 
 
 def organisation_hosts_add(request):
@@ -150,7 +154,6 @@ def organisation_hosts_add(request):
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
-        # TODO: create
         raise NotFound("User not found for {}".format(userId))
 
     data = HostView(request.POST)
@@ -255,6 +258,11 @@ def wsgi_app(args):
     config.add_view(
         hosts_page, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("organisation", "/organisation/{org_name}")
+    config.add_view(
+        organisation_page, route_name="organisation", request_method="GET",
+        renderer="hateoas", accept="application/json", xhr=None)
 
     # TODO: unify organisation/{} and organisation/{}/hosts (use options)
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")

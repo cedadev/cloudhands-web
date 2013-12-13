@@ -130,10 +130,16 @@ class OrganisationPageTests(ServerTests):
             organisation_page, self.request)
 
     def test_admin_user_can_add_membership(self):
-        self.fail("TBD")
-        self.assertRaises(
-            HTTPNotFound,
-            organisation_page, self.request)
+        act = ServerTests.make_test_user_admin(self.session)
+        admin = act.actor
+        org = act.artifact.organisation
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
+        page = organisation_page(request)
+        options = page["options"].values()
+        data = [i for i in options if "name" in i.get("data", {})]
+        self.assertTrue(data)
+        self.assertEqual(org.name, data[0]["data"]["name"])
 
 
 class PeoplePageTests(ServerTests):
