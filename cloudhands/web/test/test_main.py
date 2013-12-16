@@ -11,6 +11,7 @@ import unittest
 import uuid
 
 from pyramid import testing
+from pyramid.httpexceptions import HTTPCreated
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
 
@@ -33,9 +34,10 @@ from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
 from cloudhands.web.main import parser
-from cloudhands.web.main import top_page
-from cloudhands.web.main import organisation_page
-from cloudhands.web.main import people_page
+from cloudhands.web.main import top_read
+from cloudhands.web.main import organisation_read
+from cloudhands.web.main import organisation_memberships_create
+from cloudhands.web.main import people_read
 
 
 class ACLTests(unittest.TestCase):
@@ -113,10 +115,17 @@ class VersionInfoTests(ServerTests):
     def test_version_json(self):
         self.assertEqual(
             cloudhands.web.__version__,
-            top_page(self.request)["info"]["versions"]["cloudhands.web"])
+            top_read(self.request)["info"]["versions"]["cloudhands.web"])
         self.assertEqual(
             cloudhands.common.__version__,
-            top_page(self.request)["info"]["versions"]["cloudhands.common"])
+            top_read(self.request)["info"]["versions"]["cloudhands.common"])
+
+
+class MembershipPageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route("membership", "/membership")
 
 
 class OrganisationPageTests(ServerTests):
@@ -128,7 +137,7 @@ class OrganisationPageTests(ServerTests):
     def test_nonadmin_user_cannot_add_membership(self):
         self.assertRaises(
             HTTPNotFound,
-            organisation_page, self.request)
+            organisation_read, self.request)
 
     def test_admin_user_can_add_membership(self):
         act = ServerTests.make_test_user_admin(self.session)
@@ -136,7 +145,7 @@ class OrganisationPageTests(ServerTests):
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
-        page = organisation_page(request)
+        page = organisation_read(request)
         options = page["options"].values()
         data = [i for i in options if "name" in i.get("data", {})]
         self.assertTrue(data)
@@ -145,6 +154,11 @@ class OrganisationPageTests(ServerTests):
                       for i in o["_links"] if i.name.startswith("Invit"))
         self.assertTrue(invite)
 
+
+    def test_post_returns_artifact_created(self):
+        request = testing.DummyRequest()
+        self.assertRaises(HTTPCreated, organisation_memberships_create, request)
+        
 
 class PeoplePageTests(ServerTests):
 
@@ -162,11 +176,11 @@ class PeoplePageTests(ServerTests):
     def test_500_error_raised_without_index(self):
         self.assertRaises(
             HTTPInternalServerError,
-            people_page, self.request)
+            people_read, self.request)
 
-    def test_page_regions(self):
+    def test_read_regions(self):
         create_index(self.td.name, **ldap_types)
-        page = people_page(self.request)
+        page = people_read(self.request)
         self.assertIn("info", page)
         self.assertIn("items", page)
         self.assertIn("options", page)
@@ -174,7 +188,7 @@ class PeoplePageTests(ServerTests):
 
     def test_search_form(self):
         create_index(self.td.name, **ldap_types)
-        page = people_page(self.request)
+        page = people_read(self.request)
         self.assertEqual(1, len(page["options"]))
 
     def test_user_search(self):
@@ -186,11 +200,11 @@ class PeoplePageTests(ServerTests):
         wrtr.commit()
 
         request = testing.DummyRequest({"description": "Loser"})
-        page = people_page(request)
+        page = people_read(request)
         self.assertEqual(0, len(page["items"]))
 
         request = testing.DummyRequest({"description": "User"})
-        page = people_page(request)
+        page = people_read(request)
         self.assertEqual(10, len(page["items"]))
 
     def test_user_items_offer_open_invitation(self):
@@ -213,7 +227,7 @@ class PeoplePageTests(ServerTests):
         wrtr.commit()
 
         request = testing.DummyRequest({"description": "Person"})
-        page = people_page(request)
+        page = people_read(request)
         items = page["items"].values()
         self.assertTrue(all("_links" in i for i in items))
 

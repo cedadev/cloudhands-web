@@ -80,7 +80,7 @@ def record_adapter(obj, request):
     return rv
 
 
-def top_page(request):
+def top_read(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -96,7 +96,7 @@ def top_page(request):
     return dict(page.termination())
 
 
-def hosts_page(request):
+def hosts_read(request):
     log = logging.getLogger("cloudhands.web.hosts")
     userId = authenticated_userid(request)
     if userId is None:
@@ -125,7 +125,7 @@ def hosts_page(request):
     return dict(page.termination())
 
 
-def organisation_page(request):
+def organisation_read(request):
     log = logging.getLogger("cloudhands.web.organisation")
     userId = authenticated_userid(request)
     if userId is None:
@@ -144,7 +144,7 @@ def organisation_page(request):
     return dict(page.termination())
 
 
-def organisation_hosts_add(request):
+def organisation_hosts_create(request):
     log = logging.getLogger("cloudhands.web.organisation")
     userId = authenticated_userid(request)
     if userId is None:
@@ -187,7 +187,21 @@ def organisation_hosts_add(request):
     raise HTTPFound(location=request.route_url("hosts"))
 
 
-def people_page(request):
+def organisation_memberships_create(request):
+    log = logging.getLogger("cloudhands.web.organisation")
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        raise NotFound("User not found for {}".format(userId))
+    return {}
+
+
+def people_read(request):
     log = logging.getLogger("cloudhands.web.people")
     userId = authenticated_userid(request)
     if userId is None:
@@ -248,33 +262,33 @@ def wsgi_app(args):
 
     config.add_route("top", "/")
     config.add_view(
-        top_page, route_name="top", request_method="GET",
+        top_read, route_name="top", request_method="GET",
         renderer="cloudhands.web:templates/base.pt")
 
     config.add_route("hosts", "/hosts")
     #config.add_view(
-    #    hosts_page, route_name="hosts", request_method="GET",
+    #    hosts_read, route_name="hosts", request_method="GET",
     #    renderer="hateoas", accept="application/json", xhr=None)
     config.add_view(
-        hosts_page, route_name="hosts", request_method="GET",
+        hosts_read, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("organisation", "/organisation/{org_name}")
     config.add_view(
-        organisation_page, route_name="organisation", request_method="GET",
+        organisation_read, route_name="organisation", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/organisation.pt")
 
     # TODO: unify organisation/{} and organisation/{}/hosts (use options)
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
     config.add_view(
-        organisation_hosts_add,
+        organisation_hosts_create,
         route_name="organisation_hosts", request_method="POST",
         renderer="cloudhands.web:templates/hosts.pt")
 
     config.add_route("people", "/people")
     config.add_view(
-        people_page, route_name="people", request_method="GET",
+        people_read, route_name="people", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/people.pt")
 
