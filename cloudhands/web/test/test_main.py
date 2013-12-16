@@ -3,6 +3,7 @@
 
 from collections import namedtuple
 import datetime
+import operator
 import re
 import sqlite3
 import tempfile
@@ -140,9 +141,9 @@ class OrganisationPageTests(ServerTests):
         data = [i for i in options if "name" in i.get("data", {})]
         self.assertTrue(data)
         self.assertEqual(org.name, data[0]["data"]["name"])
-        links = [i for i in options if "name" in i.get("_links", {})]
-        self.assertTrue(links)
-        #self.assertIn("_links", options)
+        invite = next(i for o in options if "_links" in o
+                      for i in o["_links"] if i.action =="Invite")
+        self.assertTrue(invite)
 
 
 class PeoplePageTests(ServerTests):
