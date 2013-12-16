@@ -11,6 +11,7 @@ import unittest
 import uuid
 
 from pyramid import testing
+from pyramid.exceptions import Forbidden
 from pyramid.httpexceptions import HTTPCreated
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
@@ -79,6 +80,31 @@ class ServerTests(unittest.TestCase):
         Registry().disconnect(sqlite3, ":memory:")
 
 
+    def make_test_user(session):
+        # Create an organisation, membership of it, and a user
+        # for the authenticated email address of this test
+        org = Organisation(name="TestOrg")
+        userMp = Membership(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            role="user")
+        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        ea = EmailAddress(
+            value=cloudhands.web.main.authenticated_userid(),
+            provider="test user's email provider")
+
+        # Make the authenticated user an admin
+        active = session.query(
+            MembershipState).filter(MembershipState.name == "active").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=userMp, actor=user, state=active, at=now)
+        ea.touch = act
+        userMp.changes.append(act)
+        session.add(ea)
+        session.commit()
+        return act
+
     def make_test_user_admin(session):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
@@ -135,9 +161,18 @@ class OrganisationPageTests(ServerTests):
         self.config.add_route("organisation", "/organisation")
 
     def test_nonadmin_user_cannot_add_membership(self):
-        self.assertRaises(
-            HTTPNotFound,
-            organisation_read, self.request)
+        act = ServerTests.make_test_user(self.session)
+        org = act.artifact.organisation
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
+        page = organisation_read(request)
+        options = page["options"].values()
+        data = [i for i in options if "name" in i.get("data", {})]
+        self.assertTrue(data)
+        self.assertEqual(org.name, data[0]["data"]["name"])
+        invite = list(i for o in options if "_links" in o
+                      for i in o["_links"] if i.name.startswith("Invit"))
+        self.assertFalse(invite)
 
     def test_admin_user_can_add_membership(self):
         act = ServerTests.make_test_user_admin(self.session)
@@ -155,7 +190,14 @@ class OrganisationPageTests(ServerTests):
         self.assertTrue(invite)
 
 
-    def test_post_returns_artifact_created(self):
+    def test_user_memberships_post_returns_forbidden(self):
+        act = ServerTests.make_test_user(self.session)
+        request = testing.DummyRequest()
+        self.assertRaises(Forbidden, organisation_memberships_create, request)
+        
+
+    def test_admin_memberships_post_returns_artifact_created(self):
+        act = ServerTests.make_test_user_admin(self.session)
         request = testing.DummyRequest()
         self.assertRaises(HTTPCreated, organisation_memberships_create, request)
         
