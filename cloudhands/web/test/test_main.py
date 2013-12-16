@@ -12,7 +12,7 @@ import uuid
 
 from pyramid import testing
 from pyramid.exceptions import Forbidden
-from pyramid.httpexceptions import HTTPCreated
+from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
 
@@ -202,11 +202,13 @@ class OrganisationPageTests(ServerTests):
         
 
     def test_admin_memberships_post_returns_artifact_created(self):
+        self.config.add_route("membership", "/membership")
+        self.config.add_route("people", "/people")
         act = ServerTests.make_test_user_admin(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
-        self.assertRaises(HTTPCreated, organisation_memberships_create, request)
+        self.assertRaises(HTTPFound, organisation_memberships_create, request)
         
 
 class PeoplePageTests(ServerTests):

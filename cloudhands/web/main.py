@@ -128,6 +128,25 @@ def hosts_read(request):
     return dict(page.termination())
 
 
+def membership_read(request):
+    log = logging.getLogger("cloudhands.web.membership")
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        raise NotFound("User not found for {}".format(userId))
+    m_uuid = request.matchdict["mship_uuid"]
+    mship = con.session.query(Membership).filter(
+        Membership.uuid == m_uuid).first()
+    page = Page(session=con.session, user=user, paths=paths(request))
+    page.layout.options.push(mship)
+    return dict(page.termination())
+
+
 def organisation_read(request):
     log = logging.getLogger("cloudhands.web.organisation")
     userId = authenticated_userid(request)
@@ -212,8 +231,10 @@ def organisation_memberships_create(request):
         raise Forbidden("User {} lacks permission.".format(user.handle))
     else:
         locn = request.route_url(
-            "memberships", mship_uuid=invite.artifact.uuid)
-        raise HTTPFound(location=locn)
+            "membership", mship_uuid=invite.artifact.uuid)
+        raise HTTPFound(
+            #headers=[("Location", locn)],
+            location=request.route_url("people"))
 
 
 def people_read(request):
@@ -287,6 +308,12 @@ def wsgi_app(args):
     config.add_view(
         hosts_read, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("membership", "/membership/{mship_uuid}")
+    config.add_view(
+        membership_read, route_name="membership", request_method="GET",
+        renderer="hateoas", accept="application/json", xhr=None)
+        #renderer="cloudhands.web:templates/membership.pt")
 
     config.add_route("organisation", "/organisation/{org_name}")
     config.add_view(
