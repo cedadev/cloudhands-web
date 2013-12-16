@@ -262,7 +262,8 @@ def wsgi_app(args):
     config.add_route("organisation", "/organisation/{org_name}")
     config.add_view(
         organisation_page, route_name="organisation", request_method="GET",
-        renderer="hateoas", accept="application/json", xhr=None)
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/organisation.pt")
 
     # TODO: unify organisation/{} and organisation/{}/hosts (use options)
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
