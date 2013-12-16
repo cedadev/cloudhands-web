@@ -29,6 +29,7 @@ from pyramid_macauth import MACAuthenticationPolicy
 
 from waitress import serve
 
+from cloudhands.burst.membership import handle_from_email
 from cloudhands.burst.membership import Invitation
 
 from cloudhands.common.fsm import MembershipState
@@ -61,6 +62,21 @@ CRED_TABLE = {}
 def registered_connection():
     r = Registry()
     return r.connect(*next(iter(r.items)))
+
+
+def authenticate_user(request):
+    userId = authenticated_userid(request)
+    if userId is None:
+        raise Forbidden()
+
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if not user:
+        nf = NotFound("User not found for {}".format(userId))
+        nf.userId = userId
+        raise nf 
+    return user
 
 
 def paths(request):
@@ -130,18 +146,35 @@ def hosts_read(request):
 
 def membership_read(request):
     log = logging.getLogger("cloudhands.web.membership")
-    userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
-
-    con = registered_connection()
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
-    if not user:
-        raise NotFound("User not found for {}".format(userId))
     m_uuid = request.matchdict["mship_uuid"]
+    con = registered_connection()
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
+    try:
+        user = authenticate_user(request)
+    except NotFound as e:
+        # Create user only if invited
+        if mship.changes[-1].state.name != "invited":
+            raise Forbidden()
+
+        user = User(handle=handle_from_email(e.userId), uuid=uuid.uuid4().hex)
+        ea = EmailAddress(
+            value=cloudhands.web.main.authenticated_userid(),
+            provider="test user's email provider")
+
+    page = Page(session=con.session, user=user, paths=paths(request))
+    page.layout.options.push(mship)
+    return dict(page.termination())
+
+
+def membership_update(request):
+    log = logging.getLogger("cloudhands.web.membership")
+    user = authenticate_user(request, create=True)
+    m_uuid = request.matchdict["mship_uuid"]
+    con = registered_connection()
+    mship = con.session.query(Membership).filter(
+        Membership.uuid == m_uuid).first()
+    log.info(request.POST)
     page = Page(session=con.session, user=user, paths=paths(request))
     page.layout.options.push(mship)
     return dict(page.termination())
@@ -314,6 +347,13 @@ def wsgi_app(args):
         membership_read, route_name="membership", request_method="GET",
         renderer="hateoas", accept="application/json", xhr=None)
         #renderer="cloudhands.web:templates/membership.pt")
+
+    config.add_route(
+        "membership_update", "/membership/{mship_uuid}")
+    config.add_view(
+        membership_update,
+        route_name="membership_update", request_method="POST",
+        renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("organisation", "/organisation/{org_name}")
     config.add_view(

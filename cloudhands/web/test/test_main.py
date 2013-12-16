@@ -12,6 +12,7 @@ import uuid
 
 from pyramid import testing
 from pyramid.exceptions import Forbidden
+from pyramid.exceptions import NotFound
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
@@ -34,6 +35,7 @@ import cloudhands.web
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
+from cloudhands.web.main import authenticate_user
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_read
 from cloudhands.web.main import organisation_read
@@ -154,6 +156,26 @@ class MembershipPageTests(ServerTests):
         self.config.add_route("membership", "/membership")
 
 
+class MembershipPageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route("membership", "/membership")
+        self.config.add_route("organisation", "/organisation")
+
+    def test_authenticate_nonuser_raises_not_found(self):
+        request = testing.DummyRequest()
+        self.assertRaises(NotFound, authenticate_user, request)
+
+    def test_authenticate_nonuser_attaches_userid(self):
+        request = testing.DummyRequest()
+        try:
+            authenticate_user(request)
+        except NotFound as e:
+            self.assertEqual(
+                cloudhands.web.main.authenticated_userid(), e.userId)
+
+
 class OrganisationPageTests(ServerTests):
 
     def setUp(self):
@@ -192,14 +214,12 @@ class OrganisationPageTests(ServerTests):
             "/organisation/{}/memberships".format(org.name),
             invite.typ.format(invite.ref))
 
-
     def test_user_memberships_post_returns_forbidden(self):
         act = ServerTests.make_test_user(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(Forbidden, organisation_memberships_create, request)
-        
 
     def test_admin_memberships_post_returns_artifact_created(self):
         self.config.add_route("membership", "/membership")
