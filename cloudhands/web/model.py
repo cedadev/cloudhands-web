@@ -122,7 +122,7 @@ class OrganisationView(Fragment):
         self["_links"] = [
             Link(
                 "Invitation to {}".format(self["data"]["name"]), "self",
-                "/organisation/{}", self["data"]["name"], "post",
+                "/organisation/{}/memberships", self["data"]["name"], "post",
                 [], "Create")
         ]
         return self

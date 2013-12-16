@@ -188,17 +188,24 @@ class OrganisationPageTests(ServerTests):
         invite = next(i for o in options if "_links" in o
                       for i in o["_links"] if i.name.startswith("Invit"))
         self.assertTrue(invite)
+        self.assertEqual(
+            "/organisation/{}/memberships".format(org.name),
+            invite.typ.format(invite.ref))
 
 
     def test_user_memberships_post_returns_forbidden(self):
         act = ServerTests.make_test_user(self.session)
+        org = act.artifact.organisation
         request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
         self.assertRaises(Forbidden, organisation_memberships_create, request)
         
 
     def test_admin_memberships_post_returns_artifact_created(self):
         act = ServerTests.make_test_user_admin(self.session)
+        org = act.artifact.organisation
         request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPCreated, organisation_memberships_create, request)
         
 

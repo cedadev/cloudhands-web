@@ -17,6 +17,7 @@ from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
 from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPCreated
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.interfaces import IAuthenticationPolicy
@@ -27,6 +28,8 @@ from pyramid_authstack import AuthenticationStackPolicy
 from pyramid_macauth import MACAuthenticationPolicy
 
 from waitress import serve
+
+from cloudhands.burst.membership import Invitation
 
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.connectors import initialise
@@ -194,11 +197,23 @@ def organisation_memberships_create(request):
         raise Forbidden()
 
     con = registered_connection()
+    oN = request.matchdict["org_name"]
+    org = con.session.query(Organisation).filter(
+        Organisation.name == oN).first()
+    if not org:
+        raise NotFound("Organisation '{}' not found".format(oN))
+
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
         raise NotFound("User not found for {}".format(userId))
-    return {}
+    invite = Invitation(user, org)(con.session)
+    if not invite:
+        raise Forbidden("User {} lacks permission.".format(user.handle))
+    else:
+        locn = request.route_url(
+            "memberships", mship_uuid=invite.artifact.uuid)
+        raise HTTPFound(location=locn)
 
 
 def people_read(request):
@@ -285,6 +300,13 @@ def wsgi_app(args):
         organisation_hosts_create,
         route_name="organisation_hosts", request_method="POST",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route(
+        "organisation_memberships", "/organisation/{org_name}/memberships")
+    config.add_view(
+        organisation_memberships_create,
+        route_name="organisation_memberships", request_method="POST",
+        renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("people", "/people")
     config.add_view(
