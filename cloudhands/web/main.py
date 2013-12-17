@@ -41,6 +41,9 @@ from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PosixGId
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Serializable
 from cloudhands.common.schema import Touch
@@ -78,6 +81,25 @@ def authenticate_user(request):
         nf.userId = userId
         raise nf 
     return user
+
+
+def create_membership_resources(
+    session, m, rTyp, vals, prvdr="cloudhands.web.indexer"):
+    latest = m.changes[-1]
+    for v in vals:
+        resource = rTyp(value=v, provider=prvdr)
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=m, actor=latest.actor, state=latest.state, at=now)
+        m.changes.append(act)
+        resource.touch = act
+        try:
+            session.add(resource)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            yield session.query(rTyp).filter(
+                rTyp.value == v, rTyp.provider == prvdr).first()
 
 
 def paths(request):
@@ -165,22 +187,45 @@ def membership_read(request):
         act = Activation(user, mship, ea)(con.session)
 
     page = Page(session=con.session, user=user, paths=paths(request))
+    for r in con.session.query(Resource).join(Touch).join(Membership).filter(
+        Membership.uuid == m_uuid).all():
+        page.layout.items.push(r)
     page.layout.options.push(mship)
     return dict(page.termination())
 
 
 def membership_update(request):
     log = logging.getLogger("cloudhands.web.membership")
-    user = authenticate_user(request, create=True)
-    m_uuid = request.matchdict["mship_uuid"]
+    user = authenticate_user(request)
     con = registered_connection()
+    m_uuid = request.matchdict["mship_uuid"]
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
-    log.info(request.POST)
-    page = Page(session=con.session, user=user, paths=paths(request))
-    page.layout.options.push(mship)
-    return dict(page.termination())
+    if not mship:
+        raise NotFound()
 
+    prvlg = con.session.query(Membership).join(Organisation).join(
+        Touch).join(User).filter(
+        User.id == user.id).filter(
+        Organisation.id == mship.organisation.id).filter(
+        Membership.role == "admin").first()
+    if not prvlg or not prvlg.changes[-1].state.name == "active":
+        raise Forbidden("Admin privilege is required to update membership.")
+
+    index = request.registry.settings["args"].index
+    query = dict(request.POST).get("designator", "") # TODO: validate
+    try:
+        p = next(people(index, query, field="id"))
+    except:
+        raise Forbidden("LDAP record not accessible.")
+
+    for typ, vals in zip(
+        (PosixUId, PosixGId, PublicKey), ([p.uid], p.gids, p.keys)):
+        for r in create_membership_resources(con.session, mship, typ, vals):
+            log.debug(r)
+
+    raise HTTPFound(
+        location=request.route_url("membership", mship_uuid=m_uuid))
 
 def organisation_read(request):
     log = logging.getLogger("cloudhands.web.organisation")

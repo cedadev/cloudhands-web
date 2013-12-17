@@ -28,6 +28,7 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -40,6 +41,7 @@ from cloudhands.web.main import authenticate_user
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_read
 from cloudhands.web.main import membership_read
+from cloudhands.web.main import membership_update
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
@@ -157,6 +159,7 @@ class MembershipPageTests(ServerTests):
         super().setUp()
         self.config.add_route("membership", "/membership")
         self.config.add_route("organisation", "/organisation")
+        self.config.add_route("people", "/people")
 
     def test_authenticate_nonuser_raises_not_found(self):
         request = testing.DummyRequest()
@@ -174,9 +177,6 @@ class MembershipPageTests(ServerTests):
 
         def newuser_email(request=None):
             return "someone.new@somewhere.else.org"
-
-        self.config.add_route("membership", "/membership")
-        self.config.add_route("people", "/people")
 
         # Create an admin
         self.assertEqual(0, self.session.query(User).count())
@@ -210,6 +210,44 @@ class MembershipPageTests(ServerTests):
                 EmailAddress.value == newuser_email()).first())
         finally:
             cloudhands.web.main.authenticated_userid = testuser_email
+
+
+    def test_user_membership_update_post_returns_forbidden(self):
+        act = ServerTests.make_test_user(self.session)
+        mship = act.artifact
+        request = testing.DummyRequest()
+        request.matchdict.update({"mship_uuid": mship.uuid})
+        self.assertRaises(Forbidden, membership_update, request)
+
+    def test_admin_membership_update_post_adds_resources(self):
+        dn = "cn=testadmin,ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk"
+        uid = "2345"
+        gid = "6200"
+        key = "tu3+" * 100
+        with tempfile.TemporaryDirectory() as td:
+            Args = namedtuple("Arguments", ["index"])
+            self.config.add_settings({"args": Args(td)})
+
+            ix = create_index(td, **ldap_types)
+            wrtr = ix.writer()
+            wrtr.add_document(id=dn, uidNumber=uid, gidNumber=gid,
+                              sshPublicKey=key)
+            wrtr.commit()
+
+            act = ServerTests.make_test_user_admin(self.session)
+            self.assertEqual(1, self.session.query(Resource).count())
+            mship = act.artifact
+            request = testing.DummyRequest(post={"designator": dn})
+            request.matchdict.update({"mship_uuid": mship.uuid})
+            # NB: admin is updating his own membership here
+            self.assertRaises(
+                HTTPFound, membership_update, request)
+
+            n = self.session.query(
+                Resource).join(Touch).join(Membership).filter(
+                Membership.id == mship.id).count()
+            self.assertEqual(4, n)
+        
 
 class OrganisationPageTests(ServerTests):
 
