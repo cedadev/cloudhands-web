@@ -19,6 +19,7 @@ from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -170,6 +171,10 @@ class PersonView(Fragment):
             return self
 
 
+class ResourceView(Fragment):
+    pass
+
+
 class Region(NamedList):
 
     @singledispatch
@@ -199,7 +204,9 @@ class Region(NamedList):
     @present.register(Membership)
     def present_membership(artifact):
         item = {}
+        item["states"] = [artifact.changes[-1].state]
         item["data"] = {
+            "modified": artifact.changes[-1].at,
             "role": artifact.role,
             "organisation": artifact.organisation.name
         }
@@ -224,6 +231,14 @@ class Region(NamedList):
             "keys": obj.keys,
         }
         return PersonView(item)
+
+    @present.register(Resource)
+    def present_resource(obj):
+        item = {k: getattr(obj, k, "") for k in ("name", "value", "uri")}
+        item["data"] = {
+            "type": type(obj).__name__
+        }
+        return ResourceView(item)
 
 
 class Page(object):

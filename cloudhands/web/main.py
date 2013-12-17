@@ -394,8 +394,8 @@ def wsgi_app(args):
     config.add_route("membership", "/membership/{mship_uuid}")
     config.add_view(
         membership_read, route_name="membership", request_method="GET",
-        renderer="hateoas", accept="application/json", xhr=None)
-        #renderer="cloudhands.web:templates/membership.pt")
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/membership.pt")
 
     config.add_view(
         membership_update,

@@ -20,7 +20,18 @@ font-weight: lighter;
 background-color: gainsboro;
 }
 
+.publickey {
+font-family: monospace;
+padding: 3em 2em 1em 1em;
+width: 40em;
+word-wrap: break-word;
+}
+
 .host.requested {
 font-weight: lighter;
 background-color: gainsboro;
+}
+
+dl.membership dd{
+padding: 1em 1em 1em 2em;
 }
