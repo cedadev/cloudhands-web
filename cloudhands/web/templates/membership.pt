@@ -8,19 +8,20 @@
     <li><a href="/people">People</a></li>
     </ul>
 </nav>
-<div metal:fill-slot="summary">
+<div tal:omit-tag="" metal:fill-slot="summary">
 <section id="items">
 <h1>Membership</h1>
-<dl>
-<div tal:omit-tag=""
-tal:repeat="(itemId, item) items.items()"
+<ul>
+<li tal:repeat="(itemId, item) items.items()"
 tal:attributes="
 id itemId;
 ">
+<dl tal:attributes="class item['data']['type'].lower();">
 <dt tal:content="item['data']['type']"></dt>
-<dd tal:attributes="class item['data']['type'].lower();">${item.value}</dd>
-</div>
+<dd tal:content="item['value']"></dd>
 </dl>
+</li>
+</ul>
 </section>
 </div>
 <section metal:fill-slot="detail" id="options">
