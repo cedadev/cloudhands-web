@@ -185,6 +185,7 @@ def membership_read(request):
             value=cloudhands.web.main.authenticated_userid(),
             provider="https://login.persona.org")
         act = Activation(user, mship, ea)(con.session)
+        log.debug(user)
 
     page = Page(session=con.session, user=user, paths=paths(request))
     for r in con.session.query(Resource).join(Touch).join(Membership).filter(
@@ -310,6 +311,7 @@ def organisation_memberships_create(request):
     if not invite:
         raise Forbidden("User {} lacks permission.".format(user.handle))
     else:
+        log.debug(invite.artifact)
         locn = request.route_url(
             "membership", mship_uuid=invite.artifact.uuid)
         raise HTTPFound(
@@ -395,11 +397,9 @@ def wsgi_app(args):
         renderer="hateoas", accept="application/json", xhr=None)
         #renderer="cloudhands.web:templates/membership.pt")
 
-    config.add_route(
-        "membership_update", "/membership/{mship_uuid}")
     config.add_view(
         membership_update,
-        route_name="membership_update", request_method="POST",
+        route_name="membership", request_method="POST",
         renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("organisation", "/organisation/{org_name}")
