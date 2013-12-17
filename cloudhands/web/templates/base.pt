@@ -38,6 +38,7 @@
             <ul>
             <li class="pure-menu-disabled"><a href="#">Documentation</a></li>
             <li class="pure-menu-disabled"><a href="#">Contact</a></li>
+            <li><button id='signout'>logout</button></li>
             </ul>
         </div>
         <section metal:define-slot="detail">
