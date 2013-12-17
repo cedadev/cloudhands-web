@@ -30,6 +30,7 @@ from pyramid_macauth import MACAuthenticationPolicy
 from waitress import serve
 
 from cloudhands.burst.membership import handle_from_email
+from cloudhands.burst.membership import Activation
 from cloudhands.burst.membership import Invitation
 
 from cloudhands.common.fsm import MembershipState
@@ -154,13 +155,14 @@ def membership_read(request):
         user = authenticate_user(request)
     except NotFound as e:
         # Create user only if invited
-        if mship.changes[-1].state.name != "invited":
+        if mship.changes[-1].state.name != "invite":
             raise Forbidden()
 
         user = User(handle=handle_from_email(e.userId), uuid=uuid.uuid4().hex)
         ea = EmailAddress(
             value=cloudhands.web.main.authenticated_userid(),
-            provider="test user's email provider")
+            provider="https://login.persona.org")
+        act = Activation(user, mship, ea)(con.session)
 
     page = Page(session=con.session, user=user, paths=paths(request))
     page.layout.options.push(mship)

@@ -203,7 +203,11 @@ class MembershipPageTests(ServerTests):
             request = testing.DummyRequest()
             request.matchdict.update({"mship_uuid": mship.uuid})
             reply = membership_read(request)
-            self.fail(reply)
+
+            # Check new user added
+            self.assertEqual(2, self.session.query(User).count())
+            self.assertTrue(self.session.query(EmailAddress).filter(
+                EmailAddress.value == newuser_email()).first())
         finally:
             cloudhands.web.main.authenticated_userid = testuser_email
 

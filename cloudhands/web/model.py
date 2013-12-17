@@ -109,6 +109,9 @@ class MembershipView(Fragment):
 
 
 class OrganisationView(Fragment):
+    """
+    TODO: consider folding this into MembershipView?
+    """
 
     def configure(self, session, user):
         prvlg = session.query(Membership).join(Organisation).join(
