@@ -28,6 +28,7 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -38,6 +39,7 @@ from cloudhands.web.indexer import ldap_types
 from cloudhands.web.main import authenticate_user
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_read
+from cloudhands.web.main import membership_read
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
@@ -154,13 +156,6 @@ class MembershipPageTests(ServerTests):
     def setUp(self):
         super().setUp()
         self.config.add_route("membership", "/membership")
-
-
-class MembershipPageTests(ServerTests):
-
-    def setUp(self):
-        super().setUp()
-        self.config.add_route("membership", "/membership")
         self.config.add_route("organisation", "/organisation")
 
     def test_authenticate_nonuser_raises_not_found(self):
@@ -175,6 +170,42 @@ class MembershipPageTests(ServerTests):
             self.assertEqual(
                 cloudhands.web.main.authenticated_userid(), e.userId)
 
+    def test_nonuser_membership_read_creates_user(self):
+
+        def newuser_email(request=None):
+            return "someone.new@somewhere.else.org"
+
+        self.config.add_route("membership", "/membership")
+        self.config.add_route("people", "/people")
+
+        # Create an admin
+        self.assertEqual(0, self.session.query(User).count())
+        self.assertEqual(0, self.session.query(Membership).count())
+        act = ServerTests.make_test_user_admin(self.session)
+        org = act.artifact.organisation
+        self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(1, self.session.query(Membership).count())
+
+        # Create a new invite
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
+        self.assertRaises(HTTPFound, organisation_memberships_create, request)
+        self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(2, self.session.query(Membership).count())
+        mship = self.session.query(
+            Membership).join(Touch).join(State).join(Organisation).filter(
+            Organisation.id == org.id).filter(State.name == "invite").one()
+        
+        testuser_email, cloudhands.web.main.authenticated_userid = (
+            cloudhands.web.main.authenticated_userid, newuser_email)
+        try:
+            # New person visits membership
+            request = testing.DummyRequest()
+            request.matchdict.update({"mship_uuid": mship.uuid})
+            reply = membership_read(request)
+            self.fail(reply)
+        finally:
+            cloudhands.web.main.authenticated_userid = testuser_email
 
 class OrganisationPageTests(ServerTests):
 
