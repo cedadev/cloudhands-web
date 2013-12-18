@@ -152,7 +152,7 @@ def hosts_read(request):
 
     memberships = con.session.query(Membership).join(Touch).join(User).filter(
         User.id == user.id).all()
-    log.info(memberships)
+    log.debug(memberships)
 
     # FIXME!
     #hosts = con.session.query(Host).join(Touch).join(User).filter(
