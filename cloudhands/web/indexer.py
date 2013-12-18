@@ -124,7 +124,7 @@ def ingest(args, config, loop=None):
     c.unbind()
     if loop is not None:
         log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(args.interval, 0, index, (args, config, loop))
+        loop.enter(args.interval, 0, ingest, (args, config, loop))
     return n
 
 
