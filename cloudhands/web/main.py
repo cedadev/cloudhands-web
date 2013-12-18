@@ -46,6 +46,7 @@ from cloudhands.common.schema import PosixGId
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Serializable
+from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 #import cloudhands.common
@@ -150,8 +151,10 @@ def hosts_read(request):
     if not user:
         raise NotFound("User not found for {}".format(userId))
 
-    memberships = con.session.query(Membership).join(Touch).join(User).filter(
-        User.id == user.id).all()
+    memberships = con.session.query(Membership).join(Touch).join(
+        State).join(User).filter(
+        User.id == user.id).filter(
+        State.name == "active").all()
     log.debug(memberships)
 
     # FIXME!

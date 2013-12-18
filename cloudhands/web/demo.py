@@ -71,9 +71,12 @@ class WebFixture(object):
             act = Touch(artifact=mship, actor=user, state=active, at=now)
             ea.touch = act
             mship.changes.append(act)
-            session.add(ea)
-            session.commit()
-            yield act
+            try:
+                session.add(ea)
+                session.commit()
+                yield act
+            except Exception as e:
+                session.rollback()
 
 
 def main(args):
