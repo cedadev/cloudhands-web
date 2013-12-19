@@ -185,7 +185,7 @@ def membership_read(request):
 
         user = User(handle=handle_from_email(e.userId), uuid=uuid.uuid4().hex)
         ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid(),
+            value=cloudhands.web.main.authenticated_userid(request),
             provider="https://login.persona.org")
         act = Activation(user, mship, ea)(con.session)
         log.debug(user)
