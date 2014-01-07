@@ -42,6 +42,7 @@ Person = namedtuple(
     ["designator", "uid", "gids", "description", "keys"]
 )
 
+
 def create(path, **kwargs):
     log = logging.getLogger("cloudhands.web.indexer.create")
     schema = whoosh.fields.Schema(
@@ -86,9 +87,9 @@ def ingest(args, config, loop=None):
     log = logging.getLogger("cloudhands.web.indexer.ingest")
 
     ix = create(
-        args.index, 
+        args.index,
         **{k: v for k, v in ldap_types.items()
-        if config.getboolean("ldap.attributes", k)})
+            if config.getboolean("ldap.attributes", k)})
 
     s = ldap3.server.Server(
         config["ldap.search"]["host"],
@@ -108,7 +109,8 @@ def ingest(args, config, loop=None):
         result = search(pagedSize=size)
         yield from c.response
         while result and cookie:
-            cookie = c.result["controls"]["1.2.840.113556.1.4.319"]["value"]["cookie"]
+            ctrl = c.result["controls"]["1.2.840.113556.1.4.319"]
+            cookie = ctrl["value"]["cookie"]
             result = search(pagedSize=size, pagedCookie=cookie)
             yield from c.response
 
@@ -117,7 +119,8 @@ def ingest(args, config, loop=None):
     for n, i in enumerate(pager()):
         writer.add_document(
             id=i["dn"],
-            **{k: '\n'.join(v) if v else None for k, v in i["attributes"].items()})
+            **{k: '\n'.join(v) if v else None
+                for k, v in i["attributes"].items()})
     log.info("Indexed {} records".format(n))
     writer.commit(mergetype=whoosh.writing.CLEAR)
 

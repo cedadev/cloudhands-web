@@ -93,8 +93,9 @@ def main(args):
     session = cloudhands.web.main.configure(args)
 
     WebFixture.create_organisations(session)
-    user = User(handle=handle_from_email(WebFixture.demo_email()),
-                 uuid=uuid.uuid4().hex)
+    user = User(
+        handle=handle_from_email(WebFixture.demo_email()),
+        uuid=uuid.uuid4().hex)
     for t in WebFixture.grant_admin_memberships(session, user):
         log.info("{} activated as admin for {}".format(
             t.actor.handle,
