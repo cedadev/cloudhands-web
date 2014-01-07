@@ -85,7 +85,6 @@ class ServerTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
 
-
     def make_test_user(session):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
@@ -195,7 +194,7 @@ class MembershipPageTests(ServerTests):
         mship = self.session.query(
             Membership).join(Touch).join(State).join(Organisation).filter(
             Organisation.id == org.id).filter(State.name == "invite").one()
-        
+
         testuser_email, cloudhands.web.main.authenticated_userid = (
             cloudhands.web.main.authenticated_userid, newuser_email)
         try:
@@ -210,7 +209,6 @@ class MembershipPageTests(ServerTests):
                 EmailAddress.value == newuser_email()).first())
         finally:
             cloudhands.web.main.authenticated_userid = testuser_email
-
 
     def test_user_membership_update_post_returns_forbidden(self):
         act = ServerTests.make_test_user(self.session)
@@ -247,7 +245,7 @@ class MembershipPageTests(ServerTests):
                 Resource).join(Touch).join(Membership).filter(
                 Membership.id == mship.id).count()
             self.assertEqual(4, n)
-        
+
 
 class OrganisationPageTests(ServerTests):
 
@@ -302,7 +300,7 @@ class OrganisationPageTests(ServerTests):
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
-        
+
 
 class PeoplePageTests(ServerTests):
 

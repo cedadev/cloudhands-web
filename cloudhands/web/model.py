@@ -77,21 +77,20 @@ class HostView(Fragment):
                 [self["organisation"]] if "organisation" in self else [])
         ]
 
-
     def configure(self, session, user=None):
         state = self["states"][0].name
         self["_links"] = []
 
         if state == "up":
-            self["_links"].append(
-                Link("Send", "self", "/host/{}/commands", self["uuid"],
+            self["_links"].append(Link(
+                "Send", "self", "/host/{}/commands", self["uuid"],
                 "post", [], "stop"))
         elif state == "down":
-            self["_links"].append(
-                Link("Send", "self", "/host/{}/commands", self["uuid"],
+            self["_links"].append(Link(
+                "Send", "self", "/host/{}/commands", self["uuid"],
                 "post", [], "start"))
-        self["_links"].append(
-            Link("Settings", "parent", "/organisation/{}",
+        self["_links"].append(Link(
+            "Settings", "parent", "/organisation/{}",
             self["data"]["organisation"], "get", [], "settings"))
         return self
 
@@ -140,7 +139,8 @@ class PersonView(Fragment):
     @property
     def parameters(self):
         return [
-            Parameter("description", True, re.compile("\\w{2,}$"),
+            Parameter(
+                "description", True, re.compile("\\w{2,}$"),
                 [self["description"]] if "description" in self else []),
             Parameter(
                 "designator", True, re.compile("\\w{8,}$"),
@@ -278,10 +278,8 @@ class PeoplePage(Page):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.layout.options.append(Fragment(
-            {"_links": [
-            Link(
-                "Find people", "self",
-                "/people", "people", "get",
-                PersonView().parameters, "Search")]
-            }))
+        link = Link(
+            "Find people", "self",
+            "/people", "people", "get",
+            PersonView().parameters, "Search")
+        self.layout.options.append(Fragment({"_links": [link]}))

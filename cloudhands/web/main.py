@@ -80,12 +80,14 @@ def authenticate_user(request):
     if not user:
         nf = NotFound("User not found for {}".format(userId))
         nf.userId = userId
-        raise nf 
+        raise nf
     return user
 
 
 def create_membership_resources(
-    session, m, rTyp, vals, prvdr="cloudhands.web.indexer"):
+    session, m, rTyp, vals,
+    prvdr="cloudhands.web.indexer"
+):
     latest = m.changes[-1]
     for v in vals:
         resource = rTyp(value=v, provider=prvdr)
@@ -191,8 +193,9 @@ def membership_read(request):
         log.debug(user)
 
     page = Page(session=con.session, user=user, paths=paths(request))
-    for r in con.session.query(Resource).join(Touch).join(Membership).filter(
-        Membership.uuid == m_uuid).all():
+    rsrcs = con.session.query(Resource).join(Touch).join(Membership).filter(
+        Membership.uuid == m_uuid).all()
+    for r in rsrcs:
         page.layout.items.push(r)
     page.layout.options.push(mship)
     return dict(page.termination())
@@ -217,19 +220,21 @@ def membership_update(request):
         raise Forbidden("Admin privilege is required to update membership.")
 
     index = request.registry.settings["args"].index
-    query = dict(request.POST).get("designator", "") # TODO: validate
+    query = dict(request.POST).get("designator", "")  # TODO: validate
     try:
         p = next(people(index, query, field="id"))
     except:
         raise Forbidden("LDAP record not accessible.")
 
     for typ, vals in zip(
-        (PosixUId, PosixGId, PublicKey), ([p.uid], p.gids, p.keys)):
+        (PosixUId, PosixGId, PublicKey), ([p.uid], p.gids, p.keys)
+    ):
         for r in create_membership_resources(con.session, mship, typ, vals):
             log.debug(r)
 
     raise HTTPFound(
         location=request.route_url("membership", mship_uuid=m_uuid))
+
 
 def organisation_read(request):
     log = logging.getLogger("cloudhands.web.organisation")
@@ -332,7 +337,7 @@ def people_read(request):
         EmailAddress).filter(EmailAddress.value == userId).first()
     page = PeoplePage(session=con.session, user=user, paths=paths(request))
     index = request.registry.settings["args"].index
-    query = dict(request.GET).get("description", "") # TODO: validate
+    query = dict(request.GET).get("description", "")  # TODO: validate
     try:
         for p in people(index, query):
             page.layout.items.push(p)

@@ -21,6 +21,7 @@ __doc__ = """
 Common functions for interacting with the schema.
 """
 
+
 def allocate_ip(session, host, ipAddr, provider="unknown"):
     session.query(IPAddress).filter(IPAddress.value == ipAddr).delete()
 

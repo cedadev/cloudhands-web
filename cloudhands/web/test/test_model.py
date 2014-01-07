@@ -10,8 +10,6 @@ import unittest
 import uuid
 
 import whoosh.fields
-from whoosh.query import Or
-from whoosh.query import Term
 
 import cloudhands.common
 
@@ -44,30 +42,29 @@ class TestHostView(unittest.TestCase):
         h = HostView()
         self.assertTrue(h.invalid)
         self.assertTrue(any(i for i in h.invalid if i.name == "hostname"))
-        
+
         h = HostView(hostname="goodname")
         self.assertTrue(h.invalid)
-    
+
         h = HostView(hostname="goodname", organisation="nodeparent")
         self.assertFalse(h.invalid)
-    
+
     def test_hostname_validation_length(self):
         h = HostView(
             organisation="nodeparent",
             hostname="a" * (Host.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostView(organisation="nodeparent",hostname="a" * 7)
+        h = HostView(organisation="nodeparent", hostname="a" * 7)
         self.assertTrue(h.invalid)
- 
-        h = HostView(organisation="nodeparent",hostname="a" * 8)
+
+        h = HostView(organisation="nodeparent", hostname="a" * 8)
         self.assertFalse(h.invalid)
 
         h = HostView(
             organisation="nodeparent",
             hostname="a" * Host.name.type.length)
         self.assertFalse(h.invalid)
-
 
     def test_organisation_validation_length(self):
         h = HostView(
@@ -77,7 +74,7 @@ class TestHostView(unittest.TestCase):
 
         h = HostView(hostname="hostname", organisation="a" * 5)
         self.assertTrue(h.invalid)
- 
+
         h = HostView(hostname="hostname", organisation="a" * 7)
         self.assertFalse(h.invalid)
 
@@ -165,4 +162,3 @@ class TestPeoplePage(unittest.TestCase):
 
             output = dict(peoplePage.termination())
             self.assertEqual(10, len(output["items"]))
-
