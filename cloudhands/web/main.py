@@ -372,6 +372,7 @@ def wsgi_app(args):
     settings = {
         "persona.secret": "FON85B9O3VCMQ90517Z1",
         "persona.audiences": [
+            "http://jasmin-cloud.jc.rl.ac.uk:80",
             "http://{}:80".format(platform.node()),
             "http://localhost:8080"],
         "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
