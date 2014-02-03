@@ -71,10 +71,13 @@ class HostView(Fragment):
     @property
     def parameters(self):
         return [
-            Parameter("hostname", True, re.compile("\\w{8,128}$"), []),
+            Parameter("name", True, re.compile("\\w{8,128}$"), []),
             Parameter(
-                "organisation", True, re.compile("\\w{6,64}$"),
-                [self["organisation"]] if "organisation" in self else [])
+                "jvo", True, re.compile("\\w{6,64}$"),
+                [self["organisation"]] if "organisation" in self else []),
+            Parameter("description", False, re.compile("\\w{8,128}$"), []),
+            Parameter("cpu", False, re.compile("\\w{8,128}$"), []),
+            Parameter("ram", False, re.compile("\\w{8,128}$"), []),
         ]
 
     def configure(self, session, user=None):
@@ -103,7 +106,7 @@ class MembershipView(Fragment):
             Link(
                 self["data"]["organisation"], "collection",
                 "/organisation/{}/hosts", self["data"]["organisation"], "post",
-                hf.parameters, "Add")
+                hf.parameters, "Create")
         ]
         return self
 

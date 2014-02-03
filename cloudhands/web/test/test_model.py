@@ -41,46 +41,46 @@ class TestHostView(unittest.TestCase):
     def test_host_validation_mandatory(self):
         h = HostView()
         self.assertTrue(h.invalid)
-        self.assertTrue(any(i for i in h.invalid if i.name == "hostname"))
+        self.assertTrue(any(i for i in h.invalid if i.name == "name"))
 
-        h = HostView(hostname="goodname")
+        h = HostView(name="goodname")
         self.assertTrue(h.invalid)
 
-        h = HostView(hostname="goodname", organisation="nodeparent")
+        h = HostView(name="goodname", jvo="nodeparent")
         self.assertFalse(h.invalid)
 
     def test_hostname_validation_length(self):
         h = HostView(
-            organisation="nodeparent",
-            hostname="a" * (Host.name.type.length + 1))
+            jvo="nodeparent",
+            name="a" * (Host.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostView(organisation="nodeparent", hostname="a" * 7)
+        h = HostView(jvo="nodeparent", name="a" * 7)
         self.assertTrue(h.invalid)
 
-        h = HostView(organisation="nodeparent", hostname="a" * 8)
+        h = HostView(jvo="nodeparent", name="a" * 8)
         self.assertFalse(h.invalid)
 
         h = HostView(
-            organisation="nodeparent",
-            hostname="a" * Host.name.type.length)
+            jvo="nodeparent",
+            name="a" * Host.name.type.length)
         self.assertFalse(h.invalid)
 
     def test_organisation_validation_length(self):
         h = HostView(
-            hostname="hostname",
-            organisation="a" * (Organisation.name.type.length + 1))
+            name="hostname",
+            jvo="a" * (Organisation.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostView(hostname="hostname", organisation="a" * 5)
+        h = HostView(name="hostname", jvo="a" * 5)
         self.assertTrue(h.invalid)
 
-        h = HostView(hostname="hostname", organisation="a" * 7)
+        h = HostView(name="hostname", jvo="a" * 7)
         self.assertFalse(h.invalid)
 
         h = HostView(
-            hostname="hostname",
-            organisation="a" * Organisation.name.type.length)
+            name="hostname",
+            jvo="a" * Organisation.name.type.length)
         self.assertFalse(h.invalid)
 
 
