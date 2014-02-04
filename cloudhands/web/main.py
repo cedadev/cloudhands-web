@@ -43,6 +43,7 @@ from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixGId
+from cloudhands.common.schema import Provider
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Serializable
@@ -84,13 +85,11 @@ def authenticate_user(request):
     return user
 
 
-def create_membership_resources(
-    session, m, rTyp, vals,
-    prvdr="cloudhands.web.indexer"
-):
+def create_membership_resources(session, m, rTyp, vals):
+    provider = session.query(Provider).first()  # FIXME
     latest = m.changes[-1]
     for v in vals:
-        resource = rTyp(value=v, provider=prvdr)
+        resource = rTyp(value=v, provider=provider)
         now = datetime.datetime.utcnow()
         act = Touch(artifact=m, actor=latest.actor, state=latest.state, at=now)
         m.changes.append(act)
@@ -102,7 +101,7 @@ def create_membership_resources(
             session.rollback()
         finally:
             yield session.query(rTyp).filter(
-                rTyp.value == v, rTyp.provider == prvdr).first()
+                rTyp.value == v, rTyp.provider == provider).first()
 
 
 def paths(request):

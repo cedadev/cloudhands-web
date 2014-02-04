@@ -27,6 +27,7 @@ from cloudhands.common.fsm import MembershipState
 
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
@@ -89,6 +90,8 @@ class ServerTests(unittest.TestCase):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
         org = Organisation(name="TestOrg")
+        provider = Provider(
+            name="testcloud.io", uuid=uuid.uuid4().hex)
         userMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -96,8 +99,7 @@ class ServerTests(unittest.TestCase):
             role="user")
         user = User(handle="Test User", uuid=uuid.uuid4().hex)
         ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid(),
-            provider="test user's email provider")
+            value=cloudhands.web.main.authenticated_userid())
 
         # Make the authenticated user an admin
         active = session.query(
@@ -114,6 +116,8 @@ class ServerTests(unittest.TestCase):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
         org = Organisation(name="TestOrg")
+        provider = Provider(
+            name="testcloud.io", uuid=uuid.uuid4().hex)
         adminMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -121,8 +125,7 @@ class ServerTests(unittest.TestCase):
             role="admin")
         admin = User(handle="Test Admin", uuid=uuid.uuid4().hex)
         ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid(),
-            provider="test admin's email provider")
+            value=cloudhands.web.main.authenticated_userid())
 
         # Make the authenticated user an admin
         active = session.query(

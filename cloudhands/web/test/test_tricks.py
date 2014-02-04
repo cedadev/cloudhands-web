@@ -16,6 +16,7 @@ import cloudhands.common.schema
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Provider
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -46,13 +47,16 @@ class TestResourceManagement(unittest.TestCase):
         session = Registry().connect(sqlite3, ":memory:").session
         session.autoflush = False   # http://stackoverflow.com/a/4202016
         oName = "TestOrg"
+        providerName = "testcloud.io"
         handle = "Test User"
         hName = "mynode.test.org"
         ipAddr = "192.168.1.1"
 
         user = User(handle=handle, uuid=uuid.uuid4().hex)
         org = session.query(Organisation).one()
-        session.add_all((user, org))
+        provider = Provider(
+            name=providerName, uuid=uuid.uuid4().hex)
+        session.add_all((user, org, provider))
         session.commit()
 
         scheduling = session.query(HostState).filter(
@@ -79,10 +83,10 @@ class TestResourceManagement(unittest.TestCase):
         session.add_all(hosts)
         session.commit()
 
-        ip = allocate_ip(session, hosts[0], ipAddr)
+        ip = allocate_ip(session, hosts[0], provider, ipAddr)
         self.assertIn(ip, [r for c in hosts[0].changes for r in c.resources])
 
-        ip = allocate_ip(session, hosts[1], ipAddr)
+        ip = allocate_ip(session, hosts[1], provider, ipAddr)
         self.assertNotIn(
             ip, [r for c in hosts[0].changes for r in c.resources])
         self.assertIn(ip, [r for c in hosts[1].changes for r in c.resources])
