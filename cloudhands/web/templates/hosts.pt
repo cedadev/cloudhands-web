@@ -48,17 +48,31 @@ action link.typ.format(link.ref);
 id string:option_${repeat['option'].index}">
 <fieldset>
 <legend>New VM</legend>
-<div tal:repeat="field link.parameters" class="pure-control-group">
-<label tal:attributes="for field.name"
-tal:content="field.name.upper() if field.name in ('cpu', 'jvo', 'ram') else field.name.capitalize()">
+<div class="pure-control-group"
+tal:repeat="field link.parameters">
+<label
+tal:content="field.name.upper() if field.name in ('cpu', 'jvo', 'ram') else field.name.capitalize()"
+tal:attributes="for field.name">
 </label>
-<input tal:attributes="
+<input
+tal:condition="not field.values"
+tal:attributes="
 id string:${link.ref}_${link.method}_${field.name};
 name field.name;
 value python: field.name if not field.values else field.values[0] ;
 pattern field.regex.pattern;
 required python:'required' if field.required else None;
 type python:'hidden' if field.name in ('',) else 'text';"/>
+<select
+tal:condition="field.values">
+<option
+tal:repeat="value field.values"
+tal:content="value"
+tal:attributes="
+value value;
+">
+</option>
+</select>
 </div>
 <div class="pure-control-group">
 <button type="submit" class="pure-button pure-button-primary">${link.action}</button>

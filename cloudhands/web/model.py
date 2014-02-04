@@ -76,8 +76,12 @@ class HostView(Fragment):
                 "jvo", True, re.compile("\\w{6,64}$"),
                 [self["organisation"]] if "organisation" in self else []),
             Parameter("description", False, re.compile("\\w{8,128}$"), []),
-            Parameter("cpu", False, re.compile("\\w{8,128}$"), []),
-            Parameter("ram", False, re.compile("\\w{8,128}$"), []),
+            Parameter(
+                "cpu", False, re.compile("\\w{8,128}$"),
+                ["1", "2", "3", "4"]),
+            Parameter(
+                "ram", False, re.compile("\\w{8,128}$"),
+                [1024]),
         ]
 
     def configure(self, session, user=None):
