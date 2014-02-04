@@ -19,6 +19,7 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -46,6 +47,12 @@ class WebFixture(object):
     def create_organisations(session):
         for name, provider in WebFixture.organisations:
             org = Organisation(name=name)
+            provider = session.query(Provider).filter(
+                Provider.name==provider).first()
+            if not provider:
+                session.add(Provider(
+                    name=provider, uuid=uuid.uuid4().hex))
+
             try:
                 session.add(org)
                 session.commit()
@@ -64,8 +71,7 @@ class WebFixture(object):
                 organisation=org,
                 role="admin")
             ea = EmailAddress(
-                value=WebFixture.demo_email(),
-                provider=provider)
+                value=WebFixture.demo_email())
 
             now = datetime.datetime.utcnow()
             act = Touch(artifact=mship, actor=user, state=active, at=now)
