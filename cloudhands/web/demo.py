@@ -5,6 +5,7 @@ import argparse
 from configparser import ConfigParser
 import datetime
 import logging
+import platform
 import sqlite3
 import sys
 import uuid
@@ -111,7 +112,7 @@ def main(args):
 
     app = cloudhands.web.main.wsgi_app(args)
     cloudhands.web.main.serve(
-        app, host="localhost", port=args.port, url_scheme="http")
+        app, host=platform.node(), port=args.port, url_scheme="http")
     return 0
 
 

@@ -479,7 +479,7 @@ def configure(args):
 def main(args):
     session = configure(args)
     app = wsgi_app(args)
-    serve(app, host="localhost", port=args.port, url_scheme="http")
+    serve(app, host=platform.node(), port=args.port, url_scheme="http")
     return 1
 
 
