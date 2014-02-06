@@ -17,10 +17,12 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import MembershipState
 
+from cloudhands.common.schema import Archive
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -50,12 +52,18 @@ class WebFixture(object):
             org = Organisation(name=name)
             provider = session.query(Provider).filter(
                 Provider.name==provider).first()
+            archive = Archive(
+                name="NITS", uuid=uuid.uuid4().hex)
             if not provider:
-                session.add(Provider(
-                    name=provider, uuid=uuid.uuid4().hex))
+                provider = Provider(
+                    name=provider, uuid=uuid.uuid4().hex)
+                session.add(provider)
 
+            subs = [
+                Subscription(organisation=org, provider=provider),
+                Subscription(organisation=org, provider=archive)]
             try:
-                session.add(org)
+                session.add_all(subs)
                 session.commit()
             except Exception as e:
                 session.rollback()
