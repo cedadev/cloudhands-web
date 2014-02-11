@@ -188,17 +188,23 @@ class ResourceView(NamedDict):
 
 class Region(NamedList):
 
-    @singledispatch
+    @staticmethod
     def present(obj):
         return None
 
     def push(self, obj, session=None, user=None):
-        view = Region.present(obj)
+        view = self.__class__.present(obj)
         if isinstance(view, Contextual):
             view.configure(session, user)
         if view:
             self.append(view)
         return view
+
+class GenericRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
 
     @present.register(Host)
     def present_host(artifact):
@@ -286,7 +292,10 @@ class PageBase:
 
 class Page(PageBase):
 
-    plan = [("info", Region), ("items", Region), ("options", Region)]
+    plan = [
+        ("info", GenericRegion),
+        ("items", GenericRegion),
+        ("options", GenericRegion)]
 
     def __init__(self, session=None, user=None, paths={}):
         super().__init__(session, user)

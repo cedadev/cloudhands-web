@@ -4,6 +4,11 @@
 from collections import namedtuple
 import unittest
 
+try:
+    from functools import singledispatch
+except ImportError:
+    from singledispatch import singledispatch
+
 from chameleon import PageTemplate
 
 from cloudhands.common.types import NamedDict
@@ -50,7 +55,11 @@ class TestView(NamedDict):
 
 class TestRegion(Region):
 
-    @Region.present.register(TestType)
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(TestType)
     def present_test_type(artifact):
         item = {k: getattr(artifact, k) for k in ("uuid", "name")}
         return TestView(item)

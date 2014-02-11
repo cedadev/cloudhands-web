@@ -32,9 +32,9 @@ from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import people
 from cloudhands.web.indexer import Person
+from cloudhands.web.model import GenericRegion
 from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
-from cloudhands.web.model import Region
 
 
 class TestHostView(unittest.TestCase):
@@ -85,10 +85,10 @@ class TestHostView(unittest.TestCase):
         self.assertFalse(h.invalid)
 
 
-class TestRegion(unittest.TestCase):
+class TestGenericRegion(unittest.TestCase):
 
     def test_pushed_region_returns_unnamed_dictionary(self):
-        region = Region().name("test region")
+        region = GenericRegion().name("test region")
         rv = region.push(Person(*(None,) * 5))
         self.assertTrue(rv)
         self.assertIsInstance(rv, MutableMapping)
