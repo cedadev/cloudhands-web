@@ -36,7 +36,12 @@ Link = namedtuple(
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 
-class Fragment(NamedDict):
+#class Fragment(NamedDict):
+class Validating:
+
+    @property
+    def parameters(self):
+        return []
 
     @property
     def invalid(self):
@@ -46,9 +51,8 @@ class Fragment(NamedDict):
             i for i in self.parameters
             if i.name in self and not i.regex.match(self[i.name])]
 
-    @property
-    def parameters(self):
-        return []
+
+class Contextual:
 
     def configure(self, session=None, user=None):
         return self
@@ -66,6 +70,7 @@ class PathInfo(Fragment):
     pass
 
 
+#class HostView(Contextual, Validating, NamedDict):
 class HostView(Fragment):
 
     @property
