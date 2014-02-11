@@ -6,7 +6,8 @@ import unittest
 
 from chameleon import PageTemplate
 
-from cloudhands.web.model import Fragment
+from cloudhands.common.types import NamedDict
+
 from cloudhands.web.model import Page
 from cloudhands.web.model import Region
 
@@ -43,7 +44,7 @@ Hiya!
 
 TestType = namedtuple("TestType", ["uuid", "name"])
 
-class TestView(Fragment):
+class TestView(NamedDict):
     pass
 
 

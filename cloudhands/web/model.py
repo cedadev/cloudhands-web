@@ -36,7 +36,6 @@ Link = namedtuple(
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
 
 
-#class Fragment(NamedDict):
 class Validating:
 
     @property
@@ -58,7 +57,7 @@ class Contextual:
         return self
 
 
-class VersionInfo(Fragment):
+class VersionInfo(NamedDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,12 +65,11 @@ class VersionInfo(Fragment):
                     for i in [cloudhands.web, cloudhands.common]})
 
 
-class PathInfo(Fragment):
+class PathInfo(NamedDict):
     pass
 
 
-#class HostView(Contextual, Validating, NamedDict):
-class HostView(Fragment):
+class HostView(Contextual, Validating, NamedDict):
 
     @property
     def parameters(self):
@@ -107,7 +105,7 @@ class HostView(Fragment):
         return self
 
 
-class MembershipView(Fragment):
+class MembershipView(Contextual, NamedDict):
 
     def configure(self, session, user=None):
         hf = HostView(organisation=self["data"]["organisation"])  # FIXME
@@ -121,7 +119,7 @@ class MembershipView(Fragment):
         return self
 
 
-class OrganisationView(Fragment):
+class OrganisationView(Contextual, NamedDict):
     """
     TODO: consider folding this into MembershipView?
     """
@@ -144,7 +142,7 @@ class OrganisationView(Fragment):
         return self
 
 
-class PersonView(Fragment):
+class PersonView(Contextual, Validating, NamedDict):
     """
     Used for free-text search of contacts list
     """
@@ -184,7 +182,7 @@ class PersonView(Fragment):
             return self
 
 
-class ResourceView(Fragment):
+class ResourceView(NamedDict):
     pass
 
 
@@ -195,12 +193,12 @@ class Region(NamedList):
         return None
 
     def push(self, obj, session=None, user=None):
-        rv = None
-        facet = Region.present(obj)
-        if facet:
-            rv = facet.configure(session, user)
-            self.append(rv)
-        return rv
+        view = Region.present(obj)
+        if isinstance(view, Contextual):
+            view.configure(session, user)
+        if view:
+            self.append(view)
+        return view
 
     @present.register(Host)
     def present_host(artifact):
@@ -305,4 +303,4 @@ class PeoplePage(Page):
             "Find people", "self",
             "/people", "people", "get",
             PersonView().parameters, "Search")
-        self.layout.options.append(Fragment({"_links": [link]}))
+        self.layout.options.append(NamedDict({"_links": [link]}))

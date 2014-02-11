@@ -26,11 +26,12 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.common.types import NamedDict
+
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import people
 from cloudhands.web.indexer import Person
-from cloudhands.web.model import Fragment
 from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
 from cloudhands.web.model import Region
@@ -110,7 +111,8 @@ class TestGenericPage(unittest.TestCase):
             facet = page.layout.info.push(
                 Person("P{0:5}".format(n), n, [n], "", []))
 
-        self.assertTrue(all(isinstance(i, Fragment) for i in page.layout.info))
+        self.assertTrue(
+            all(isinstance(i, NamedDict) for i in page.layout.info))
         output = dict(page.termination())
         names = {i.name for i in page.layout.info}
         self.assertEqual(n + 1, len(names))  # Version information is in info
