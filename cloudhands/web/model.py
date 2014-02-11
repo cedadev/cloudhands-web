@@ -105,7 +105,8 @@ class HostView(Fragment):
 class MembershipView(Fragment):
 
     def configure(self, session, user=None):
-        hf = HostView(organisation=self["data"]["organisation"])
+        hf = HostView(organisation=self["data"]["organisation"])  # FIXME
+        # Create new host, etc belongs in membership view
         self["_links"] = [
             Link(
                 self["data"]["organisation"], "collection",
