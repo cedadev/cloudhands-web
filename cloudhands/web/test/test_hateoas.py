@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+from collections import namedtuple
 import unittest
 
 from chameleon import PageTemplate
 
 from cloudhands.web.model import Fragment
 from cloudhands.web.model import Page
+from cloudhands.web.model import Region
 
 """
 info
@@ -14,8 +16,13 @@ info
 
 self: The 'self' link for the primary object
 names: A mapping of object types to URLS (even python://collections.abc.Sequence)
+paths: A mapping of root paths to URLS
 versions: Versions of backend packages
-nav: links to other objects with a relationship
+
+nav
+===
+
+Links to other objects with a relationship
 
 items
 =====
@@ -34,11 +41,26 @@ _viewMacro = PageTemplate("""
 Hiya!
 """)
 
+TestType = namedtuple("TestType", ["uuid", "name"])
+
 class TestView(Fragment):
     pass
 
+
+class TestRegion(Region):
+
+    @Region.present.register(TestType)
+    def present_test_type(artifact):
+        item = {k: getattr(artifact, k) for k in ("uuid", "name")}
+        return TestView(item)
+
+
 class TestPage(Page):
-    pass
+
+    plan = [
+        ("info", TestRegion),
+        ("items", TestRegion),
+        ("options", TestRegion)]
 
 class TestsZPTForHTML5Presentation(unittest.TestCase):
 

@@ -248,30 +248,29 @@ class Region(NamedList):
         }
         return ResourceView(item)
 
+    @present.register(VersionInfo)
+    def present_pathinfo(obj):
+        return obj.name("versions")
 
-class Page(object):
 
-    Layout = namedtuple("Layout", ["info", "items", "options"])
+class PageBase:
+
+    plan = []
 
     def __init__(self, session=None, user=None, paths={}):
-        self.layout = Page.Layout(
-            info=Region(
-                [VersionInfo().name("versions")]).name("info"),
-            items=Region().name("items"),
-            options=Region().name("options"))
+        Layout = namedtuple("Layout", [n for n, c in self.plan])
+        self.layout = Layout(
+            **{name: typ().name(name) for name, typ in self.plan})
 
         # Bake in session and user to regions
         for region in self.layout:
             region.push = functools.partial(
                 region.push, session=session, user=user)
 
-        self.layout.info.push(PathInfo(paths))
-
-    def termination(self, info=None, items=None, options=None):
-        for region, size in zip(self.layout, (info, items, options)):
-
+    def termination(self, **kwargs):
+        for region in self.layout:
+            size = kwargs.get(region.name, len(region))
             for n, facet in enumerate(region):
-                size = size if size is not None else len(region)
                 try:
                     template = "{{:0{0}}}_{{:0{0}}}".format(ceil(log10(size)))
                     facet.name(template.format(n + 1, size))
@@ -280,6 +279,17 @@ class Page(object):
 
             yield (region.name,
                    OrderedDict([(facet.name, facet) for facet in region]))
+
+
+class Page(PageBase):
+
+    plan = [("info", Region), ("items", Region), ("options", Region)]
+
+    def __init__(self, session=None, user=None, paths={}):
+        super().__init__(session, user)
+
+        self.layout.info.push(VersionInfo())
+        self.layout.info.push(PathInfo(paths))
 
 
 class PeoplePage(Page):
