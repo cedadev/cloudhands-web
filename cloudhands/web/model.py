@@ -22,8 +22,8 @@ from cloudhands.common.schema import User
 from cloudhands.common.types import NamedDict
 
 import cloudhands.web
+from cloudhands.web.hateoas import Aspect
 from cloudhands.web.hateoas import Contextual
-from cloudhands.web.hateoas import Link
 from cloudhands.web.hateoas import PageBase
 from cloudhands.web.hateoas import Parameter
 from cloudhands.web.hateoas import Region
@@ -66,14 +66,14 @@ class HostView(Contextual, Validating, NamedDict):
         self["_links"] = []
 
         if state == "up":
-            self["_links"].append(Link(
+            self["_links"].append(Aspect(
                 "Send", "self", "/host/{}/commands", self["uuid"],
                 "post", [], "stop"))
         elif state == "down":
-            self["_links"].append(Link(
+            self["_links"].append(Aspect(
                 "Send", "self", "/host/{}/commands", self["uuid"],
                 "post", [], "start"))
-        self["_links"].append(Link(
+        self["_links"].append(Aspect(
             "Settings", "parent", "/organisation/{}",
             self["data"]["organisation"], "get", [], "settings"))
         return self
@@ -85,7 +85,7 @@ class MembershipView(Contextual, NamedDict):
         hf = HostView(organisation=self["data"]["organisation"])  # FIXME
         # Create new host, etc belongs in membership view
         self["_links"] = [
-            Link(
+            Aspect(
                 self["data"]["organisation"], "collection",
                 "/organisation/{}/hosts", self["data"]["organisation"], "post",
                 hf.parameters, "Create")
@@ -108,7 +108,7 @@ class OrganisationView(Contextual, NamedDict):
             return self
 
         self["_links"] = [
-            Link(
+            Aspect(
                 "Invitation to {}".format(self["data"]["name"]), "self",
                 "/organisation/{}/memberships", self["data"]["name"], "post",
                 [], "Create")
@@ -147,7 +147,7 @@ class PersonView(Contextual, Validating, NamedDict):
         else:
             if m is not None:
                 self["_links"] = [
-                    Link(
+                    Aspect(
                         m.organisation.name, "parent",
                         "/membership/{}", m.uuid, "post",
                         self.parameters, "Invite")
@@ -239,7 +239,7 @@ class PeoplePage(Page):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        link = Link(
+        link = Aspect(
             "Find people", "self",
             "/people", "people", "get",
             PersonView().parameters, "Search")
