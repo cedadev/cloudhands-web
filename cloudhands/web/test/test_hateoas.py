@@ -3,6 +3,7 @@
 
 from collections import namedtuple
 import unittest
+import uuid
 
 try:
     from functools import singledispatch
@@ -13,8 +14,10 @@ from chameleon import PageTemplate
 
 from cloudhands.common.types import NamedDict
 
-from cloudhands.web.model import Page
-from cloudhands.web.model import Region
+from cloudhands.web.hateoas import Aspect
+from cloudhands.web.hateoas import PageBase
+from cloudhands.web.hateoas import Parameter
+from cloudhands.web.hateoas import Region
 
 """
 info
@@ -44,35 +47,66 @@ A sequence of available operations
 """
 
 _viewMacro = PageTemplate("""
-Hiya!
+<ul>
+<li tal:repeat="(itemId, item) items.items()"
+tal:attributes="
+id 'items-{}'.format(itemId);
+">
+<div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
+<dl tal:attributes="
+id item['uuid']" >
+</dl>
+</div>
+</li>
+</ul>
 """)
 
-TestType = namedtuple("TestType", ["uuid", "name"])
+SimpleType = namedtuple("SimpleType", ["uuid", "name"])
 
-class TestView(NamedDict):
+class ObjectView(NamedDict):
     pass
 
 
-class TestRegion(Region):
+class InfoRegion(Region):
 
     @singledispatch
     def present(obj):
         return None
 
-    @present.register(TestType)
-    def present_test_type(artifact):
-        item = {k: getattr(artifact, k) for k in ("uuid", "name")}
-        return TestView(item)
+
+class ItemsRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(SimpleType)
+    def present_objects(obj):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        return ObjectView(item)
 
 
-class TestPage(Page):
+class OptionsRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+class TestPage(PageBase):
 
     plan = [
-        ("info", TestRegion),
-        ("items", TestRegion),
-        ("options", TestRegion)]
+        ("info", InfoRegion),
+        ("items", ItemsRegion),
+        ("options", OptionsRegion)]
 
 class TestsZPTForHTML5Presentation(unittest.TestCase):
 
     def test_simplerender(self):
-        self.fail(_viewMacro(**{"name": None}))
+        objects = [
+            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
+            for n in range(6)]
+        p = TestPage()
+        for o in objects:
+            p.layout.items.push(o)
+        rv = _viewMacro(**dict(p.termination()))
+        self.fail(rv)
