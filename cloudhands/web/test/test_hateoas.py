@@ -55,6 +55,16 @@ id 'items-{}'.format(itemId);
 <div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
 <dl tal:attributes="
 id item['uuid']" >
+<div tal:omit-tag="" tal:repeat="key item">
+<dt tal:content="key"></dt>
+<dd tal:content="item[key]"></dd>
+<dd tal:condition="aspect">
+<a tal:content="aspect.action"
+tal:attributes="
+href '';
+"></a>
+</dd>
+</div>
 </dl>
 </div>
 </li>
@@ -83,6 +93,9 @@ class ItemsRegion(Region):
     @present.register(SimpleType)
     def present_objects(obj):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        item["_links"] = [
+            Aspect(obj.name, "canonical", "/object/{}", obj.uuid,
+            "get", [], "View")]
         return ObjectView(item)
 
 
@@ -92,21 +105,53 @@ class OptionsRegion(Region):
     def present(obj):
         return None
 
-class TestPage(PageBase):
 
-    plan = [
-        ("info", InfoRegion),
-        ("items", ItemsRegion),
-        ("options", OptionsRegion)]
+class PlainRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(SimpleType)
+    def present_objects(obj):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        return ObjectView(item)
+
+
+class TestFundamentals(unittest.TestCase):
+
+    class TestPage(PageBase):
+
+        plan = [("items", PlainRegion)]
+
+    def test_views_without_links_are_not_displayed(self):
+        objects = [
+            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
+            for n in range(6)]
+        p = TestFundamentals.TestPage()
+        for o in objects:
+            p.layout.items.push(o)
+        rv = _viewMacro(**dict(p.termination()))
+        self.assertNotIn("object-0", rv)
+
 
 class TestsZPTForHTML5Presentation(unittest.TestCase):
+
+    class TestPage(PageBase):
+
+        plan = [
+            ("info", InfoRegion),
+            ("items", ItemsRegion),
+            ("options", OptionsRegion)]
 
     def test_simplerender(self):
         objects = [
             SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
             for n in range(6)]
-        p = TestPage()
+        p = TestsZPTForHTML5Presentation.TestPage()
         for o in objects:
             p.layout.items.push(o)
         rv = _viewMacro(**dict(p.termination()))
-        self.fail(rv)
+        print(rv)
+        self.assertEqual(6, rv.count("<dt>"))
+        self.assertEqual(6, rv.count("<dd>"))
