@@ -36,17 +36,6 @@ nav
 
 Links to other objects with a relationship
 
-items
-=====
-
-A sequence of existing objects
-Each object has a relationship with the primary object
-Each object shows its data
-Each object identifies its traits (map to one or more icons)
-
-options
-=======
-A sequence of available operations
 """
 
 item_macro = PageTemplate(pkg_resources.resource_string(
