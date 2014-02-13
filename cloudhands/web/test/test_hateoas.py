@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 from collections import namedtuple
+import re
 import unittest
 import uuid
 
@@ -47,34 +48,42 @@ A sequence of available operations
 """
 
 _viewMacro = PageTemplate("""
+<metal:item_list define-macro="item_list">
 <ul>
 <li tal:repeat="(itemId, item) items.items()"
 tal:attributes="
 id 'items-{}'.format(itemId);
 ">
-<div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
-<dl tal:attributes="
-id item['uuid']" >
-<div tal:omit-tag="" tal:repeat="key item">
+<dl
+tal:define="class_ item.__class__.__name__.lower()"
+tal:condition="item['_links'] | None"
+tal:attributes="
+id item['uuid'];
+class class_">
+<div tal:omit-tag="" tal:repeat="key item.public">
 <dt tal:content="key"></dt>
 <dd tal:content="item[key]"></dd>
-<dd tal:condition="aspect">
-<a tal:content="aspect.action"
-tal:attributes="
-href '';
-"></a>
-</dd>
 </div>
 </dl>
+<div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
+<a tal:content="aspect.action"
+tal:attributes="
+rel aspect.rel;
+href aspect.typ.format(aspect.ref);
+"></a>
 </div>
 </li>
 </ul>
+</metal:item_list>
 """)
 
 SimpleType = namedtuple("SimpleType", ["uuid", "name"])
 
 class ObjectView(NamedDict):
-    pass
+
+    @property
+    def public(self):
+        return ["name"]
 
 
 class InfoRegion(Region):
@@ -135,7 +144,7 @@ class TestFundamentals(unittest.TestCase):
         self.assertNotIn("object-0", rv)
 
 
-class TestsZPTForHTML5Presentation(unittest.TestCase):
+class TestItemListTemplate(unittest.TestCase):
 
     class TestPage(PageBase):
 
@@ -144,14 +153,45 @@ class TestsZPTForHTML5Presentation(unittest.TestCase):
             ("items", ItemsRegion),
             ("options", OptionsRegion)]
 
-    def test_simplerender(self):
+    def test_definition_list_has_class_and_id(self):
         objects = [
             SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
             for n in range(6)]
-        p = TestsZPTForHTML5Presentation.TestPage()
+        p = TestItemListTemplate.TestPage()
+        for o in objects:
+            p.layout.items.push(o)
+        rv = _viewMacro(**dict(p.termination()))
+        self.assertTrue(re.search('<dl[^>]+class="objectview"', rv))
+        self.assertTrue(re.search('<dl[^>]+id="[a-f0-9]{32}"', rv))
+
+    def test_definition_list_contains_public_attributes(self):
+        objects = [
+            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
+            for n in range(6)]
+        p = TestItemListTemplate.TestPage()
+        for o in objects:
+            p.layout.items.push(o)
+        rv = _viewMacro(**dict(p.termination()))
+        self.assertEqual(6, rv.count("<dt>name</dt>"))
+        self.assertEqual(6, rv.count("<dd>"))
+
+    def test_list_items_have_aspects(self):
+        objects = [
+            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
+            for n in range(6)]
+        p = TestItemListTemplate.TestPage()
+        for o in objects:
+            p.layout.items.push(o)
+        rv = _viewMacro(**dict(p.termination()))
+        self.assertEqual(
+            6, len(re.findall('<a[^>]+href="/object/[a-f0-9]{32}"', rv)))
+
+    def test_print_render(self):
+        objects = [
+            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
+            for n in range(6)]
+        p = TestItemListTemplate.TestPage()
         for o in objects:
             p.layout.items.push(o)
         rv = _viewMacro(**dict(p.termination()))
         print(rv)
-        self.assertEqual(6, rv.count("<dt>"))
-        self.assertEqual(6, rv.count("<dd>"))
