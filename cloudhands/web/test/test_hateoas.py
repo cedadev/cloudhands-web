@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 from collections import namedtuple
+import json
 import re
 import unittest
 import uuid
@@ -50,14 +51,33 @@ A sequence of available operations
 
 item_macro = PageTemplate(pkg_resources.resource_string(
     "cloudhands.web.templates", "item_list.pt"))
+option_macro = PageTemplate(pkg_resources.resource_string(
+    "cloudhands.web.templates", "option_list.pt"))
 
+Ownership = namedtuple("Ownership", ["uuid", "limit", "level"])
 SimpleType = namedtuple("SimpleType", ["uuid", "name"])
+
+
+class TypesEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        try:
+            return obj.pattern
+        except AttributeError:
+            return json.JSONEncoder.default(self, obj)
 
 class ObjectView(NamedDict):
 
     @property
     def public(self):
         return ["name"]
+
+
+class OwnershipView(NamedDict):
+
+    @property
+    def public(self):
+        return ["level"]
 
 
 class InfoRegion(Region):
@@ -87,6 +107,15 @@ class OptionsRegion(Region):
     @singledispatch
     def present(obj):
         return None
+
+    @present.register(Ownership)
+    def present_objects(obj):
+        item = vars(obj)
+        item["_links"] = [
+            Aspect("New object", "create-form", "/bag", None, "post",
+            [Parameter("name", True, re.compile("\\w{8,128}$"), [])],
+            "Create")]
+        return OwnershipView(item)
 
 
 class PlainRegion(Region):
@@ -162,12 +191,11 @@ class TestItemListTemplate(unittest.TestCase):
 
     def test_print_render(self):
         objects = [
-            SimpleType(uuid.uuid4().hex, "object-{:03}".format(n))
-            for n in range(6)]
+            Ownership(uuid.uuid4().hex, 256, 18)]
         p = TestItemListTemplate.TestPage()
         for o in objects:
-            p.layout.items.push(o)
+            p.layout.options.push(o)
         data = dict(p.termination())
-        rv = item_macro(**data)
-        import json
-        print(json.dumps(data))
+        rv = option_macro(**data)
+        print(rv)
+        print(json.dumps(data, cls=TypesEncoder))
