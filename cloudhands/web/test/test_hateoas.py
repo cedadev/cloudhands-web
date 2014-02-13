@@ -12,6 +12,7 @@ except ImportError:
     from singledispatch import singledispatch
 
 from chameleon import PageTemplate
+import pkg_resources
 
 from cloudhands.common.types import NamedDict
 
@@ -47,35 +48,8 @@ options
 A sequence of available operations
 """
 
-_viewMacro = PageTemplate("""
-<metal:item_list define-macro="item_list">
-<ul>
-<li tal:repeat="(itemId, item) items.items()"
-tal:attributes="
-id 'items-{}'.format(itemId);
-">
-<dl
-tal:define="class_ item.__class__.__name__.lower()"
-tal:condition="item['_links'] | None"
-tal:attributes="
-id item['uuid'];
-class class_">
-<div tal:omit-tag="" tal:repeat="key item.public">
-<dt tal:content="key"></dt>
-<dd tal:content="item[key]"></dd>
-</div>
-</dl>
-<div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
-<a tal:content="aspect.action"
-tal:attributes="
-rel aspect.rel;
-href aspect.typ.format(aspect.ref);
-"></a>
-</div>
-</li>
-</ul>
-</metal:item_list>
-""")
+item_macro = PageTemplate(pkg_resources.resource_string(
+    "cloudhands.web.templates", "item_list.pt"))
 
 SimpleType = namedtuple("SimpleType", ["uuid", "name"])
 
@@ -140,7 +114,7 @@ class TestFundamentals(unittest.TestCase):
         p = TestFundamentals.TestPage()
         for o in objects:
             p.layout.items.push(o)
-        rv = _viewMacro(**dict(p.termination()))
+        rv = item_macro(**dict(p.termination()))
         self.assertNotIn("object-0", rv)
 
 
@@ -160,7 +134,7 @@ class TestItemListTemplate(unittest.TestCase):
         p = TestItemListTemplate.TestPage()
         for o in objects:
             p.layout.items.push(o)
-        rv = _viewMacro(**dict(p.termination()))
+        rv = item_macro(**dict(p.termination()))
         self.assertTrue(re.search('<dl[^>]+class="objectview"', rv))
         self.assertTrue(re.search('<dl[^>]+id="[a-f0-9]{32}"', rv))
 
@@ -171,7 +145,7 @@ class TestItemListTemplate(unittest.TestCase):
         p = TestItemListTemplate.TestPage()
         for o in objects:
             p.layout.items.push(o)
-        rv = _viewMacro(**dict(p.termination()))
+        rv = item_macro(**dict(p.termination()))
         self.assertEqual(6, rv.count("<dt>name</dt>"))
         self.assertEqual(6, rv.count("<dd>"))
 
@@ -182,7 +156,7 @@ class TestItemListTemplate(unittest.TestCase):
         p = TestItemListTemplate.TestPage()
         for o in objects:
             p.layout.items.push(o)
-        rv = _viewMacro(**dict(p.termination()))
+        rv = item_macro(**dict(p.termination()))
         self.assertEqual(
             6, len(re.findall('<a[^>]+href="/object/[a-f0-9]{32}"', rv)))
 
@@ -193,5 +167,7 @@ class TestItemListTemplate(unittest.TestCase):
         p = TestItemListTemplate.TestPage()
         for o in objects:
             p.layout.items.push(o)
-        rv = _viewMacro(**dict(p.termination()))
-        print(rv)
+        data = dict(p.termination())
+        rv = item_macro(**data)
+        import json
+        print(json.dumps(data))
