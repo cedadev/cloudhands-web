@@ -112,6 +112,7 @@ class OptionsRegion(Region):
     def present_objects(obj):
         item = vars(obj)
         item["_links"] = [
+            # NB: Parameters drawn from View object if validating
             Aspect("New object", "create-form", "/bag", None, "post",
             [Parameter("name", True, re.compile("\\w{8,128}$"), [])],
             "Create")]
@@ -189,13 +190,38 @@ class TestItemListTemplate(unittest.TestCase):
         self.assertEqual(
             6, len(re.findall('<a[^>]+href="/object/[a-f0-9]{32}"', rv)))
 
-    def test_print_render(self):
-        objects = [
-            Ownership(uuid.uuid4().hex, 256, 18)]
+
+class TestOptionListTemplate(unittest.TestCase):
+
+    class TestPage(PageBase):
+
+        plan = [("options", OptionsRegion)]
+
+    def test_definition_list_has_class_and_id(self):
         p = TestItemListTemplate.TestPage()
-        for o in objects:
-            p.layout.options.push(o)
+        p.layout.options.push(Ownership(uuid.uuid4().hex, 256, 18))
+        rv = option_macro(**dict(p.termination()))
+        self.assertTrue(re.search('<dl[^>]+class="ownershipview"', rv))
+        self.assertTrue(re.search('<dl[^>]+id="[a-f0-9]{32}"', rv))
+
+    def test_definition_list_contains_public_attributes(self):
+        p = TestItemListTemplate.TestPage()
+        p.layout.options.push(Ownership(uuid.uuid4().hex, 256, 18))
+        rv = option_macro(**dict(p.termination()))
+        self.assertEqual(1, rv.count("<dt>level</dt>"))
+        self.assertEqual(1, rv.count("<dd>"))
+
+    def test_list_items_have_aspects(self):
+        p = TestItemListTemplate.TestPage()
+        p.layout.options.push(Ownership(uuid.uuid4().hex, 256, 18))
+        rv = option_macro(**dict(p.termination()))
+        self.assertEqual(
+            1, len(re.findall('<form[^>]+action="/bag"', rv)))
+
+    def test_print_render(self):
+        p = TestItemListTemplate.TestPage()
+        p.layout.options.push(Ownership(uuid.uuid4().hex, 256, 18))
         data = dict(p.termination())
         rv = option_macro(**data)
-        print(rv)
-        print(json.dumps(data, cls=TypesEncoder))
+        #print(rv)
+        #print(json.dumps(data, cls=TypesEncoder))

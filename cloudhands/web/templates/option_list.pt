@@ -21,6 +21,43 @@ tal:attributes="
 action aspect.typ.format(aspect.ref);
 method aspect.method;
 name '{}-{}-{}'.format(aspect.rel, aspect.method, itemId).lower();">
+<fieldset>
+<legend tal:content="aspect.name"></legend>
+<div
+tal:repeat="field aspect.parameters"
+tal:attributes="class 'pure-control-group'">
+<label tal:content="field.name.upper()
+if field.name in ('cpu', 'jvo', 'ram')
+else field.name.capitalize()"
+tal:attributes="for field.name">
+</label>
+<input
+tal:condition="not field.values"
+tal:attributes="
+id '{}-{}-{}-{}'.format(aspect.rel, aspect.method, itemId, field.name).lower();
+name field.name;
+value field.name if not field.values else field.values[0] ;
+pattern field.regex.pattern;
+required 'required' if field.required else None;
+type 'hidden' if field.name in ('',) else 'text';"/>
+<select
+tal:condition="field.values">
+<option
+tal:repeat="value field.values"
+tal:content="value"
+tal:attributes="
+value value;
+">
+</option>
+</select>
+</div>
+<div tal:attributes="class 'pure-control-group'">
+<button tal:content="aspect.action"
+tal:attributes="
+type 'submit';
+class 'pure-button pure-button-primary'"></button>
+</div>
+</fieldset>
 </form>
 </div>
 </li>
