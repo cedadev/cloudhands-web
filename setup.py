@@ -33,7 +33,10 @@ setup(
         "License :: OSI Approved :: BSD License"
     ],
     namespace_packages=["cloudhands"],
-    packages=["cloudhands.web", "cloudhands.web.test"],
+    packages=[
+        "cloudhands.web",
+        "cloudhands.web.templates",
+        "cloudhands.web.test"],
     package_data={
         "cloudhands.web": [
             "templates/*.pt",

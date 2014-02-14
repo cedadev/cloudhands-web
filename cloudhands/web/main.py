@@ -267,6 +267,8 @@ def organisation_hosts_create(request):
 
     data = HostView(request.POST)
     if data.invalid:
+        log.debug(request.POST)
+        log.debug(data)
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))
 
