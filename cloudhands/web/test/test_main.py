@@ -89,7 +89,9 @@ class ServerTests(unittest.TestCase):
     def make_test_user(session):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
-        org = Organisation(name="TestOrg")
+        org = Organisation(
+            uuid=uuid.uuid4().hex,
+            name="TestOrg")
         provider = Provider(
             name="testcloud.io", uuid=uuid.uuid4().hex)
         userMp = Membership(
@@ -115,7 +117,9 @@ class ServerTests(unittest.TestCase):
     def make_test_user_admin(session):
         # Create an organisation, membership of it, and a user
         # for the authenticated email address of this test
-        org = Organisation(name="TestOrg")
+        org = Organisation(
+            uuid=uuid.uuid4().hex,
+            name="TestOrg")
         provider = Provider(
             name="testcloud.io", uuid=uuid.uuid4().hex)
         adminMp = Membership(

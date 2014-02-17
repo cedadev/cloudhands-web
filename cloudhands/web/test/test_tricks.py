@@ -35,7 +35,9 @@ class TestResourceManagement(unittest.TestCase):
         session.add_all(
             State(fsm=MembershipState.table, name=v)
             for v in MembershipState.values)
-        session.add(Organisation(name="TestOrg"))
+        session.add(Organisation(
+            uuid=uuid.uuid4().hex,
+            name="TestOrg"))
         session.commit()
 
     def tearDown(self):
