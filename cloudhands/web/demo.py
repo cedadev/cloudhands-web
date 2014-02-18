@@ -14,6 +14,7 @@ from cloudhands.burst.membership import handle_from_email
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import MembershipState
 
@@ -42,7 +43,7 @@ DFLT_DB = ":memory:"
 class WebFixture(object):
 
     organisations = [
-        ("MARMITE", "vcloud"),
+        ("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),
     ]
 
     def demo_email(req=None):
@@ -50,19 +51,21 @@ class WebFixture(object):
 
     def create_organisations(session):
         for name, provider in WebFixture.organisations:
-            org = Organisation(name=name)
+            org = Organisation(
+                uuid=uuid.uuid4().hex,
+                name=name)
             provider = session.query(Provider).filter(
                 Provider.name==provider).first()
-            archive = Archive(
-                name="NITS", uuid=uuid.uuid4().hex)
             if not provider:
                 provider = Provider(
                     name=provider, uuid=uuid.uuid4().hex)
                 session.add(provider)
 
-            subs = [
-                Subscription(organisation=org, provider=provider),
-                Subscription(organisation=org, provider=archive)]
+            subs = [Subscription(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org,
+                provider=provider)]
             try:
                 session.add_all(subs)
                 session.commit()
