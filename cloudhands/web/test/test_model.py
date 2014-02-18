@@ -16,7 +16,6 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import CredentialState
 from cloudhands.common.fsm import HostState
 
 from cloudhands.common.schema import Host
