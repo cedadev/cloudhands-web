@@ -48,10 +48,11 @@ from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
 
 
+@unittest.skip("Not doing it yet")
 class ACLTests(unittest.TestCase):
 
     def test_access_control(self):
-        self.fail("Not doing it yet")
+        raise NotImplementedError
 
 
 class ServerTests(unittest.TestCase):

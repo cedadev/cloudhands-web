@@ -11,14 +11,17 @@ import sys
 import uuid
 
 from cloudhands.burst.membership import handle_from_email
+from cloudhands.burst.subscription import Online
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import MembershipState
+from cloudhands.common.fsm import SubscriptionState
 
 from cloudhands.common.schema import Archive
+from cloudhands.common.schema import Component
 from cloudhands.common.schema import Directory
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
@@ -39,46 +42,66 @@ of demonstrating the JASMIN web portal.
 
 DFLT_DB = ":memory:"
 
-
 class WebFixture(object):
 
-    organisations = [
+    subscriptions = [
+        ("MARMITE", "cloudhands.jasmin.vcloud.phase01.cfg"),
         ("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),
     ]
 
     def demo_email(req=None):
         return "ben.campbell@universityoflife.ac.uk"
 
-    def create_organisations(session):
-        for name, provider in WebFixture.organisations:
-            org = Organisation(
-                uuid=uuid.uuid4().hex,
-                name=name)
+
+    def create_subscriptions(session):
+        maintenance = session.query(
+            SubscriptionState).filter(
+            SubscriptionState.name=="maintenance").one()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        #if not actor:
+        #    actor = Component(handle="Demo", uuid=uuid.uuid4().hex)
+        #    session.add(actor)
+
+        for orgName, providerName in WebFixture.subscriptions:
+            org = session.query(Organisation).filter(
+                Organisation.name==orgName).first()
+            if not org:
+                org = Organisation(
+                    uuid=uuid.uuid4().hex,
+                    name=orgName)
+
             provider = session.query(Provider).filter(
-                Provider.name==provider).first()
+                Provider.name==providerName).first()
             if not provider:
                 provider = Provider(
-                    name=provider, uuid=uuid.uuid4().hex)
+                    name=providerName, uuid=uuid.uuid4().hex)
                 session.add(provider)
 
-            subs = [Subscription(
+            subs = Subscription(
                 uuid=uuid.uuid4().hex,
                 model=cloudhands.common.__version__,
                 organisation=org,
-                provider=provider)]
+                provider=provider)
+            subs.changes.append(
+                Touch(
+                    artifact=subs, actor=actor, state=maintenance,
+                    at=datetime.datetime.utcnow())
+                )
             try:
-                session.add_all(subs)
+                session.add(subs)
                 session.commit()
             except Exception as e:
                 session.rollback()
             finally:
                 session.flush()
+            act = Online(actor, subs)(session)
 
     def grant_admin_memberships(session, user):
         active = session.query(MembershipState).filter(
             MembershipState.name == "active").one()
 
-        for name, provider in WebFixture.organisations:
+        for name, provider in WebFixture.subscriptions:
             org = session.query(Organisation).filter(
                 Organisation.name == name).one()
             mship = Membership(
@@ -104,7 +127,7 @@ class WebFixture(object):
 
 
     def add_subscribed_resources(session, user):
-        for name, provider in WebFixture.organisations:
+        for name, provider in WebFixture.subscriptions:
             org = session.query(Organisation).filter(
                 Organisation.name == name).one()
             grant = session.query(Touch).join(Membership).join(User).filter(
@@ -145,7 +168,7 @@ def main(args):
 
     session = cloudhands.web.main.configure(args)
 
-    WebFixture.create_organisations(session)
+    WebFixture.create_subscriptions(session)
     user = User(
         handle=handle_from_email(WebFixture.demo_email()),
         uuid=uuid.uuid4().hex)
