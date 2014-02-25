@@ -46,6 +46,7 @@ class WebFixture(object):
 
     subscriptions = [
         ("MARMITE", "cloudhands.jasmin.vcloud.phase01.cfg"),
+        ("BRANSTON", "cloudhands.jasmin.vcloud.phase01.cfg"),
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
@@ -54,6 +55,7 @@ class WebFixture(object):
 
 
     def create_subscriptions(session):
+        log = logging.getLogger("cloudhands.web.demo.subscriptions")
         maintenance = session.query(
             SubscriptionState).filter(
             SubscriptionState.name=="maintenance").one()
@@ -70,6 +72,7 @@ class WebFixture(object):
                 org = Organisation(
                     uuid=uuid.uuid4().hex,
                     name=orgName)
+                session.add(org)
 
             provider = session.query(Provider).filter(
                 Provider.name==providerName).first()
@@ -88,16 +91,20 @@ class WebFixture(object):
                     artifact=subs, actor=actor, state=maintenance,
                     at=datetime.datetime.utcnow())
                 )
+            act = Online(actor, subs)(session)
+            subs.changes.append(act)
             try:
                 session.add(subs)
                 session.commit()
+                yield act
             except Exception as e:
+                log.debug(e)
                 session.rollback()
             finally:
                 session.flush()
-            act = Online(actor, subs)(session)
 
     def grant_admin_memberships(session, user):
+        log = logging.getLogger("cloudhands.web.demo.memberships")
         active = session.query(MembershipState).filter(
             MembershipState.name == "active").one()
 
@@ -109,8 +116,13 @@ class WebFixture(object):
                 model=cloudhands.common.__version__,
                 organisation=org,
                 role="admin")
-            ea = EmailAddress(
-                value=WebFixture.demo_email())
+
+            ea = session.query(EmailAddress).filter(
+                EmailAddress.value==WebFixture.demo_email()).first()
+            if not ea:
+                ea = EmailAddress(
+                    value=WebFixture.demo_email())
+                session.add(ea)
 
             now = datetime.datetime.utcnow()
             act = Touch(artifact=mship, actor=user, state=active, at=now)
@@ -121,12 +133,14 @@ class WebFixture(object):
                 session.commit()
                 yield act
             except Exception as e:
+                log.debug(e)
                 session.rollback()
             finally:
                 session.flush()
 
 
     def add_subscribed_resources(session, user):
+        log = logging.getLogger("cloudhands.web.demo.resources")
         for name, provider in WebFixture.subscriptions:
             org = session.query(Organisation).filter(
                 Organisation.name == name).one()
@@ -168,10 +182,24 @@ def main(args):
 
     session = cloudhands.web.main.configure(args)
 
-    WebFixture.create_subscriptions(session)
+    for t in WebFixture.create_subscriptions(session):
+        log.info("{} subscribed to {}".format(
+            t.artifact.organisation.name,
+            t.artifact.provider.name))
+
     user = User(
         handle=handle_from_email(WebFixture.demo_email()),
         uuid=uuid.uuid4().hex)
+    try:
+        session.add(user)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+    finally:
+        session.flush()
+
+
+    user = session.query(User).filter(User.handle == user.handle).one()
     for t in WebFixture.grant_admin_memberships(session, user):
         log.info("{} activated as admin for {}".format(
             t.actor.handle,

@@ -126,16 +126,15 @@ def record_adapter(obj, request):
 
 def top_read(request):
     userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
-
-    con = registered_connection()
-    status = con.session.query(Host).join(Touch).order_by(
-        Touch.at.desc()).first()
-
     page = Page(paths=paths(request))
-    if status:
-        page.layout.items.push(status)
+    con = registered_connection()
+    user = con.session.query(User).join(Touch).join(
+        EmailAddress).filter(EmailAddress.value == userId).first()
+    if user:
+        mships = con.session.query(Membership).join(Touch).join(User).filter(
+            User.id==user.id).all()
+        for org in {i.organisation for i in mships}:
+            page.layout.nav.push(org)
 
     return dict(page.termination())
 
@@ -390,7 +389,7 @@ def wsgi_app(args):
     config.add_route("top", "/")
     config.add_view(
         top_read, route_name="top", request_method="GET",
-        renderer="cloudhands.web:templates/base.pt")
+        renderer="cloudhands.web:templates/top.pt")
 
     config.add_route("hosts", "/hosts")
     #config.add_view(

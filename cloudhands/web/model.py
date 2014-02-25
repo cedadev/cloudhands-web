@@ -43,6 +43,10 @@ class PathInfo(NamedDict):
     pass
 
 
+class OrganisationInfo(NamedDict):
+    pass
+
+
 class HostView(Contextual, Validating, NamedDict):
 
     @property
@@ -221,10 +225,27 @@ class GenericRegion(Region):
         return obj.name("versions")
 
 
+class NavRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(Organisation)
+    def present_organisation(obj, isSelf=False):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        rel = "self" if isSelf else "canonical"
+        item["_links"] = [
+            Aspect(obj.name, rel, "/organisation/{}", obj.name,
+            "get", [], "View")]
+        return OrganisationInfo(item)
+
+
 class Page(PageBase):
 
     plan = [
         ("info", GenericRegion),
+        ("nav", NavRegion),
         ("items", GenericRegion),
         ("options", GenericRegion)]
 
