@@ -46,7 +46,7 @@ class WebFixture(object):
 
     subscriptions = [
         ("MARMITE", "cloudhands.jasmin.vcloud.phase01.cfg"),
-        ("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
+        #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
     def demo_email(req=None):
