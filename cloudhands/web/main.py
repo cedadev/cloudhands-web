@@ -389,6 +389,7 @@ def wsgi_app(args):
     config.add_route("top", "/")
     config.add_view(
         top_read, route_name="top", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/top.pt")
 
     config.add_route("hosts", "/hosts")
