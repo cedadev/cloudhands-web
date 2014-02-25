@@ -26,22 +26,27 @@ name '{}-{}-{}'.format(aspect.rel, aspect.method, itemId).lower();">
 <div
 tal:repeat="field aspect.parameters"
 tal:attributes="class 'pure-control-group'">
+<p
+tal:define="id_ '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.rel, field.name).lower();">
 <label tal:content="field.name.upper()
 if field.name in ('cpu', 'jvo', 'ram')
 else field.name.capitalize()"
-tal:attributes="for field.name">
+tal:attributes="for id_">
 </label>
 <input
 tal:condition="not field.values"
 tal:attributes="
-id '{}-{}-{}-{}'.format(aspect.rel, aspect.method, itemId, field.name).lower();
+id id_;
 name field.name;
 value field.name if not field.values else field.values[0] ;
 pattern field.regex.pattern;
 required 'required' if field.required else None;
 type 'hidden' if field.name in ('',) else 'text';"/>
 <select
-tal:condition="field.values">
+tal:condition="field.values"
+tal:attributes="
+id id_;
+name field.name">
 <option
 tal:repeat="value field.values"
 tal:content="value"
@@ -50,6 +55,7 @@ value value;
 ">
 </option>
 </select>
+</p>
 </div>
 <div tal:attributes="class 'pure-control-group'">
 <button tal:content="aspect.action"
