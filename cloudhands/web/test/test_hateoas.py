@@ -40,6 +40,8 @@ Links to other objects with a relationship
 
 item_macro = PageTemplate(pkg_resources.resource_string(
     "cloudhands.web.templates", "item_list.pt"))
+nav_macro = PageTemplate(pkg_resources.resource_string(
+    "cloudhands.web.templates", "nav_list.pt"))
 option_macro = PageTemplate(pkg_resources.resource_string(
     "cloudhands.web.templates", "option_list.pt"))
 
@@ -87,6 +89,22 @@ class ItemsRegion(Region):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         item["_links"] = [
             Aspect(obj.name, "canonical", "/object/{}", obj.uuid,
+            "get", [], "View")]
+        return ObjectView(item)
+
+
+class NavRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(SimpleType)
+    def present_objects(obj, isSelf=False):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        rel = "self" if isSelf else "canonical"
+        item["_links"] = [
+            Aspect(obj.name, rel, "/object/{}", obj.uuid,
             "get", [], "View")]
         return ObjectView(item)
 
@@ -178,6 +196,40 @@ class TestItemListTemplate(unittest.TestCase):
         rv = item_macro(**dict(p.termination()))
         self.assertEqual(
             6, len(re.findall('<a[^>]+href="/object/[a-f0-9]{32}"', rv)))
+
+
+class TestNavListTemplate(unittest.TestCase):
+
+    class TestPage(PageBase):
+
+        plan = [("nav", NavRegion)]
+
+    def test_nav_section_exists(self):
+        p = TestNavListTemplate.TestPage()
+        p.layout.nav.push(SimpleType(uuid.uuid4().hex, "MARMITE"))
+        rv = nav_macro(**dict(p.termination()))
+        self.assertTrue(re.search(
+            '<nav[^>]+class="pure-menu pure-menu-open"', rv))
+
+
+    def test_menu_contains_each_element(self):
+        p = TestNavListTemplate.TestPage()
+        p.layout.nav.push(SimpleType(uuid.uuid4().hex, "MARMITE"))
+        p.layout.nav.push(SimpleType(uuid.uuid4().hex, "BRANSTON"))
+        rv = nav_macro(**dict(p.termination()))
+        self.assertEqual(2, rv.count('<a rel="canonical" href="/object/'))
+        self.assertIn(">MARMITE</a>", rv)
+        self.assertIn(">BRANSTON</a>", rv)
+
+
+    def test_self_link_shows_visited(self):
+        p = TestNavListTemplate.TestPage()
+        p.layout.nav.push(SimpleType(uuid.uuid4().hex, "MARMITE"))
+        p.layout.nav.push(
+            SimpleType(uuid.uuid4().hex, "BRANSTON"), isSelf=True)
+        rv = nav_macro(**dict(p.termination()))
+        self.assertEqual(1, rv.count('<a rel="canonical" href="/object/'))
+        self.assertIn("pure-menu-selected", rv)
 
 
 class TestOptionListTemplate(unittest.TestCase):
