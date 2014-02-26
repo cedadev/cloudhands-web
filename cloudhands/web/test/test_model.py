@@ -111,7 +111,7 @@ class TestHostView(unittest.TestCase):
             name="hostname",
             jvo="marmite",
             image="has space")
-        self.assertTrue(h.invalid)
+        self.assertFalse(h.invalid)
 
 
 class TestGenericRegion(unittest.TestCase):

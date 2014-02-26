@@ -271,7 +271,7 @@ def organisation_read(request):
         State.name == "active").all()
     log.debug(mships)
     for m in mships:
-        page.layout.options.push(m)
+        page.layout.options.push(m, session=con.session)
 
     return dict(page.termination())
 

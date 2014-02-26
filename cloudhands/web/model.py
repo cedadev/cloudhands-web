@@ -16,6 +16,7 @@ from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
+from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -57,7 +58,8 @@ class HostView(Contextual, Validating, NamedDict):
                 "jvo", True, re.compile("\\w{6,64}$"),
                 [self["organisation"]] if "organisation" in self else []),
             Parameter(
-                "image", True, re.compile("\\S{6,64}$"), []),
+                "image", True, re.compile("[\\S ]{6,64}$"),
+                getattr(self, "images", [])),
             Parameter("description", False, re.compile("\\w{8,128}$"), []),
             Parameter(
                 "cpu", False, re.compile("\\w{8,128}$"),
@@ -68,8 +70,18 @@ class HostView(Contextual, Validating, NamedDict):
         ]
 
     def configure(self, session, user=None):
-        state = self["states"][0].name
         self["_links"] = []
+
+        subs = session.query(Subscription).join(Organisation).filter(
+            Organisation.name==self["organisation"]).first()
+        if subs:
+           self.images = [i.name for i in subs.changes[-1].resources]
+
+        try:
+            state = self["states"][0].name
+        except KeyError:
+            # Not a live object
+            return self
 
         if state == "up":
             self["_links"].append(Aspect(
@@ -94,7 +106,7 @@ class MembershipView(Contextual, NamedDict):
 
     def configure(self, session, user=None):
         hf = HostView(organisation=self["organisation"])
-        #hf.configure(session, user)
+        hf.configure(session, user)
         # Create new host, etc belongs in membership view
         self["_links"] = [
             Aspect(

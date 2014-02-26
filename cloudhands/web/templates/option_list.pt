@@ -20,7 +20,7 @@ class class_">
 tal:attributes="
 action aspect.typ.format(aspect.ref);
 method aspect.method;
-name '{}-{}-{}-{}'.format(itemId, aspect.name.replace(' ',''), aspect.rel, aspect.method).lower();">
+name '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.method, aspect.rel).replace(' ','').lower();">
 <fieldset>
 <legend tal:content="aspect.name"></legend>
 <div

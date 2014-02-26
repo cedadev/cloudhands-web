@@ -45,7 +45,7 @@ class Region(NamedList):
 
     def push(self, obj, session=None, user=None, **kwargs):
         view = self.__class__.present(obj, **kwargs)
-        if isinstance(view, Contextual):
+        if session and isinstance(view, Contextual):
             view.configure(session, user)
         if view:
             self.append(view)
