@@ -51,6 +51,10 @@ class OrganisationInfo(NamedDict):
 class HostView(Contextual, Validating, NamedDict):
 
     @property
+    def public(self):
+        return ["name", "organisation", "nodes", "ips", "states"]
+
+    @property
     def parameters(self):
         return [
             Parameter("name", True, re.compile("\\w{8,128}$"), []),
@@ -93,7 +97,7 @@ class HostView(Contextual, Validating, NamedDict):
                 "post", [], "start"))
         self["_links"].append(Aspect(
             "Settings", "parent", "/organisation/{}",
-            self["data"]["organisation"], "get", [], "settings"))
+            self["organisation"], "get", [], "settings"))
         return self
 
 
@@ -102,7 +106,6 @@ class MembershipView(Contextual, NamedDict):
     @property
     def public(self):
         return ["organisation", "role"]
-
 
     def configure(self, session, user=None):
         hf = HostView(organisation=self["organisation"])
@@ -199,12 +202,13 @@ class GenericRegion(Region):
     @present.register(Host)
     def present_host(artifact):
         resources = [r for i in artifact.changes for r in i.resources]
-        item = {k: getattr(artifact, k) for k in ("uuid", "name")}
-        item["states"] = [artifact.changes[-1].state]
-        item["data"] = {
+        item = {
+            "uuid": artifact.uuid,
+            "name": artifact.name,
             "organisation": artifact.organisation.name,
             "nodes": [i.name for i in resources if isinstance(i, Node)],
-            "ips": [i.value for i in resources if isinstance(i, IPAddress)]
+            "ips": [i.value for i in resources if isinstance(i, IPAddress)],
+            "states":  [artifact.changes[-1].state],
         }
         return HostView(item)
 

@@ -263,14 +263,17 @@ def organisation_read(request):
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
-    #page.layout.options.push(org)
+    if not org:
+        raise NotFound("Organisation not found for {}".format(oN))
+
+    for h in org.hosts:
+        page.layout.items.push(h)
 
     mships = con.session.query(Membership).join(Organisation).join(
         Touch).join(State).join(User).filter(
         User.id == user.id).filter(
         Organisation.id == org.id).filter(
         State.name == "active").all()
-    log.debug(mships)
     for m in mships:
         page.layout.options.push(m, session=con.session)
 
