@@ -98,7 +98,7 @@ class MembershipView(Contextual, NamedDict):
         # Create new host, etc belongs in membership view
         self["_links"] = [
             Aspect(
-                self["organisation"], "collection",
+                "New VM", "collection",
                 "/organisation/{}/hosts", self["organisation"], "post",
                 hf.parameters, "Create")]
         if self["role"] == "admin":
