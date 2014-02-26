@@ -56,6 +56,8 @@ class HostView(Contextual, Validating, NamedDict):
             Parameter(
                 "jvo", True, re.compile("\\w{6,64}$"),
                 [self["organisation"]] if "organisation" in self else []),
+            Parameter(
+                "image", True, re.compile("\\S{6,64}$"), []),
             Parameter("description", False, re.compile("\\w{8,128}$"), []),
             Parameter(
                 "cpu", False, re.compile("\\w{8,128}$"),
@@ -87,17 +89,22 @@ class MembershipView(Contextual, NamedDict):
 
     @property
     def public(self):
-        return ["uuid", "role"]
+        return ["organisation", "role"]
 
 
     def configure(self, session, user=None):
-        hf = HostView(organisation=self["data"]["organisation"])  # FIXME
+        hf = HostView(organisation=self["organisation"])
+        #hf.configure(session, user)
         # Create new host, etc belongs in membership view
         self["_links"] = [
             Aspect(
-                self["data"]["organisation"], "collection",
-                "/organisation/{}/hosts", self["data"]["organisation"], "post",
-                hf.parameters, "Create")
+                self["organisation"], "collection",
+                "/organisation/{}/hosts", self["organisation"], "post",
+                hf.parameters, "Create"),
+            Aspect(
+                "Invitation to {}".format(self["organisation"]), "create-form",
+                "/organisation/{}/memberships", self["organisation"], "post",
+                [], "Create")
         ]
         return self
 
@@ -188,12 +195,12 @@ class GenericRegion(Region):
 
     @present.register(Membership)
     def present_membership(artifact):
-        item = {k: getattr(artifact, k) for k in ("uuid", "role")}
-        item["states"] = [artifact.changes[-1].state]
-        item["data"] = {
+        item = {
             "modified": artifact.changes[-1].at,
+            "organisation": artifact.organisation.name,
             "role": artifact.role,
-            "organisation": artifact.organisation.name
+            "states": [artifact.changes[-1].state],
+            "uuid": artifact.uuid,
         }
         return MembershipView(item)
 

@@ -22,6 +22,7 @@ from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -46,7 +47,7 @@ class TestHostView(unittest.TestCase):
         h = HostView(name="goodname")
         self.assertTrue(h.invalid)
 
-        h = HostView(name="goodname", jvo="nodeparent")
+        h = HostView(name="goodname", jvo="nodeparent", image="CentOS_6.4")
         self.assertFalse(h.invalid)
 
     def test_hostname_validation_length(self):
@@ -55,33 +56,62 @@ class TestHostView(unittest.TestCase):
             name="a" * (Host.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostView(jvo="nodeparent", name="a" * 7)
+        h = HostView(jvo="nodeparent", name="a" * 7, image="CentOS_6.5")
         self.assertTrue(h.invalid)
 
-        h = HostView(jvo="nodeparent", name="a" * 8)
+        h = HostView(jvo="nodeparent", name="a" * 8, image="CentOS_6.5")
         self.assertFalse(h.invalid)
 
         h = HostView(
             jvo="nodeparent",
+            image="CentOS_6.5",
             name="a" * Host.name.type.length)
         self.assertFalse(h.invalid)
 
     def test_organisation_validation_length(self):
         h = HostView(
             name="hostname",
+            image="CentOS_6.5",
             jvo="a" * (Organisation.name.type.length + 1))
         self.assertTrue(h.invalid)
 
-        h = HostView(name="hostname", jvo="a" * 5)
+        h = HostView(name="hostname", jvo="a" * 5, image="CentOS_6.5")
         self.assertTrue(h.invalid)
 
-        h = HostView(name="hostname", jvo="a" * 7)
+        h = HostView(name="hostname", jvo="a" * 7, image="CentOS_6.5")
         self.assertFalse(h.invalid)
 
         h = HostView(
             name="hostname",
+            image="CentOS_6.5",
             jvo="a" * Organisation.name.type.length)
         self.assertFalse(h.invalid)
+
+    def test_image_validation_length(self):
+        h = HostView(
+            name="hostname",
+            jvo="marmite",
+            image="a" * (OSImage.name.type.length + 1))
+        self.assertTrue(h.invalid)
+
+        h = HostView(name="hostname", jvo="marmite", image="a" * 5)
+        self.assertTrue(h.invalid)
+
+        h = HostView(name="hostname", jvo="marmite", image="a" * 7)
+        self.assertFalse(h.invalid)
+
+        h = HostView(
+            name="hostname",
+            jvo="marmite",
+            image="a" * OSImage.name.type.length)
+        self.assertFalse(h.invalid)
+
+    def test_image_permitted_characters(self):
+        h = HostView(
+            name="hostname",
+            jvo="marmite",
+            image="has space")
+        self.assertTrue(h.invalid)
 
 
 class TestGenericRegion(unittest.TestCase):

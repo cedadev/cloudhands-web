@@ -134,10 +134,13 @@ def top_read(request):
     if user:
         mships = con.session.query(Membership).join(Touch).join(User).filter(
             User.id==user.id).all()
-        for org in sorted(
-            {i.organisation for i in mships}, key=operator.attrgetter("name")
-        ):
-            page.layout.nav.push(org)
+    else:
+        mships = []
+
+    for org in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(org)
 
     return dict(page.termination())
 
