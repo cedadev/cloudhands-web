@@ -85,6 +85,11 @@ class HostView(Contextual, Validating, NamedDict):
 
 class MembershipView(Contextual, NamedDict):
 
+    @property
+    def public(self):
+        return ["uuid", "role"]
+
+
     def configure(self, session, user=None):
         hf = HostView(organisation=self["data"]["organisation"])  # FIXME
         # Create new host, etc belongs in membership view
@@ -183,7 +188,7 @@ class GenericRegion(Region):
 
     @present.register(Membership)
     def present_membership(artifact):
-        item = {}
+        item = {k: getattr(artifact, k) for k in ("uuid", "role")}
         item["states"] = [artifact.changes[-1].state]
         item["data"] = {
             "modified": artifact.changes[-1].at,
@@ -193,11 +198,12 @@ class GenericRegion(Region):
         return MembershipView(item)
 
     @present.register(Organisation)
-    def present_organisation(obj):
-        item = {}
-        item["data"] = {
-            "name": obj.name,
-        }
+    def present_organisation(obj, isSelf=False):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        rel = "self" if isSelf else "canonical"
+        item["_links"] = [
+            Aspect(obj.name, rel, "/organisation/{}", obj.name,
+            "get", [], "View")]
         return OrganisationView(item)
 
     @present.register(PathInfo)

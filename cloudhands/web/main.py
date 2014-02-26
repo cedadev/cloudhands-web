@@ -4,6 +4,7 @@
 import argparse
 import datetime
 import logging
+import operator
 import os.path
 import platform
 import re
@@ -133,7 +134,9 @@ def top_read(request):
     if user:
         mships = con.session.query(Membership).join(Touch).join(User).filter(
             User.id==user.id).all()
-        for org in {i.organisation for i in mships}:
+        for org in sorted(
+            {i.organisation for i in mships}, key=operator.attrgetter("name")
+        ):
             page.layout.nav.push(org)
 
     return dict(page.termination())
@@ -244,11 +247,29 @@ def organisation_read(request):
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
         raise NotFound("User not found for {}".format(userId))
+
+    page = Page(session=con.session, user=user, paths=paths(request))
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
+    for org in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(org)
+
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
-    page = Page(session=con.session, user=user, paths=paths(request))
-    page.layout.options.push(org)
+    #page.layout.options.push(org)
+
+    mships = con.session.query(Membership).join(Organisation).join(
+        Touch).join(State).join(User).filter(
+        User.id == user.id).filter(
+        Organisation.id == org.id).filter(
+        State.name == "active").all()
+    log.debug(mships)
+    for m in mships:
+        page.layout.options.push(m)
+
     return dict(page.termination())
 
 
