@@ -126,6 +126,7 @@ def record_adapter(obj, request):
 
 
 def top_read(request):
+    log = logging.getLogger("cloudhands.web.top_read")
     userId = authenticated_userid(request)
     page = Page(paths=paths(request))
     con = registered_connection()
@@ -146,7 +147,7 @@ def top_read(request):
 
 
 def hosts_read(request):
-    log = logging.getLogger("cloudhands.web.hosts")
+    log = logging.getLogger("cloudhands.web.hosts_read")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -177,7 +178,7 @@ def hosts_read(request):
 
 
 def membership_read(request):
-    log = logging.getLogger("cloudhands.web.membership")
+    log = logging.getLogger("cloudhands.web.membership_read")
     m_uuid = request.matchdict["mship_uuid"]
     con = registered_connection()
     mship = con.session.query(Membership).filter(
@@ -205,7 +206,7 @@ def membership_read(request):
 
 
 def membership_update(request):
-    log = logging.getLogger("cloudhands.web.membership")
+    log = logging.getLogger("cloudhands.web.membership_update")
     user = authenticate_user(request)
     con = registered_connection()
     m_uuid = request.matchdict["mship_uuid"]
@@ -240,7 +241,7 @@ def membership_update(request):
 
 
 def organisation_read(request):
-    log = logging.getLogger("cloudhands.web.organisation")
+    log = logging.getLogger("cloudhands.web.organisation_read")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -277,7 +278,7 @@ def organisation_read(request):
 
 
 def organisation_hosts_create(request):
-    log = logging.getLogger("cloudhands.web.organisation")
+    log = logging.getLogger("cloudhands.web.organisation_hosts_create")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
@@ -323,7 +324,7 @@ def organisation_hosts_create(request):
 
 
 def organisation_memberships_create(request):
-    log = logging.getLogger("cloudhands.web.organisation")
+    log = logging.getLogger("cloudhands.web.organisation_memberships_create")
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
