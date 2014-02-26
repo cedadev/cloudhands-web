@@ -62,11 +62,11 @@ class HostView(Contextual, Validating, NamedDict):
                 getattr(self, "images", [])),
             Parameter("description", False, re.compile("\\w{8,128}$"), []),
             Parameter(
-                "cpu", False, re.compile("\\w{8,128}$"),
+                "cpu", False, re.compile("\\d{1,2}$"),
                 ["1", "2", "3", "4"]),
             Parameter(
-                "ram", False, re.compile("\\w{8,128}$"),
-                [1024]),
+                "ram", False, re.compile("\\d{3,4}$"),
+                ["1024"]),
         ]
 
     def configure(self, session, user=None):

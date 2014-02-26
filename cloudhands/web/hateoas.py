@@ -26,9 +26,13 @@ class Validating:
     def invalid(self):
         missing = [i for i in self.parameters
                    if i.required and i.name not in self]
-        return missing or [
+        missing = missing or [
+            i for i in self.parameters if i.name in self
+            and i.values and self[i.name] not in i.values]
+        missing = missing or [
             i for i in self.parameters
             if i.name in self and not i.regex.match(self[i.name])]
+        return missing
 
 
 class Contextual:

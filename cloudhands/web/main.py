@@ -296,7 +296,7 @@ def organisation_hosts_create(request):
             "Bad value in '{}' field".format(data.invalid[0].name))
 
     oN = request.matchdict["org_name"]
-    if data["organisation"] != oN:
+    if data["jvo"] != oN:
         raise HTTPBadRequest("Mismatched organisation field")
 
     org = con.session.query(Organisation).filter(
@@ -311,14 +311,15 @@ def organisation_hosts_create(request):
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__,
         organisation=org,
-        name=data["hostname"]
+        name=data["name"]
         )
     host.changes.append(
         Touch(artifact=host, actor=user, state=requested, at=now))
     log.info(host)
     con.session.add(host)
     con.session.commit()
-    raise HTTPFound(location=request.route_url("hosts"))
+    raise HTTPFound(
+        location=request.route_url("organisation", org_name=oN))
 
 
 def organisation_memberships_create(request):
