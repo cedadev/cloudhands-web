@@ -100,12 +100,15 @@ class MembershipView(Contextual, NamedDict):
             Aspect(
                 self["organisation"], "collection",
                 "/organisation/{}/hosts", self["organisation"], "post",
-                hf.parameters, "Create"),
-            Aspect(
-                "Invitation to {}".format(self["organisation"]), "create-form",
-                "/organisation/{}/memberships", self["organisation"], "post",
-                [], "Create")
-        ]
+                hf.parameters, "Create")]
+        if self["role"] == "admin":
+            self["_links"].append(
+                Aspect(
+                    "Invitation to {}".format(self["organisation"]),
+                    "create-form",
+                    "/organisation/{}/memberships", self["organisation"],
+                    "post", [], "Create")
+            )
         return self
 
 

@@ -268,9 +268,9 @@ class OrganisationPageTests(ServerTests):
         request.matchdict.update({"org_name": org.name})
         page = organisation_read(request)
         options = page["options"].values()
-        data = [i for i in options if "name" in i.get("data", {})]
-        self.assertTrue(data)
-        self.assertEqual(org.name, data[0]["data"]["name"])
+        mships = [i for i in options if "role" in i]
+        self.assertTrue(mships)
+        self.assertEqual(org.name, mships[0]["organisation"])
         invite = list(i for o in options if "_links" in o
                       for i in o["_links"] if i.name.startswith("Invit"))
         self.assertFalse(invite)
@@ -283,9 +283,9 @@ class OrganisationPageTests(ServerTests):
         request.matchdict.update({"org_name": org.name})
         page = organisation_read(request)
         options = page["options"].values()
-        data = [i for i in options if "name" in i.get("data", {})]
-        self.assertTrue(data)
-        self.assertEqual(org.name, data[0]["data"]["name"])
+        mships = [i for i in options if "role" in i]
+        self.assertTrue(mships)
+        self.assertEqual(org.name, mships[0]["organisation"])
         invite = next(i for o in options if "_links" in o
                       for i in o["_links"] if i.name.startswith("Invit"))
         self.assertTrue(invite)
