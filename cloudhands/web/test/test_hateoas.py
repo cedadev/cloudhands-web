@@ -195,7 +195,7 @@ class TestItemListTemplate(unittest.TestCase):
             p.layout.items.push(o)
         rv = item_macro(**dict(p.termination()))
         self.assertEqual(
-            6, len(re.findall('<a[^>]+href="/object/[a-f0-9]{32}"', rv)))
+            6, len(re.findall('<form[^>]+action="/object/[a-f0-9]{32}"', rv)))
 
 
 class TestNavListTemplate(unittest.TestCase):

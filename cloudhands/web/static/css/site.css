@@ -25,12 +25,24 @@ font-weight: lighter;
 background-color: gainsboro;
 }
 
+#items {
+overflow: auto;
+height: 1024px;
+}
+
+#items ul li {
+border-radius: 6px;
+border: 6px solid gainsboro;
+padding: 1em 1em 1em 2em;
+margin: 0.3em 0 0.3em 0;
+}
+
 dl.hostview dt{
 display: none;
 }
 
 dl.hostview dd{
-padding: 1em 1em 1em 2em;
+padding: 0.5em 0.5em 0.5em 0.5em;
 }
 
 dl.publickey dd{

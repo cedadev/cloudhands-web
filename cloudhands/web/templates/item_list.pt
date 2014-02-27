@@ -42,17 +42,13 @@ action aspect.typ.format(aspect.ref);
 method aspect.method;
 name '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.method, aspect.rel).replace(' ','').lower();">
 <fieldset>
-<legend tal:content="aspect.name"></legend>
 <div
 tal:repeat="field aspect.parameters"
-tal:attributes="class 'pure-control-group'">
-<p
-tal:define="id_ '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.rel, field.name).lower();">
-<label tal:content="field.name.upper()
-if field.name in ('cpu', 'jvo', 'ram')
-else field.name.capitalize()"
+tal:omit-tag="">
+<label
+tal:define="id_ '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.rel, field.name).lower();"
 tal:attributes="for id_">
-</label>
+${field.name.upper() if field.name in ('cpu', 'jvo', 'ram') else field.name.capitalize()}
 <input
 tal:condition="not field.values"
 tal:attributes="
@@ -75,14 +71,12 @@ value value;
 ">
 </option>
 </select>
-</p>
+</label>
 </div>
-<div tal:attributes="class 'pure-control-group'">
 <button tal:content="aspect.action"
 tal:attributes="
 type 'submit';
 class 'pure-button pure-button-primary'"></button>
-</div>
 </fieldset>
 </form>
 </div>
