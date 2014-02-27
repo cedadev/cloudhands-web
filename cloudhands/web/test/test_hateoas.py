@@ -183,8 +183,8 @@ class TestItemListTemplate(unittest.TestCase):
         for o in objects:
             p.layout.items.push(o)
         rv = item_macro(**dict(p.termination()))
-        self.assertEqual(6, rv.count("<dt>name</dt>"))
-        self.assertEqual(6, rv.count("<dd>"))
+        self.assertEqual(6, len(re.findall("<dt[^>]*>name</dt>", rv)))
+        self.assertEqual(6, len(re.findall("<dd[^>]*>", rv)))
 
     def test_list_items_have_aspects(self):
         objects = [

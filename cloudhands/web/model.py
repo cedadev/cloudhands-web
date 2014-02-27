@@ -52,7 +52,7 @@ class HostView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):
-        return ["name", "ips", "states"]
+        return ["name", "states", "ips"]
 
     @property
     def parameters(self):
@@ -87,17 +87,22 @@ class HostView(Contextual, Validating, NamedDict):
             # Not a live object
             return self
 
-        if state == "up":
+        if state == "requested":
             self["_links"].append(Aspect(
-                "Send", "self", "/host/{}/commands", self["uuid"],
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "post", [], "cancel"))
+        elif state == "scheduling":
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "get", [], "check"))
+        elif state == "up":
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "stop"))
         elif state == "down":
             self["_links"].append(Aspect(
-                "Send", "self", "/host/{}/commands", self["uuid"],
+                "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "start"))
-        self["_links"].append(Aspect(
-            "Settings", "parent", "/organisation/{}",
-            self["organisation"], "get", [], "settings"))
         return self
 
 

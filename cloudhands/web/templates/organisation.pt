@@ -24,7 +24,7 @@
         </nav>
     </div>
     <div class="pure-u-7-12">
-        <section id="items" metal:use-macro="load: item_list.pt" >
+        <section metal:use-macro="load: item_list.pt" >
         </section>
     </div>
     <div class="pure-u-1-3">
@@ -35,7 +35,7 @@
             <li><button id='signout'>logout</button></li>
             </ul>
         </div>
-        <section id="options" metal:use-macro="load: option_list.pt" >
+        <section metal:use-macro="load: option_list.pt" >
         </section>
     </div>
 </div>

@@ -45,7 +45,6 @@ clear: left;
 color: green;
 float: left;
 text-align: right;
-text-shadow: 0px 1px 1px #555;
 text-transform:capitalize;
 width: 100px;
 }
@@ -54,7 +53,16 @@ dt:after {
 content: ":";
 }
 
+dl.hostview dd.name {
+font-weight: bold;
+}
+
 dl.membershipview dd {
 margin: 0 0 0 9em;
 padding: 0 0 0.5em 0;
+}
+
+legend {
+margin: 3em 0 0 0;
+/*text-shadow: 0px 2px 3px #555;*/
 }
