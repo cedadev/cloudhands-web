@@ -52,7 +52,7 @@ class HostView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):
-        return ["name", "states", "ips"]
+        return ["name", "latest", "ips"]
 
     @property
     def parameters(self):
@@ -82,7 +82,7 @@ class HostView(Contextual, Validating, NamedDict):
            self.images = [i.name for i in subs.changes[-1].resources]
 
         try:
-            state = self["states"][0].name
+            state = self["latest"].state.name
         except KeyError:
             # Not a live object
             return self
@@ -90,7 +90,8 @@ class HostView(Contextual, Validating, NamedDict):
         if state == "requested":
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
-                "post", [], "cancel"))
+                "post", StateView(fsm="host", name="down").parameters,
+                "cancel"))
         elif state == "scheduling":
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
@@ -198,6 +199,24 @@ class PersonView(Contextual, Validating, NamedDict):
 class ResourceView(NamedDict):
     pass
 
+class StateView(Validating, NamedDict):
+
+    @property
+    def public(self):
+        return ["fsm", "name"]
+
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "fsm", True, re.compile("\\w{3,32}$"),
+                [self["fsm"]] if "fsm" in self else []),
+            Parameter(
+                "name", True, re.compile("\\w{2,64}$"),
+                [self["name"]] if "name" in self else [])
+        ]
+
+
 class GenericRegion(Region):
 
     @singledispatch
@@ -213,7 +232,7 @@ class GenericRegion(Region):
             "organisation": artifact.organisation.name,
             "nodes": [i.name for i in resources if isinstance(i, Node)],
             "ips": [i.value for i in resources if isinstance(i, IPAddress)],
-            "states":  [artifact.changes[-1].state],
+            "latest":  artifact.changes[-1],
         }
         return HostView(item)
 
