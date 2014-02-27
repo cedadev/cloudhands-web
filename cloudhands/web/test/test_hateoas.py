@@ -89,7 +89,7 @@ class ItemsRegion(Region):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         item["_links"] = [
             Aspect(obj.name, "canonical", "/object/{}", obj.uuid,
-            "get", [], "View")]
+            "post", [], "View")]
         return ObjectView(item)
 
 
