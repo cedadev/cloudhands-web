@@ -81,27 +81,33 @@ class WebFixture(object):
                     name=providerName, uuid=uuid.uuid4().hex)
                 session.add(provider)
 
-            subs = Subscription(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                organisation=org,
-                provider=provider)
-            subs.changes.append(
-                Touch(
-                    artifact=subs, actor=actor, state=maintenance,
-                    at=datetime.datetime.utcnow())
-                )
-            act = Online(actor, subs)(session)
-            subs.changes.append(act)
-            try:
-                session.add(subs)
-                session.commit()
-                yield act
-            except Exception as e:
-                log.debug(e)
-                session.rollback()
-            finally:
-                session.flush()
+            if session.query(Subscription).join(Organisation).join(
+                Provider).filter(Organisation.id==org.id).filter(
+                Provider.id==provider.id).count():
+                yield None
+            else:
+
+                subs = Subscription(
+                    uuid=uuid.uuid4().hex,
+                    model=cloudhands.common.__version__,
+                    organisation=org,
+                    provider=provider)
+                subs.changes.append(
+                    Touch(
+                        artifact=subs, actor=actor, state=maintenance,
+                        at=datetime.datetime.utcnow())
+                    )
+                act = Online(actor, subs)(session)
+                subs.changes.append(act)
+                try:
+                    session.add(subs)
+                    session.commit()
+                    yield act
+                except Exception as e:
+                    log.debug(e)
+                    session.rollback()
+                finally:
+                    session.flush()
 
     def grant_admin_memberships(session, user):
         log = logging.getLogger("cloudhands.web.demo.memberships")
@@ -111,11 +117,6 @@ class WebFixture(object):
         for name, provider in WebFixture.subscriptions:
             org = session.query(Organisation).filter(
                 Organisation.name == name).one()
-            mship = Membership(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                organisation=org,
-                role="admin")
 
             ea = session.query(EmailAddress).filter(
                 EmailAddress.value==WebFixture.demo_email()).first()
@@ -124,19 +125,31 @@ class WebFixture(object):
                     value=WebFixture.demo_email())
                 session.add(ea)
 
-            now = datetime.datetime.utcnow()
-            act = Touch(artifact=mship, actor=user, state=active, at=now)
-            ea.touch = act
-            mship.changes.append(act)
-            try:
-                session.add(ea)
-                session.commit()
-                yield act
-            except Exception as e:
-                log.debug(e)
-                session.rollback()
-            finally:
-                session.flush()
+            if session.query(Membership).join(Organisation).join(
+                Touch).join(User).filter(Organisation.id==org.id).filter(
+                Membership.role=="admin").filter(User.id==user.id).count():
+                yield None
+
+            else:
+                    
+                now = datetime.datetime.utcnow()
+                mship = Membership(
+                    uuid=uuid.uuid4().hex,
+                    model=cloudhands.common.__version__,
+                    organisation=org,
+                    role="admin")
+                act = Touch(artifact=mship, actor=user, state=active, at=now)
+                ea.touch = act
+                mship.changes.append(act)
+                try:
+                    session.add(ea)
+                    session.commit()
+                    yield act
+                except Exception as e:
+                    log.debug(e)
+                    session.rollback()
+                finally:
+                    session.flush()
 
 
     def add_subscribed_resources(session, user):
@@ -183,9 +196,12 @@ def main(args):
     session = cloudhands.web.main.configure(args)
 
     for t in WebFixture.create_subscriptions(session):
-        log.info("{} subscribed to {}".format(
-            t.artifact.organisation.name,
-            t.artifact.provider.name))
+        try:
+            log.info("{} subscribed to {}".format(
+                t.artifact.organisation.name,
+                t.artifact.provider.name))
+        except AttributeError:
+            log.debug("Subscription pre-exists")
 
     user = User(
         handle=handle_from_email(WebFixture.demo_email()),
@@ -201,9 +217,12 @@ def main(args):
 
     user = session.query(User).filter(User.handle == user.handle).one()
     for t in WebFixture.grant_admin_memberships(session, user):
-        log.info("{} activated as admin for {}".format(
-            t.actor.handle,
-            t.artifact.organisation.name))
+        try:
+            log.info("{} activated as admin for {}".format(
+                t.actor.handle,
+                t.artifact.organisation.name))
+        except AttributeError:
+            log.debug("Membership pre-exists for {}".format(user.handle))
 
     user = session.query(User).filter(User.handle == user.handle).one()
     for t in WebFixture.add_subscribed_resources(session, user):
