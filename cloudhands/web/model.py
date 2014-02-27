@@ -52,7 +52,7 @@ class HostView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):
-        return ["name", "organisation", "nodes", "ips", "states"]
+        return ["name", "ips", "states"]
 
     @property
     def parameters(self):

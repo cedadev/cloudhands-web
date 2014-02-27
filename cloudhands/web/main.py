@@ -112,6 +112,9 @@ def paths(request):
             ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
 
 
+def datetime_adapter(obj, request):
+    return str(obj)
+
 def regex_adapter(obj, request):
     return obj.pattern
 
@@ -255,16 +258,17 @@ def organisation_read(request):
     page = Page(session=con.session, user=user, paths=paths(request))
     mships = con.session.query(Membership).join(Touch).join(User).filter(
         User.id==user.id).all()
-    for org in sorted(
-        {i.organisation for i in mships}, key=operator.attrgetter("name")
-    ):
-        page.layout.nav.push(org)
 
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
+
+    for o in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(o, isSelf=o is org)
 
     for h in org.hosts:
         page.layout.items.push(h)
@@ -411,6 +415,7 @@ def wsgi_app(args):
     config.include("pyramid_persona")
 
     hateoas = JSON(indent=4)
+    hateoas.add_adapter(datetime.datetime, datetime_adapter)
     hateoas.add_adapter(type(re.compile("")), regex_adapter)
     hateoas.add_adapter(Serializable, record_adapter)
     config.add_renderer("hateoas", hateoas)
