@@ -37,6 +37,7 @@ class keylabel">
 </dl>
 <div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
 <form class="pure-form"
+tal:condition="aspect.method != 'get'"
 tal:attributes="
 action aspect.typ.format(aspect.ref);
 method aspect.method;

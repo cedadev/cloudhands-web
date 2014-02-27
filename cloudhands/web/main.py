@@ -56,6 +56,7 @@ import cloudhands.web
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
+from cloudhands.web.model import StateView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PeoplePage
 
@@ -178,6 +179,54 @@ def hosts_read(request):
         page.layout.options.push(m)
 
     return dict(page.termination())
+
+
+def host_update(request):
+    log = logging.getLogger("cloudhands.web.host_update")
+    con = registered_connection()
+    user = con.session.merge(authenticate_user(request))
+    hUuid = request.matchdict["host_uuid"]
+    host = con.session.query(Host).filter(
+        Host.uuid == hUuid).first()
+    if not host:
+        raise NotFound("Host {} not found".format(hUuid))
+
+    try:
+        oN = host.organisation.name
+    except Exception as e:
+        log.debug(e)
+        raise NotFound("Organisation not found for host {}".format(hUuid))
+
+    data = StateView(request.POST)
+
+    try:
+        badField = data.invalid[0].name
+        log.debug(request.POST)
+        log.debug(data)
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(badField))
+    except (IndexError, AttributeError):
+        if data["fsm"] != "host":
+            raise HTTPBadRequest(
+                "Bad FSM value: {}".format(data["fsm"]))
+
+    state = con.session.query(HostState).filter(
+        HostState.name==data["name"]).first()
+
+    if not state:
+        raise NotFound("No such state '{}'".format(data["name"]))
+
+    now = datetime.datetime.utcnow()
+    act = Touch(artifact=host, actor=user, state=state, at=now)
+    host.changes.append(act)
+    try:
+        con.session.commit()
+    except Exception as e:
+        log.debug(e)
+        con.session.rollback()
+
+    raise HTTPFound(
+        location=request.route_url("organisation", org_name=oN))
 
 
 def membership_read(request):
@@ -433,6 +482,11 @@ def wsgi_app(args):
     config.add_view(
         hosts_read, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("host", "/host/{host_uuid}")
+    config.add_view(
+        host_update, route_name="host", request_method="POST",
+        renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("membership", "/membership/{mship_uuid}")
     config.add_view(

@@ -90,7 +90,7 @@ class HostView(Contextual, Validating, NamedDict):
         if state == "requested":
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
-                "post", StateView(fsm="host", name="down").parameters,
+                "post", StateView(fsm="host", name="deleting").parameters,
                 "cancel"))
         elif state == "scheduling":
             self["_links"].append(Aspect(
@@ -100,6 +100,10 @@ class HostView(Contextual, Validating, NamedDict):
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "stop"))
+        elif state == "deleting":
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "get", [], "check"))
         elif state == "down":
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
