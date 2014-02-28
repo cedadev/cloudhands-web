@@ -129,6 +129,16 @@ def record_adapter(obj, request):
     return rv
 
 
+def touch_adapter(obj, request):
+    return {
+        "at": obj.at,
+        "state": {
+            "fsm": obj.state.fsm,
+            "name": obj.state.name
+        } 
+    }
+
+
 def top_read(request):
     log = logging.getLogger("cloudhands.web.top_read")
     userId = authenticated_userid(request)
@@ -467,6 +477,7 @@ def wsgi_app(args):
     hateoas.add_adapter(datetime.datetime, datetime_adapter)
     hateoas.add_adapter(type(re.compile("")), regex_adapter)
     hateoas.add_adapter(Serializable, record_adapter)
+    hateoas.add_adapter(Touch, touch_adapter)
     config.add_renderer("hateoas", hateoas)
 
     config.add_route("top", "/")

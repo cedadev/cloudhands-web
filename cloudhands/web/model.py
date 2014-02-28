@@ -96,6 +96,10 @@ class HostView(Contextual, Validating, NamedDict):
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "get", [], "check"))
+        elif state == "unknown":
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "post", [], "stop"))
         elif state == "up":
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
