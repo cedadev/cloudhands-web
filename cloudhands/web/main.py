@@ -42,6 +42,7 @@ from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixGId
 from cloudhands.common.schema import Provider
@@ -380,8 +381,9 @@ def organisation_hosts_create(request):
         organisation=org,
         name=data["name"]
         )
-    host.changes.append(
-        Touch(artifact=host, actor=user, state=requested, at=now))
+    act = Touch(artifact=host, actor=user, state=requested, at=now)
+    host.changes.append(act)
+    con.session.add(OSImage(name=data["image"], touch=act))
     log.info(host)
     con.session.add(host)
     con.session.commit()
