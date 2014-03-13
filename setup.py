@@ -36,7 +36,9 @@ setup(
     packages=[
         "cloudhands.web",
         "cloudhands.web.templates",
-        "cloudhands.web.test"],
+        "cloudhands.web.test",
+        "cloudhands.identity",
+        "cloudhands.identity.test"],
     package_data={
         "cloudhands.web": [
             "templates/*.pt",
@@ -57,6 +59,7 @@ setup(
         "waitress>=0.8.7",
         "python3-ldap>=0.6.7",
         "Whoosh>=2.5.5",
+        "py-bcrypt>=0.4",
         ],
     entry_points={
         "console_scripts": [
