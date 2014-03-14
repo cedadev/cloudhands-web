@@ -8,6 +8,9 @@ import unittest
 
 import bcrypt
 
+from cloudhands.common.schema import BcryptedPassword
+
+
 class BcryptTests(unittest.TestCase):
 
     @staticmethod
@@ -46,3 +49,10 @@ class BcryptTests(unittest.TestCase):
             setup=setup,
             number=number)
         self.assertTrue(0.5 < t < 1.0)
+
+
+class BcryptStorageTests(unittest.TestCase):
+
+    def test_bcryptedpassword_fits_column(self):
+        hash, valid, invalid = BcryptTests.setup()
+        self.assertEqual(len(hash), BcryptedPassword.value.type.length)
