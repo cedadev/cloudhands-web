@@ -205,6 +205,29 @@ class PersonView(Contextual, Validating, NamedDict):
             return self
 
 
+class RegistrationView(Validating, NamedDict):
+
+    @property
+    def public(self):
+        return ["handle", "password"]
+
+    @property
+    def parameters(self):
+        """
+        Password between 8 and 20 characters; must contain at least one
+        lowercase letter, one uppercase letter, one numeric digit, and one
+        special character, but cannot contain whitespace.
+        """
+        return [
+            Parameter("handle", True, re.compile("\\w{3,32}$"),[]),
+            Parameter(
+                "password", True, re.compile(
+                    "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
+                    "(?!.*\\s).{8,20}$"
+                ),[]),
+        ]
+
+
 class ResourceView(NamedDict):
     pass
 

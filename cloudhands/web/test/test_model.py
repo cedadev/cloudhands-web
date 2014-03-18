@@ -23,6 +23,7 @@ from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import OSImage
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
@@ -34,6 +35,7 @@ from cloudhands.web.indexer import people
 from cloudhands.web.indexer import Person
 from cloudhands.web.model import GenericRegion
 from cloudhands.web.model import HostView
+from cloudhands.web.model import RegistrationView
 from cloudhands.web.model import Page
 
 
@@ -170,6 +172,96 @@ class TestHostsPage(unittest.TestCase):
         for h in hosts:
             hostsPage.layout.items.push(h)
         self.assertEqual(10, len(dict(hostsPage.termination())["items"]))
+
+
+class TestRegistrationPage(unittest.TestCase):
+
+    def test_registration_password_length_validation(self):
+        r = RegistrationView(
+            handle="userhandle",
+            password="1A_" + "a" * 4)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="1A_" + "a" * 18)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="1A_" + "a" * 5)
+        self.assertFalse(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="1A_" + "a" * 17)
+        self.assertFalse(r.invalid)
+
+    def test_registration_password_validation(self):
+        r = RegistrationView(
+            handle="userhandle",
+            password="a" * 8)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="1" * 8)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="_" * 8)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="a" * 4 + "A" * 4)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="a" * 4 + "1" * 4)
+        self.assertTrue(r.invalid)
+
+
+class TestPeoplePage(unittest.TestCase):
+
+    def test_people_data_comes_from_index(self):
+
+        with tempfile.TemporaryDirectory() as td:
+            ix = create_index(td, descr=whoosh.fields.TEXT(stored=True))
+            wrtr = ix.writer()
+
+            for i in range(10):
+                wrtr.add_document(id=str(i), descr="User {}".format(i))
+            wrtr.commit()
+
+            ppl = list(people(td, "User", "descr"))
+            self.assertEqual(10, len(ppl))
+
+            peoplePage = Page()
+            for p in ppl:
+                peoplePage.layout.items.push(p)
+
+            output = dict(peoplePage.termination())
+            self.assertEqual(10, len(output["items"]))
+
+    def test_registration_password_validation(self):
+        r = RegistrationView(
+            handle="userhandle",
+            password="a" * 7)
+        self.assertTrue(r.invalid)
+
+        r = RegistrationView(
+            handle="userhandle",
+            password="a" * 7)
+        self.assertFalse(r.invalid)
+
+        r = RegistrationView(
+            name="hostname",
+            image="CentOS_6.5",
+            jvo="a" * Organisation.name.type.length)
+        self.assertFalse(r.invalid)
 
 
 class TestPeoplePage(unittest.TestCase):
