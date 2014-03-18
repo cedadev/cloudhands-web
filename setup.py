@@ -49,7 +49,7 @@ setup(
         "cloudhands.web.test": []
         },
     install_requires=[
-        "cloudhands-common>=0.03",
+        "cloudhands-common>=0.08",
         "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",
         "pyramid_authstack>=1.0.1",

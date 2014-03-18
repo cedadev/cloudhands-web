@@ -3,7 +3,8 @@
 
 import datetime
 import uuid
-from cloudhands.common.fsm import MembershipState
+
+from cloudhands.common.fsm import RegistrationState
 
 import cloudhands.common.schema
 from cloudhands.common.schema import Membership
@@ -16,24 +17,25 @@ def handle_from_email(addrVal):
         i.capitalize() for i in addrVal.split('@')[0].split('.'))
 
 
-class Password:
+class NewPassword:
     """
     Adds a password to a user account
     """
-    def __init__(self, user, passwd):
+    def __init__(self, user, passwd, reg):
         self.user = user
         self.passwd = passwd
+        self.reg = reg
 
     def __call__(self, session):
-        if self.subs.changes[-1].state.name != "prepass":
+        if self.reg.changes[-1].state.name != "prepass":
             return None
 
-        active = session.query(
-            SubscriptionState).filter(
-            SubscriptionState.name=="active").one()
+        preconfirm = session.query(
+            RegistrationState).filter(
+            RegistrationState.name=="preconfirm").one()
         now = datetime.datetime.utcnow()
         act = Touch(
-            artifact=self.subs, actor=self.actor, state=active, at=now)
-        self.subs.changes.append(act)
+            artifact=self.reg, actor=self.user, state=preconfirm, at=now)
+        #self.reg.changes.append(act)
         session.commit()
         return act
