@@ -55,26 +55,16 @@ class NewPasswordTests(RegistrationLifecycleTests):
     def test_bring_registration_to_confirmation(self):
         self.assertEqual("prepass", self.reg.changes[-1].state.name)
         password = "existsinmemory"
-        act = NewPassword(self.user, password, self.reg)(self.session)
-        self.session.add(act)
-        self.session.commit()
+        op = NewPassword(self.user, password, self.reg)
+        act = op(self.session)
         self.assertEqual("preconfirm", self.reg.changes[-1].state.name)
+        self.assertTrue(self.session.query(BcryptedPassword).count())
+        self.assertTrue(op.match(password))
+        self.assertFalse(op.match(str(reversed(password))))
 
-    @unittest.skip("TBD")
-    def test_confirmation_from_invalid_state(self):
-        prepass = self.session.query(
-            RegistrationState).filter(
-            RegistrationState.name=="prepass").one()
-        preconfirm = self.session.query(
-            RegistrationState).filter(
-            RegistrationState.name=="preconfirm").one()
-        offline = [i for i in self.org.subscriptions
-            if i.changes[-1].state is prepass]
-        self.assertEqual(1, len(offline))
-        now = datetime.datetime.utcnow()
-        self.session.add(
-            Touch(artifact=offline[0], actor=actor, state=preconfirm, at=now))
-        self.session.commit()
-        for subs in offline:
-            act = NewPassword(actor, subs)(self.session)
-            self.assertIs(None, act)
+    def test_registration_from_invalid_state(self):
+        self.test_bring_registration_to_confirmation()
+        password = "existsinmemory"
+        op = NewPassword(self.user, password, self.reg)
+        act = op(self.session)
+        self.assertIs(None, act)
