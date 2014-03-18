@@ -14,6 +14,7 @@ from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Subscription
@@ -278,6 +279,18 @@ class GenericRegion(Region):
             "uuid": artifact.uuid,
         }
         return MembershipView(item)
+
+    @present.register(Registration)
+    def present_registration(artifact):
+        latest = artifact.changes[-1]
+        resources = [r for i in artifact.changes for r in i.resources]
+        hndl = latest.actor.handle if isinstance(latest.actor, User) else ""
+        item = {
+            "handle": hndl,
+            "modified": latest.at,
+            "uuid": artifact.uuid,
+        }
+        return RegistrationView(item)
 
     @present.register(Organisation)
     def present_organisation(obj, isSelf=False):
