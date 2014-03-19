@@ -49,6 +49,7 @@ setup(
         "cloudhands.web.test": []
         },
     install_requires=[
+        "asyncio>=0.4.1",
         "cloudhands-common>=0.08",
         "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",

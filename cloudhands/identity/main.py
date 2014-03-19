@@ -2,18 +2,15 @@
 # encoding: UTF-8
 
 import argparse
+import asyncio
 import datetime
 import logging
-import sched
 import sqlite3
 import sys
 import time
 
-from cloudhands.burst.host import HostAgent
-from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
-from cloudhands.common.fsm import HostState
 
 __doc__ = """
 This process performs tasks to administer hosts in the JASMIN cloud.
@@ -25,36 +22,14 @@ operates in a round-robin loop with a specified interval.
 DFLT_DB = ":memory:"
 
 
-def hosts_deleting(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.hosts_deleting")
-    for act in enumerate(HostAgent.touch_deleting(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(args.interval, 0, hosts_deleting, (args, session, loop))
-
-
-def hosts_requested(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.hosts_requested")
-    for act in enumerate(HostAgent.touch_requested(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(args.interval, 0, hosts_requested, (args, session, loop))
-
-
-def subscriptions_unchecked(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.subscriptions_unchecked")
-    for act in enumerate(SubscriptionAgent.touch_unchecked(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(
-            args.interval, 0, subscriptions_unchecked,
-            (args, session, loop))
+@asyncio.coroutine
+def factorial(name, number):
+    f = 1
+    for i in range(2, number+1):
+        print("Task %s: Compute factorial(%s)..." % (name, i))
+        yield from asyncio.sleep(1)
+        f *= i
+    print("Task %s: factorial(%s) = %s" % (name, number, f))
 
 
 def main(args):
@@ -66,22 +41,14 @@ def main(args):
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
 
-    loop = sched.scheduler()
-    ops = (
-        hosts_deleting,
-        hosts_requested,
-        subscriptions_unchecked)
-    if args.interval is None:
-        for op in ops:
-            op(args, session)
-        return 0
-    else:
-        d = max(1, args.interval // len(ops))
-        for n, op in enumerate(ops):
-            loop.enter(args.interval, n, op, (args, session, loop))
-            time.sleep(d)
-        loop.run()
-        return 1
+    tasks = [
+        asyncio.Task(factorial("A", 2)),
+        asyncio.Task(factorial("B", 3)),
+        asyncio.Task(factorial("C", 4))]
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()
 
     return rv
 
@@ -99,9 +66,6 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--db", default=DFLT_DB,
         help="Set the path to the database [{}]".format(DFLT_DB))
-    rv.add_argument(
-        "--interval", default=None, type=int,
-        help="Set the indexing interval (s)")
     return rv
 
 
