@@ -67,6 +67,7 @@ setup(
             "cloud-webserve = cloudhands.web.main:run",
             "cloud-demoserve = cloudhands.web.demo:run",
             "cloud-index = cloudhands.web.indexer:run",
+            "cloud-identity = cloudhands.identity.main:run",
         ],
     },
     zip_safe=False
