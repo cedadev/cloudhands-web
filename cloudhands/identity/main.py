@@ -10,6 +10,7 @@ import logging
 import smtplib
 import sqlite3
 import sys
+import textwrap
 import time
 
 try:
@@ -22,104 +23,87 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 
 __doc__ = """
-This process performs tasks to administer hosts in the JASMIN cloud.
-
-It makes state changes to Host artifacts in the JASMIN database. It
-operates in a round-robin loop with a specified interval.
+This process performs tasks to process Registrations to the JASMIN cloud.
 """
 
 DFLT_DB = ":memory:"
 
 
-class Handler:
-
-    #@singledispatch
-    @staticmethod
-    def call(obj):
-        print("Nope")
-
-    #@call.register(int)
-    @staticmethod
-    def call_int(obj):
-        print("Yup")
-
-h = Handler()
-Handler.call(5)
-
 class Emailer:
 
     _shared_state = {}
 
-    def __init__(self):
+    TEXT = textwrap.dedent("""
+    Your action is required.
+
+    Please visit this link to confirm your registration:
+    {url}
+    """).strip()
+
+    HTML = textwrap.dedent("""
+    <html>
+    <head></head>
+    <body>
+    <h1>Your action is required</h1>
+    <p>Please visit this link to confirm your registration.</p>
+    <p><a href="{url}">{url}</a></p>
+    </body>
+    </html>
+    """).strip()
+
+    def __init__(self, q, config):
         self.__dict__ = self._shared_state
+        if not hasattr(self, "task"):
+            self.q = q
+            self.config = config
+            self.task = asyncio.Task(self.notify())
 
     @asyncio.coroutine
-    def notify(self, future):
-        portalName, config = next(iter(settings.items()))
-        src = config["smtp.src"]["from"]
-        dst = "david.e.haynes@stfc.ac.uk"
+    def notify(self):
+        log = logging.getLogger("cloudhands.identity.emailer")
+        while True:
+            dst, url = yield from self.q.get()
+            src = self.config["smtp.src"]["from"]
 
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = config["smtp.src"]["subject"]
-        msg["From"] = src
-        msg["To"] = dst
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = self.config["smtp.src"]["subject"]
+            msg["From"] = src
+            msg["To"] = dst
 
-        # Create the body of the message (a plain-text and an HTML version).
-        text = "Hi!\nSent by lovely Python."
-        html = """\
-        <html>
-          <head></head>
-          <body>
-            <p>Hi!<br>
-               Sent by lovely <a href="http://www.python.org">Python</a> you wanted.
-            </p>
-          </body>
-        </html>
-        """
+            text = Emailer.TEXT.format(url=url)
+            html = Emailer.HTML.format(url=url)
+            for i in (MIMEText(text, "plain"), MIMEText(html, "html")):
+                msg.attach(i)
 
-        # Record the MIME types of both parts - text/plain and text/html.
-        part1 = MIMEText(text, "plain")
-        part2 = MIMEText(html, "html")
+            s = smtplib.SMTP(self.config["smtp.mta"]["host"])
+            s.sendmail(src, dst, msg.as_string())
+            s.quit()
+            log.info("Notification {} to {}".format(url, dst))
 
-        # Attach parts into message container.
-        # According to RFC 2046, the last part of a multipart message, in this case
-        # the HTML message, is best and preferred.
-        msg.attach(part1)
-        msg.attach(part2)
-
-        # Send the message via local SMTP server.
-        s = smtplib.SMTP(config["smtp.mta"]["host"])
-
-        # sendmail function takes 3 arguments: sender's address, recipient's address
-        # and message to send - here it is sent as one string.
-        s.sendmail(src, dst, msg.as_string())
-        s.quit()
-        future.set_result(True)
-        return future
 
 def main(args):
-    rv = 1
     logging.basicConfig(
         level=args.log_level,
         format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    log = logging.getLogger("cloudhands.identity.main")
 
+    portalName, config = next(iter(settings.items()))
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
 
-    emailer = Emailer()
-
-    #tasks = [
-    #    asyncio.Task(emailer.factorial("A", 2)),
-    #    asyncio.Task(emailer.factorial("B", 3)),
-    #    asyncio.Task(emailer.factorial("C", 4))]
-
     loop = asyncio.get_event_loop()
-    future = asyncio.Future()
-    asyncio.Task(emailer.notify(future))
-    loop.run_until_complete(future)
+    q = asyncio.Queue(loop=loop)
+    emailer = Emailer(q, config)
+    emailer.q.put_nowait(
+        ("david.e.haynes@stfc.ac.uk",
+        "http://jasmin-cloud.jc.rl.ac.uk:8080/"
+        "registration/1a3c37c3a2f646eea4447e0b629ba899"))
+
+    tasks = asyncio.Task.all_tasks()
+    loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
 
-    return rv
+    return 0
 
 
 def parser(descr=__doc__):
