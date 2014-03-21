@@ -242,6 +242,28 @@ def host_update(request):
         location=request.route_url("organisation", org_name=oN))
 
 
+def login_read(request):
+    log = logging.getLogger("cloudhands.web.login_read")
+    #userId = authenticated_userid(request)
+    page = Page(paths=paths(request))
+    con = registered_connection()
+    #user = con.session.query(User).join(Touch).join(
+    #    EmailAddress).filter(EmailAddress.value == userId).first()
+    user = None
+    if user:
+        mships = con.session.query(Membership).join(Touch).join(User).filter(
+            User.id==user.id).all()
+    else:
+        mships = []
+
+    for org in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(org)
+
+    return dict(page.termination())
+
+
 def membership_read(request):
     log = logging.getLogger("cloudhands.web.membership_read")
     m_uuid = request.matchdict["mship_uuid"]
@@ -498,6 +520,12 @@ def wsgi_app(args):
     config.add_view(
         hosts_read, route_name="hosts", request_method="GET",
         renderer="cloudhands.web:templates/hosts.pt")
+
+    config.add_route("login", "/login")
+    config.add_view(
+        login_read, route_name="login", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/login.pt")
 
     config.add_route("host", "/host/{host_uuid}")
     config.add_view(
