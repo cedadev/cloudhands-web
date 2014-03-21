@@ -24,6 +24,8 @@ from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.renderers import JSON
 from pyramid.security import authenticated_userid
+from pyramid.security import forget
+from pyramid.security import remember
 
 from pyramid_authstack import AuthenticationStackPolicy
 from pyramid_macauth import MACAuthenticationPolicy
