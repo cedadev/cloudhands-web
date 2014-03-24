@@ -288,12 +288,13 @@ class GenericRegion(Region):
 
     @present.register(Registration)
     def present_registration(artifact):
-        latest = artifact.changes[-1]
+        latest = artifact.changes[-1] if artifact.changes else None 
         resources = [r for i in artifact.changes for r in i.resources]
-        hndl = latest.actor.handle if isinstance(latest.actor, User) else ""
+        hndl = latest.actor.handle if (
+            latest and isinstance(latest.actor, User)) else ""
         item = {
             "handle": hndl,
-            "modified": latest.at,
+            "modified": latest.at if latest else None,
             "uuid": artifact.uuid,
         }
         return RegistrationView(item)

@@ -51,6 +51,7 @@ from cloudhands.web.main import membership_update
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
+from cloudhands.web.main import register
 from cloudhands.web.main import registration_create
 
 
@@ -402,11 +403,14 @@ class RegistrationPageTests(ServerTests):
         self.config.add_route("registration", "/registration")
 
     def test_register_form(self):
-        # Create a new invite
+        request = testing.DummyRequest()
+        rv = register(request)
+        print(rv.get("options", {}).values())
+
+    def test_registration_create(self):
         request = testing.DummyRequest(
             {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
             "email": "somebody@some.ac.uk"})
-        #request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, registration_create, request)
 
 if __name__ == "__main__":

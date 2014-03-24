@@ -490,6 +490,16 @@ def macauth_creds(request):
     return {"id": id, "key": key}
 
 
+def register(request):
+    log = logging.getLogger("cloudhands.web.register")
+    page = Page(paths=paths(request))
+    reg = Registration(
+        uuid=uuid.uuid4().hex,
+        model=cloudhands.common.__version__)
+    page.layout.options.push(reg)
+    return dict(page.termination())
+
+
 def registration_create(request):
     log = logging.getLogger("cloudhands.web.registration_create")
     con = registered_connection()
@@ -600,6 +610,12 @@ def wsgi_app(args):
     config.add_route("people", "/people")
     config.add_view(
         people_read, route_name="people", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/people.pt")
+
+    config.add_route("register", "/register")
+    config.add_view(
+        register, route_name="register", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/people.pt")
 
