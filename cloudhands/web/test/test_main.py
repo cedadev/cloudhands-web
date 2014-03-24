@@ -51,6 +51,7 @@ from cloudhands.web.main import membership_update
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
+from cloudhands.web.main import registration_create
 
 
 @unittest.skip("Not doing it yet")
@@ -172,9 +173,6 @@ class VersionInfoTests(ServerTests):
         self.assertEqual(
             cloudhands.common.__version__,
             top_read(self.request)["info"]["versions"]["cloudhands.common"])
-
-class LoginPageTests(ServerTests):
-    pass
 
 class MembershipPageTests(ServerTests):
 
@@ -395,6 +393,21 @@ class PeoplePageTests(ServerTests):
         page = people_read(request)
         items = page["items"].values()
         self.assertTrue(all("_links" in i for i in items))
+
+class RegistrationPageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route("register", "/register")
+        self.config.add_route("registration", "/registration")
+
+    def test_register_form(self):
+        # Create a new invite
+        request = testing.DummyRequest(
+            {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
+            "email": "somebody@some.ac.uk"})
+        #request.matchdict.update({"org_name": org.name})
+        self.assertRaises(HTTPFound, registration_create, request)
 
 if __name__ == "__main__":
     unittest.main()

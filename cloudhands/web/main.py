@@ -12,6 +12,8 @@ import sqlite3
 import sys
 import uuid
 
+import bcrypt
+
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
@@ -36,10 +38,12 @@ from cloudhands.burst.membership import handle_from_email
 from cloudhands.burst.membership import Activation
 from cloudhands.burst.membership import Invitation
 
-from cloudhands.common.fsm import MembershipState
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
+from cloudhands.common.fsm import MembershipState
+from cloudhands.common.fsm import RegistrationState
+from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
@@ -49,6 +53,7 @@ from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixGId
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import PublicKey
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Serializable
 from cloudhands.common.schema import State
@@ -59,9 +64,10 @@ import cloudhands.web
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
-from cloudhands.web.model import StateView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PeoplePage
+from cloudhands.web.model import RegistrationView
+from cloudhands.web.model import StateView
 
 DFLT_PORT = 8080
 DFLT_DB = ":memory:"
@@ -482,6 +488,34 @@ def macauth_creds(request):
         CRED_TABLE[userId] = (id, key)
 
     return {"id": id, "key": key}
+
+
+def registration_create(request):
+    log = logging.getLogger("cloudhands.web.registration_create")
+    con = registered_connection()
+
+    data = RegistrationView(request.POST)
+    if data.invalid:
+        log.debug(request.POST)
+        log.debug(data)
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
+    prepass = con.session.query(RegistrationState).filter(
+        RegistrationState.name == "prepass").one()
+    reg = Registration(
+        uuid=uuid.uuid4().hex,
+        model=cloudhands.common.__version__)
+    user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
+    hash = bcrypt.hashpw(data["password"], bcrypt.gensalt(12))
+    now = datetime.datetime.utcnow()
+    act = Touch(artifact=reg, actor=user, state=prepass, at=now)
+    pwd = BcryptedPassword(touch=act, value=hash)
+    ea = EmailAddress(touch=act, value=data["email"])
+    con.session.add_all((pwd, ea))
+    con.session.commit()
+    raise HTTPFound(
+        location=request.route_url("registration", reg_uuid=reg.uuid))
 
 
 def wsgi_app(args):

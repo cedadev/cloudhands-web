@@ -226,6 +226,12 @@ class RegistrationView(Validating, NamedDict):
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
                     "(?!.*\\s).{8,20}$"
                 ),[]),
+            Parameter(
+                "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
+                "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
+                "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
+                # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
+                ),[]),
         ]
 
 
