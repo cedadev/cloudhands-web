@@ -10,6 +10,8 @@ import tempfile
 import unittest
 import uuid
 
+import bcrypt
+
 from pyramid import testing
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
@@ -24,11 +26,14 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
 from cloudhands.common.fsm import MembershipState
+from cloudhands.common.fsm import RegistrationState
 
+from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
@@ -87,9 +92,28 @@ class ServerTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
 
+    @staticmethod
     def make_test_user(session):
-        # Create an organisation, membership of it, and a user
-        # for the authenticated email address of this test
+        valid = session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+        reg = Registration(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__)
+        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        hash = bcrypt.hashpw("TestPassw0rd", bcrypt.gensalt(12))
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        pwd = BcryptedPassword(touch=act, value=hash)
+        ea = EmailAddress(
+            touch=act,
+            value=cloudhands.web.main.authenticated_userid())
+        session.add_all((pwd, ea))
+        session.commit()
+        return act
+
+    @staticmethod
+    def make_test_user_role_user(session):
+        user = ServerTests.make_test_user(session).actor
         org = Organisation(
             uuid=uuid.uuid4().hex,
             name="TestOrg")
@@ -100,24 +124,19 @@ class ServerTests(unittest.TestCase):
             model=cloudhands.common.__version__,
             organisation=org,
             role="user")
-        user = User(handle="Test User", uuid=uuid.uuid4().hex)
-        ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid())
 
         # Make the authenticated user an admin
         active = session.query(
             MembershipState).filter(MembershipState.name == "active").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=userMp, actor=user, state=active, at=now)
-        ea.touch = act
-        userMp.changes.append(act)
-        session.add(ea)
+        session.add(act)
         session.commit()
         return act
 
-    def make_test_user_admin(session):
-        # Create an organisation, membership of it, and a user
-        # for the authenticated email address of this test
+    @staticmethod
+    def make_test_user_role_admin(session):
+        admin = ServerTests.make_test_user(session).actor
         org = Organisation(
             uuid=uuid.uuid4().hex,
             name="TestOrg")
@@ -128,18 +147,13 @@ class ServerTests(unittest.TestCase):
             model=cloudhands.common.__version__,
             organisation=org,
             role="admin")
-        admin = User(handle="Test Admin", uuid=uuid.uuid4().hex)
-        ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid())
 
         # Make the authenticated user an admin
         active = session.query(
             MembershipState).filter(MembershipState.name == "active").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=adminMp, actor=admin, state=active, at=now)
-        ea.touch = act
-        adminMp.changes.append(act)
-        session.add(ea)
+        session.add(act)
         session.commit()
         return act
 
@@ -159,6 +173,8 @@ class VersionInfoTests(ServerTests):
             cloudhands.common.__version__,
             top_read(self.request)["info"]["versions"]["cloudhands.common"])
 
+class LoginPageTests(ServerTests):
+    pass
 
 class MembershipPageTests(ServerTests):
 
@@ -188,7 +204,7 @@ class MembershipPageTests(ServerTests):
         # Create an admin
         self.assertEqual(0, self.session.query(User).count())
         self.assertEqual(0, self.session.query(Membership).count())
-        act = ServerTests.make_test_user_admin(self.session)
+        act = ServerTests.make_test_user_role_admin(self.session)
         org = act.artifact.organisation
         self.assertEqual(1, self.session.query(User).count())
         self.assertEqual(1, self.session.query(Membership).count())
@@ -219,7 +235,7 @@ class MembershipPageTests(ServerTests):
             cloudhands.web.main.authenticated_userid = testuser_email
 
     def test_user_membership_update_post_returns_forbidden(self):
-        act = ServerTests.make_test_user(self.session)
+        act = ServerTests.make_test_user_role_user(self.session)
         mship = act.artifact
         request = testing.DummyRequest()
         request.matchdict.update({"mship_uuid": mship.uuid})
@@ -240,8 +256,8 @@ class MembershipPageTests(ServerTests):
                               sshPublicKey=key)
             wrtr.commit()
 
-            act = ServerTests.make_test_user_admin(self.session)
-            self.assertEqual(1, self.session.query(Resource).count())
+            act = ServerTests.make_test_user_role_admin(self.session)
+            self.assertEqual(2, self.session.query(Resource).count())
             mship = act.artifact
             request = testing.DummyRequest(post={"designator": dn})
             request.matchdict.update({"mship_uuid": mship.uuid})
@@ -252,7 +268,7 @@ class MembershipPageTests(ServerTests):
             n = self.session.query(
                 Resource).join(Touch).join(Membership).filter(
                 Membership.id == mship.id).count()
-            self.assertEqual(4, n)
+            self.assertEqual(3, n)
 
 
 class OrganisationPageTests(ServerTests):
@@ -262,7 +278,7 @@ class OrganisationPageTests(ServerTests):
         self.config.add_route("organisation", "/organisation")
 
     def test_nonadmin_user_cannot_add_membership(self):
-        act = ServerTests.make_test_user(self.session)
+        act = ServerTests.make_test_user_role_user(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
@@ -276,7 +292,7 @@ class OrganisationPageTests(ServerTests):
         self.assertFalse(invite)
 
     def test_admin_user_can_add_membership(self):
-        act = ServerTests.make_test_user_admin(self.session)
+        act = ServerTests.make_test_user_role_admin(self.session)
         admin = act.actor
         org = act.artifact.organisation
         request = testing.DummyRequest()
@@ -294,7 +310,7 @@ class OrganisationPageTests(ServerTests):
             invite.typ.format(invite.ref))
 
     def test_user_memberships_post_returns_forbidden(self):
-        act = ServerTests.make_test_user(self.session)
+        act = ServerTests.make_test_user_role_user(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
@@ -303,7 +319,7 @@ class OrganisationPageTests(ServerTests):
     def test_admin_memberships_post_returns_artifact_created(self):
         self.config.add_route("membership", "/membership")
         self.config.add_route("people", "/people")
-        act = ServerTests.make_test_user_admin(self.session)
+        act = ServerTests.make_test_user_role_admin(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": org.name})
@@ -358,8 +374,7 @@ class PeoplePageTests(ServerTests):
         self.assertEqual(10, len(page["items"]))
 
     def test_user_items_offer_open_invitation(self):
-
-        act = ServerTests.make_test_user_admin(self.session)
+        act = ServerTests.make_test_user_role_admin(self.session)
         admin = act.actor
         org = act.artifact.organisation
 
