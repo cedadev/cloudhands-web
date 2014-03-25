@@ -528,6 +528,20 @@ def registration_create(request):
     raise HTTPFound(
         location=request.route_url("registration", reg_uuid=reg.uuid))
 
+def registration_read(request):
+    log = logging.getLogger("cloudhands.web.registration_read")
+    reg_uuid = request.matchdict["reg_uuid"]
+    con = registered_connection()
+    reg = con.session.query(Registration).filter(
+        Registration.uuid == reg_uuid).first()
+
+    page = Page(session=con.session, paths=paths(request))
+    rsrcs = con.session.query(Resource).join(Touch).join(Registration).filter(
+        Registration.uuid == reg_uuid).all()
+    for r in rsrcs:
+        page.layout.items.push(r)
+    page.layout.options.push(reg)
+    return dict(page.termination())
 
 def wsgi_app(args):
     # TODO: pick up settings by discovery
@@ -614,9 +628,20 @@ def wsgi_app(args):
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/people.pt")
 
-    config.add_route("register", "/register")
+    config.add_route("register", "/registration")
     config.add_view(
         register, route_name="register", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/registration.pt")
+
+    config.add_view(
+        registration_create, route_name="register", request_method="POST",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/registration.pt")
+
+    config.add_route("registration", "/registration/{reg_uuid}")
+    config.add_view(
+        registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/registration.pt")
 

@@ -238,7 +238,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
 
     def configure(self, session, user):
         self["_links"] = []
-        if not session.query(Touch).join(Registration).filter(
+        if not session.query(Registration).filter(
             Registration.uuid == self["uuid"]).count():
             self["handle"] = "Your user name"
             self["email"] = "Your email address"
@@ -247,7 +247,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 Aspect(
                     "New user",
                     "create-form",
-                    "/register", None,
+                    "/registration", None,
                     "post", self.parameters, "Register me")
             )
 

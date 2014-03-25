@@ -399,8 +399,8 @@ class RegistrationPageTests(ServerTests):
 
     def setUp(self):
         super().setUp()
-        self.config.add_route("register", "/register")
-        self.config.add_route("registration", "/registration")
+        self.config.add_route("register", "/registration")
+        self.config.add_route("registration", "/registration/{reg_uuid}")
 
     def test_register_form(self):
         request = testing.DummyRequest()
