@@ -405,7 +405,10 @@ class RegistrationPageTests(ServerTests):
     def test_register_form(self):
         request = testing.DummyRequest()
         rv = register(request)
-        print(rv.get("options", {}).values())
+        options = [i for i in rv.get("options", {}).values() if "_links" in i]
+        self.assertEqual(
+            1, len([i for o in options for i in o["_links"]
+            if i.rel == "create-form"]))
 
     def test_registration_create(self):
         request = testing.DummyRequest(

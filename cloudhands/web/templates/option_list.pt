@@ -35,16 +35,16 @@ else field.name.capitalize()"
 tal:attributes="for id_">
 </label>
 <input
-tal:condition="not field.values"
+tal:condition="len(field.values) <= 1"
 tal:attributes="
 id id_;
 name field.name;
 value field.name if not field.values else field.values[0] ;
 pattern field.regex.pattern;
 required 'required' if field.required else None;
-type 'hidden' if field.name in ('',) else 'text';"/>
+type 'hidden' if field.name in ('',) else 'password' if field.name == 'password' else 'text';"/>
 <select
-tal:condition="field.values"
+tal:condition="len(field.values) > 1"
 tal:attributes="
 id id_;
 name field.name">

@@ -492,11 +492,12 @@ def macauth_creds(request):
 
 def register(request):
     log = logging.getLogger("cloudhands.web.register")
+    con = registered_connection()
     page = Page(paths=paths(request))
     reg = Registration(
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__)
-    page.layout.options.push(reg)
+    page.layout.options.push(reg, session=con.session)
     return dict(page.termination())
 
 
@@ -617,7 +618,7 @@ def wsgi_app(args):
     config.add_view(
         register, route_name="register", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/people.pt")
+        renderer="cloudhands.web:templates/registration.pt")
 
     config.add_route("creds", "/creds")
     config.add_view(

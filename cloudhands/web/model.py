@@ -206,11 +206,11 @@ class PersonView(Contextual, Validating, NamedDict):
             return self
 
 
-class RegistrationView(Validating, NamedDict):
+class RegistrationView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):
-        return ["handle", "password"]
+        return []
 
     @property
     def parameters(self):
@@ -220,7 +220,8 @@ class RegistrationView(Validating, NamedDict):
         special character, but cannot contain whitespace.
         """
         return [
-            Parameter("handle", True, re.compile("\\w{3,32}$"),[]),
+            Parameter(
+                "handle", True, re.compile("\\w{3,32}$"),[self["handle"]]),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
@@ -231,9 +232,24 @@ class RegistrationView(Validating, NamedDict):
                 "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
                 "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
                 # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-                ),[]),
+                ),[self["email"]]),
         ]
 
+
+    def configure(self, session, user):
+        self["_links"] = []
+        if not session.query(Touch).join(Registration).filter(
+            Registration.uuid == self["uuid"]).count():
+            self["handle"] = "Your user name"
+            self["email"] = "Your email address"
+            self["password"] = ""
+            self["_links"].append(
+                Aspect(
+                    "New user",
+                    "create-form",
+                    "/register", None,
+                    "post", self.parameters, "Register me")
+            )
 
 class ResourceView(NamedDict):
     pass
