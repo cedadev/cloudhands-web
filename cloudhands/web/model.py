@@ -8,6 +8,8 @@ try:
 except ImportError:
     from singledispatch import singledispatch
 
+from pyramid.httpexceptions import HTTPForbidden
+
 import cloudhands.common
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
@@ -42,6 +44,10 @@ class VersionInfo(NamedDict):
 
 
 class PathInfo(NamedDict):
+    pass
+
+
+class StatusInfo(NamedDict):
     pass
 
 
@@ -277,6 +283,15 @@ class GenericRegion(Region):
     @singledispatch
     def present(obj):
         return None
+
+    @present.register(HTTPForbidden)
+    def present_forbidden(exception):
+        item = {
+            "comment": exception.comment,
+            "exception": exception.detail,
+            "message": exception.message,
+        }
+        return StatusInfo(item)
 
     @present.register(Host)
     def present_host(artifact):

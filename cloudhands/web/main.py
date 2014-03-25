@@ -148,6 +148,8 @@ def touch_adapter(obj, request):
     }
 
 
+class RegistrationForbidden(Forbidden): pass
+
 def top_read(request):
     log = logging.getLogger("cloudhands.web.top_read")
     userId = authenticated_userid(request)
@@ -494,6 +496,9 @@ def register(request):
     log = logging.getLogger("cloudhands.web.register")
     con = registered_connection()
     page = Page(paths=paths(request))
+    if getattr(request, "exception", None) is not None:
+        page.layout.info.push(request.exception)
+
     reg = Registration(
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__)
@@ -518,6 +523,15 @@ def registration_create(request):
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__)
     user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
+    try:
+        con.session.add(user)
+        con.session.commit()
+    except Exception as e:
+        con.session.rollback()
+        raise RegistrationForbidden(
+            "The handle you picked belongs to one of our users."
+            " Please choose again.")
+
     hash = bcrypt.hashpw(data["password"], bcrypt.gensalt(12))
     now = datetime.datetime.utcnow()
     act = Touch(artifact=reg, actor=user, state=prepass, at=now)
@@ -525,10 +539,12 @@ def registration_create(request):
     ea = EmailAddress(touch=act, value=data["email"])
     con.session.add_all((pwd, ea))
     con.session.commit()
+    # TODO: Flash message. DON'T redirect to registration obj!
     raise HTTPFound(
-        location=request.route_url("registration", reg_uuid=reg.uuid))
+        location=request.route_url("top", reg_uuid=reg.uuid))
 
 def registration_read(request):
+    # TODO: require user login
     log = logging.getLogger("cloudhands.web.registration_read")
     reg_uuid = request.matchdict["reg_uuid"]
     con = registered_connection()
@@ -651,6 +667,9 @@ def wsgi_app(args):
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/creds.pt")
 
+    config.add_view(
+        register, context=RegistrationForbidden,
+        renderer="cloudhands.web:templates/registration.pt")
     config.add_static_view(name="css", path="cloudhands.web:static/css")
     config.add_static_view(name="js", path="cloudhands.web:static/js")
     config.add_static_view(name="img", path="cloudhands.web:static/img")

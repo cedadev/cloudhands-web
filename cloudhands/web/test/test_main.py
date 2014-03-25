@@ -53,6 +53,7 @@ from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
 from cloudhands.web.main import register
 from cloudhands.web.main import registration_create
+from cloudhands.web.main import RegistrationForbidden
 
 
 @unittest.skip("Not doing it yet")
@@ -399,6 +400,7 @@ class RegistrationPageTests(ServerTests):
 
     def setUp(self):
         super().setUp()
+        self.config.add_route("top", "/")
         self.config.add_route("register", "/registration")
         self.config.add_route("registration", "/registration/{reg_uuid}")
 
@@ -415,6 +417,16 @@ class RegistrationPageTests(ServerTests):
             {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
             "email": "somebody@some.ac.uk"})
         self.assertRaises(HTTPFound, registration_create, request)
+
+    def test_registration_create_duplicate(self):
+        request = testing.DummyRequest(
+            {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
+            "email": "somebody@some.ac.uk"})
+        try:
+            registration_create(request)
+        except HTTPFound:
+            pass
+        self.assertRaises(RegistrationForbidden, registration_create, request)
 
 if __name__ == "__main__":
     unittest.main()
