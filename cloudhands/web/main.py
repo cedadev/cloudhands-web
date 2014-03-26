@@ -258,23 +258,11 @@ def host_update(request):
 
 def login_read(request):
     log = logging.getLogger("cloudhands.web.login_read")
-    #userId = authenticated_userid(request)
     page = Page(paths=paths(request))
     con = registered_connection()
-    #user = con.session.query(User).join(Touch).join(
-    #    EmailAddress).filter(EmailAddress.value == userId).first()
-    user = None
-    if user:
-        mships = con.session.query(Membership).join(Touch).join(User).filter(
-            User.id==user.id).all()
-    else:
-        mships = []
-
-    for org in sorted(
-        {i.organisation for i in mships}, key=operator.attrgetter("name")
-    ):
-        page.layout.nav.push(org)
-
+    #user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
+    user = User()
+    page.layout.options.push(user)
     return dict(page.termination())
 
 
@@ -554,12 +542,22 @@ def registration_read(request):
     con = registered_connection()
     reg = con.session.query(Registration).filter(
         Registration.uuid == reg_uuid).first()
+    if reg and reg.changes[-1].state.name == "postconfirm":
+        user = reg.changes[0].actor
+        valid = con.session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        con.session.add(act)
+        con.session.commit()
+        raise HTTPFound(location=request.route_url("login"))
 
     page = Page(session=con.session, paths=paths(request))
-    rsrcs = con.session.query(Resource).join(Touch).join(Registration).filter(
-        Registration.uuid == reg_uuid).all()
-    for r in rsrcs:
-        page.layout.items.push(r)
+    acts = con.session.query(Touch).join(Registration).filter(
+        Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
+
+    for t in acts:
+        page.layout.items.push(t)
     page.layout.options.push(reg)
     return dict(page.termination())
 

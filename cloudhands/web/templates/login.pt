@@ -31,7 +31,7 @@
             <li><button id='signout'>logout</button></li>
             </ul>
         </div>
-        <section metal:define-slot="detail">
+        <section metal:use-macro="load: option_list.pt" >
         </section>
     </div>
 </div>

@@ -261,8 +261,17 @@ class RegistrationView(Contextual, Validating, NamedDict):
                     "post", self.parameters, "Register me")
             )
 
+
+class LoginView(RegistrationView):
+
+    @property
+    def public(self):
+        return []
+
+
 class ResourceView(NamedDict):
     pass
+
 
 class StateView(Validating, NamedDict):
 
@@ -376,6 +385,17 @@ class GenericRegion(Region):
             Aspect(act.artifact.typ, "collection", "/user/{}", act.actor.uuid,
             "get", [], "View")]
         return EventInfo(item)
+
+    @present.register(User)
+    def present_user(obj):
+        item = LoginView({
+            "uuid": uuid.uuid4().hex,
+            "handle": obj.handle,
+            "email": None})
+        item["_links"] = [
+            Aspect("User login", "payment", "/login", "",
+            "post", item.parameters[0:2], "Log in")]
+        return item
 
     @present.register(VersionInfo)
     def present_pathinfo(obj):
