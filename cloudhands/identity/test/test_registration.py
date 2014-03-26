@@ -57,7 +57,7 @@ class NewPasswordTests(RegistrationLifecycleTests):
         password = "existsinmemory"
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
-        self.assertEqual("preconfirm", self.reg.changes[-1].state.name)
+        self.assertEqual("modified", self.reg.changes[-1].state.name)
         self.assertTrue(self.session.query(BcryptedPassword).count())
         self.assertTrue(op.match(password))
         self.assertFalse(op.match(str(reversed(password))))

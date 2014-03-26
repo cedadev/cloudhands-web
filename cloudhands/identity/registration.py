@@ -33,12 +33,12 @@ class NewPassword:
         return bcrypt.checkpw(attempt, self.hash)
 
     def __call__(self, session):
-        preconfirm = session.query(
+        modified = session.query(
             RegistrationState).filter(
-            RegistrationState.name=="preconfirm").one()
+            RegistrationState.name=="modified").one()
         now = datetime.datetime.utcnow()
         act = Touch(
-            artifact=self.reg, actor=self.user, state=preconfirm, at=now)
+            artifact=self.reg, actor=self.user, state=modified, at=now)
         resource = BcryptedPassword(touch=act, value=self.hash)
         session.add(resource)
         session.commit()
