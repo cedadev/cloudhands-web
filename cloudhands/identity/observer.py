@@ -51,7 +51,6 @@ class Observer:
                 r for r in session.query(Registration).all()
                 if r.changes[-1].state.name == "modified"]
             for reg in unsent:
-                log.debug(reg)
                 try:
                     user = reg.changes[0].actor
                     email = session.query(EmailAddress).join(Touch).join(User).filter(
@@ -74,4 +73,5 @@ class Observer:
                         session.rollback()
                         break
 
-            yield from asyncio.sleep(args.interval)
+            log.debug("Waiting for {}s".format(self.args.interval))
+            yield from asyncio.sleep(self.args.interval)

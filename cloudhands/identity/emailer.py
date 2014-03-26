@@ -52,20 +52,22 @@ class Emailer:
     @asyncio.coroutine
     def notify(self):
         log = logging.getLogger("cloudhands.identity.emailer")
-        try:
-            session = Registry().connect(sqlite3, self.args.db).session
-            initialise(session)
-            actor = session.query(Component).filter(
-                Component.handle=="identity.controller").one()
-            postconfirm = session.query(RegistrationState).filter(
-                RegistrationState.name == "postconfirm").one()
-        except Exception as e:
-            log.error(e)
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        postconfirm = session.query(RegistrationState).filter(
+            RegistrationState.name == "postconfirm").one()
         while True:
             dst, host, reg_uuid = yield from self.q.get()
             path = "registration/{}".format(reg_uuid)
             url = '/'.join((host, path))
             src = self.config["smtp.src"]["from"]
+
+            reg = session.query(Registration).filter(
+                Registration.uuid == reg_uuid).first()
+            now = datetime.datetime.utcnow()
+            act = Touch(artifact=reg, actor=actor, state=postconfirm, at=now)
 
             msg = MIMEMultipart("alternative")
             msg["Subject"] = self.config["smtp.src"]["subject"]
@@ -80,4 +82,13 @@ class Emailer:
             s = smtplib.SMTP(self.config["smtp.mta"]["host"])
             s.sendmail(src, dst, msg.as_string())
             s.quit()
-            log.info("Notification {} to {}".format(url, dst))
+
+            try:
+                session.add(act)
+                session.commit()
+            except Exception as e:
+                log.error(e)
+                session.rollback()
+                continue
+            else:
+                log.debug(act)
