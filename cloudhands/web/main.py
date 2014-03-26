@@ -540,8 +540,11 @@ def registration_create(request):
         model=cloudhands.common.__version__)
     act = NewPassword(user, data["password"], reg)(con.session)
     ea = EmailAddress(touch=act, value=data["email"])
-    con.session.add(ea)
-    con.session.commit()
+    try:
+        con.session.add(ea)
+        con.session.commit()
+    except Exception as e:
+        raise Forbidden("Email already in use")
     raise HTTPFound(location=request.route_url("top"))
 
 def registration_read(request):

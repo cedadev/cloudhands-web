@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 import asyncio
+import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
@@ -9,6 +10,13 @@ import smtplib
 import sqlite3
 import sys
 import textwrap
+
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
+from cloudhands.common.fsm import RegistrationState
+from cloudhands.common.schema import Component
+from cloudhands.common.schema import Registration
+from cloudhands.common.schema import Touch
 
 
 class Emailer:
@@ -44,8 +52,19 @@ class Emailer:
     @asyncio.coroutine
     def notify(self):
         log = logging.getLogger("cloudhands.identity.emailer")
+        try:
+            session = Registry().connect(sqlite3, self.args.db).session
+            initialise(session)
+            actor = session.query(Component).filter(
+                Component.handle=="identity.controller").one()
+            postconfirm = session.query(RegistrationState).filter(
+                RegistrationState.name == "postconfirm").one()
+        except Exception as e:
+            log.error(e)
         while True:
-            dst, url = yield from self.q.get()
+            dst, host, reg_uuid = yield from self.q.get()
+            path = "registration/{}".format(reg_uuid)
+            url = '/'.join((host, path))
             src = self.config["smtp.src"]["from"]
 
             msg = MIMEMultipart("alternative")

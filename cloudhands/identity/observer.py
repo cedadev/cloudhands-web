@@ -14,7 +14,6 @@ from sqlalchemy import desc
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
-from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
@@ -58,12 +57,11 @@ class Observer:
                     email = session.query(EmailAddress).join(Touch).join(User).filter(
                         User.id == user.id).order_by(desc(Touch.at)).first().value
                     host = "http://{}:8080".format(platform.node()) #  FIXME
-                    path = "registration/{}".format(reg.uuid)
                 except Exception as e:
                     log.error(e)
                     break
                 else:
-                    msg = (email, '/'.join((host, path)))
+                    msg = (email, host, reg.uuid)
                     log.debug(msg)
                     now = datetime.datetime.utcnow()
                     act = Touch(artifact=reg, actor=actor, state=preconfirm, at=now)
