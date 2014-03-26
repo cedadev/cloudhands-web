@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 import re
+import uuid
 
 try:
     from functools import singledispatch
@@ -47,8 +48,11 @@ class PathInfo(NamedDict):
     pass
 
 
-class StatusInfo(NamedDict):
-    pass
+class EventInfo(NamedDict):
+
+    @property
+    def public(self):
+        return ["at", "user", "event", "resources"]
 
 
 class OrganisationInfo(NamedDict):
@@ -358,6 +362,20 @@ class GenericRegion(Region):
             "type": type(obj).__name__
         }
         return ResourceView(item)
+
+    @present.register(Touch)
+    def present_forbidden(act):
+        item = {
+            "at": act.at,
+            "event": act.artifact.typ,
+            "resources": act.resources,
+            "user": act.actor.handle,
+            "uuid": uuid.uuid4().hex,
+        }
+        item["_links"] = [
+            Aspect(act.artifact.typ, "collection", "/user/{}", act.actor.uuid,
+            "get", [], "View")]
+        return EventInfo(item)
 
     @present.register(VersionInfo)
     def present_pathinfo(obj):

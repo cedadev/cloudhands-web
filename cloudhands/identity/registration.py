@@ -33,9 +33,6 @@ class NewPassword:
         return bcrypt.checkpw(attempt, self.hash)
 
     def __call__(self, session):
-        if self.reg.changes[-1].state.name != "prepass":
-            return None
-
         preconfirm = session.query(
             RegistrationState).filter(
             RegistrationState.name=="preconfirm").one()

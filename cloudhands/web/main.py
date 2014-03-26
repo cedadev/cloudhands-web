@@ -32,6 +32,8 @@ from pyramid.security import remember
 from pyramid_authstack import AuthenticationStackPolicy
 from pyramid_macauth import MACAuthenticationPolicy
 
+from sqlalchemy import desc
+
 from waitress import serve
 
 from cloudhands.burst.membership import handle_from_email
@@ -59,8 +61,9 @@ from cloudhands.common.schema import Serializable
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
-#import cloudhands.common
+
 import cloudhands.web
+from cloudhands.identity.registration import NewPassword
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
@@ -167,6 +170,9 @@ def top_read(request):
         {i.organisation for i in mships}, key=operator.attrgetter("name")
     ):
         page.layout.nav.push(org)
+
+    for act in con.session.query(Touch).order_by(desc(Touch.at)).limit(6):
+        page.layout.items.push(act)
 
     return dict(page.termination())
 
@@ -517,11 +523,6 @@ def registration_create(request):
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))
 
-    prepass = con.session.query(RegistrationState).filter(
-        RegistrationState.name == "prepass").one()
-    reg = Registration(
-        uuid=uuid.uuid4().hex,
-        model=cloudhands.common.__version__)
     user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
     try:
         con.session.add(user)
@@ -529,19 +530,19 @@ def registration_create(request):
     except Exception as e:
         con.session.rollback()
         raise RegistrationForbidden(
-            "The handle you picked belongs to one of our users."
+            "The handle you picked is already in use."
             " Please choose again.")
 
-    hash = bcrypt.hashpw(data["password"], bcrypt.gensalt(12))
-    now = datetime.datetime.utcnow()
-    act = Touch(artifact=reg, actor=user, state=prepass, at=now)
-    pwd = BcryptedPassword(touch=act, value=hash)
+    preconfirm = con.session.query(RegistrationState).filter(
+        RegistrationState.name == "preconfirm").one()
+    reg = Registration(
+        uuid=uuid.uuid4().hex,
+        model=cloudhands.common.__version__)
+    act = NewPassword(user, data["password"], reg)(con.session)
     ea = EmailAddress(touch=act, value=data["email"])
-    con.session.add_all((pwd, ea))
+    con.session.add(ea)
     con.session.commit()
-    # TODO: Flash message. DON'T redirect to registration obj!
-    raise HTTPFound(
-        location=request.route_url("top", reg_uuid=reg.uuid))
+    raise HTTPFound(location=request.route_url("top"))
 
 def registration_read(request):
     # TODO: require user login

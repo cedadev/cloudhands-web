@@ -12,11 +12,6 @@
 <!-- Font icons -->
 <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
 
-<!-- Persona authentication -->
-<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script src="https://login.persona.org/include.js" type="text/javascript"></script>
-<script type="text/javascript">${request.persona_js}</script>
-
 </head>
 <body>
 <div class="pure-g">
@@ -25,7 +20,9 @@
         </nav>
     </div>
     <div class="pure-u-7-12">
-        <section metal:define-slot="summary">
+        <section id="summary" metal:define-slot="summary">
+        </section>
+        <section metal:use-macro="load: item_list.pt" >
         </section>
     </div>
     <div class="pure-u-1-3">

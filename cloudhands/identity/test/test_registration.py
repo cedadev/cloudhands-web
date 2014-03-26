@@ -44,16 +44,16 @@ class NewPasswordTests(RegistrationLifecycleTests):
         super().setUp()
         self.system = Component(handle="System", uuid=uuid.uuid4().hex)
         self.user = User(handle=None, uuid=uuid.uuid4().hex)
-        prepass = self.session.query(
+        preconfirm = self.session.query(
             RegistrationState).filter(
-            RegistrationState.name=="prepass").one()
+            RegistrationState.name=="preconfirm").one()
         now = datetime.datetime.utcnow()
-        act = Touch(artifact=self.reg, actor=self.system, state=prepass, at=now)
+        act = Touch(artifact=self.reg, actor=self.system, state=preconfirm, at=now)
         self.session.add_all((act, self.system, self.user))
         self.session.commit()
 
     def test_bring_registration_to_confirmation(self):
-        self.assertEqual("prepass", self.reg.changes[-1].state.name)
+        self.assertEqual("preconfirm", self.reg.changes[-1].state.name)
         password = "existsinmemory"
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
@@ -62,9 +62,9 @@ class NewPasswordTests(RegistrationLifecycleTests):
         self.assertTrue(op.match(password))
         self.assertFalse(op.match(str(reversed(password))))
 
-    def test_registration_from_invalid_state(self):
+    def test_registration_from_any_state(self):
         self.test_bring_registration_to_confirmation()
         password = "existsinmemory"
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
-        self.assertIs(None, act)
+        self.assertIsInstance(act, Touch)
