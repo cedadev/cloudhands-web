@@ -20,6 +20,7 @@ from pyramid.config import Configurator
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
 from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPClientError
 from pyramid.httpexceptions import HTTPCreated
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
@@ -264,6 +265,38 @@ def login_read(request):
     user = User()
     page.layout.options.push(user)
     return dict(page.termination())
+
+
+def login_update(request):
+    log = logging.getLogger("cloudhands.web.login_update")
+    con = registered_connection()
+    data = dict(request.POST)
+    user = con.session.query(User).filter(
+        User.handle == data["handle"]).first()
+    if not user:
+        raise HTTPClientError("User {} not found".format(data["handle"]))
+
+    # Find the most recent valid registration for this user
+    reg = con.session.query(Registration).join(Touch).join(User).join(
+        State).filter(User.handle == data["handle"]).filter(
+        State.name == "valid").order_by(desc(Touch.at)).first()
+    if not reg:
+        raise HTTPInternalServerError(
+            "No valid registration found for {}".format(user.handle))
+
+    try:
+        hash = next(r for r in reg.changes[0].resources
+                    if isinstance(r, BcryptedPassword)).value
+    except StopIteration:
+        raise HTTPInternalServerError(
+            "Registration {} is missing a password".format(reg.uuid))
+
+    log.debug(hash)
+    if bcrypt.checkpw(data["password"], hash):
+        headers = remember(request, user.handle)
+        log.debug(headers)
+    raise HTTPFound(
+        location = request.route_url("top"), headers = headers)
 
 
 def membership_read(request):
@@ -535,8 +568,8 @@ def registration_create(request):
         raise Forbidden("Email already in use")
     raise HTTPFound(location=request.route_url("top"))
 
+
 def registration_read(request):
-    # TODO: require user login
     log = logging.getLogger("cloudhands.web.registration_read")
     reg_uuid = request.matchdict["reg_uuid"]
     con = registered_connection()
@@ -603,6 +636,10 @@ def wsgi_app(args):
         login_read, route_name="login", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/login.pt")
+
+    config.add_view(
+        login_update, route_name="login", request_method="POST")
+        #renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("host", "/host/{host_uuid}")
     config.add_view(
