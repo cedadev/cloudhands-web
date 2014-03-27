@@ -186,7 +186,7 @@ class MembershipPageTests(ServerTests):
 
     def test_authenticate_nonuser_raises_not_found(self):
         request = testing.DummyRequest()
-        self.assertRaises(NotFound, authenticate_user, request)
+        self.assertRaises(NotFound, authenticate_user, request, NotFound)
 
     def test_authenticate_nonuser_attaches_userid(self):
         request = testing.DummyRequest()

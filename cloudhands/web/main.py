@@ -80,21 +80,27 @@ DFLT_IX = "cloudhands.wsh"
 CRED_TABLE = {}
 
 
-def registered_connection():
+def registered_connection(request):
     r = Registry()
     return r.connect(*next(iter(r.items)))
 
 
-def authenticate_user(request):
+def authenticate_user(request, refuse=None):
+    # refuse should be an exception type like Forbidden
     userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
+    if refuse and userId is None:
+        raise refuse("Authentication failure")
 
-    con = registered_connection()
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
-    if not user:
-        nf = NotFound("User not found for {}".format(userId))
+    con = registered_connection(request)
+
+    # Persona's user ids are email addresses, whereas Pyramid auth uses
+    # user names. We want to test for either.
+    user = (con.session.query(User).filter(User.handle == userId).first() or
+            con.session.query(User).join(Touch).join(
+                EmailAddress).filter(EmailAddress.value == userId).first())
+
+    if refuse and not user:
+        nf = refuse("User not found for {}".format(userId))
         nf.userId = userId
         raise nf
     return user
@@ -129,6 +135,7 @@ def paths(request):
 def datetime_adapter(obj, request):
     return str(obj)
 
+
 def regex_adapter(obj, request):
     return obj.pattern
 
@@ -152,16 +159,17 @@ def touch_adapter(obj, request):
     }
 
 
+class LoginForbidden(Forbidden): pass
 class RegistrationForbidden(Forbidden): pass
 
 def top_read(request):
     log = logging.getLogger("cloudhands.web.top_read")
-    userId = authenticated_userid(request)
+    user = authenticate_user(request)
     page = Page(paths=paths(request))
-    con = registered_connection()
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
+    con = registered_connection(request)
+
     if user:
+        page.layout.nav.push(user)
         mships = con.session.query(Membership).join(Touch).join(User).filter(
             User.id==user.id).all()
     else:
@@ -184,7 +192,7 @@ def hosts_read(request):
     if userId is None:
         raise Forbidden()
 
-    con = registered_connection()
+    con = registered_connection(request)
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
@@ -211,7 +219,7 @@ def hosts_read(request):
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")
-    con = registered_connection()
+    con = registered_connection(request)
     user = con.session.merge(authenticate_user(request))
     hUuid = request.matchdict["host_uuid"]
     host = con.session.query(Host).filter(
@@ -260,8 +268,8 @@ def host_update(request):
 def login_read(request):
     log = logging.getLogger("cloudhands.web.login_read")
     page = Page(paths=paths(request))
-    con = registered_connection()
-    #user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
+    if getattr(request, "exception", None) is not None:
+        page.layout.info.push(request.exception)
     user = User()
     page.layout.options.push(user)
     return dict(page.termination())
@@ -269,7 +277,7 @@ def login_read(request):
 
 def login_update(request):
     log = logging.getLogger("cloudhands.web.login_update")
-    con = registered_connection()
+    con = registered_connection(request)
     data = dict(request.POST)
     user = con.session.query(User).filter(
         User.handle == data["handle"]).first()
@@ -291,10 +299,19 @@ def login_update(request):
         raise HTTPInternalServerError(
             "Registration {} is missing a password".format(reg.uuid))
 
-    log.debug(hash)
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
         log.debug(headers)
+        raise HTTPFound(
+            location = request.route_url("top"), headers = headers)
+    else:
+        raise LoginForbidden("Login failed. Please try again.")
+
+
+def logout_update(request):
+    log = logging.getLogger("cloudhands.web.logout_update")
+    headers = forget(request)
+    log.debug(headers)
     raise HTTPFound(
         location = request.route_url("top"), headers = headers)
 
@@ -302,11 +319,11 @@ def login_update(request):
 def membership_read(request):
     log = logging.getLogger("cloudhands.web.membership_read")
     m_uuid = request.matchdict["mship_uuid"]
-    con = registered_connection()
+    con = registered_connection(request)
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
     try:
-        user = authenticate_user(request)
+        user = authenticate_user(request, NotFound)
     except NotFound as e:
         # Create user only if invited
         if mship.changes[-1].state.name != "invite":
@@ -330,7 +347,7 @@ def membership_read(request):
 def membership_update(request):
     log = logging.getLogger("cloudhands.web.membership_update")
     user = authenticate_user(request)
-    con = registered_connection()
+    con = registered_connection(request)
     m_uuid = request.matchdict["mship_uuid"]
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
@@ -368,7 +385,7 @@ def organisation_read(request):
     if userId is None:
         raise Forbidden()
 
-    con = registered_connection()
+    con = registered_connection(request)
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
@@ -409,7 +426,7 @@ def organisation_hosts_create(request):
     if userId is None:
         raise Forbidden()
 
-    con = registered_connection()
+    con = registered_connection(request)
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     if not user:
@@ -456,7 +473,7 @@ def organisation_memberships_create(request):
     if userId is None:
         raise Forbidden()
 
-    con = registered_connection()
+    con = registered_connection(request)
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
@@ -484,7 +501,7 @@ def people_read(request):
     userId = authenticated_userid(request)
     if userId is None:
         raise Forbidden()
-    con = registered_connection()
+    con = registered_connection(request)
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
     page = PeoplePage(session=con.session, user=user, paths=paths(request))
@@ -521,7 +538,7 @@ def macauth_creds(request):
 
 def register(request):
     log = logging.getLogger("cloudhands.web.register")
-    con = registered_connection()
+    con = registered_connection(request)
     page = Page(paths=paths(request))
     if getattr(request, "exception", None) is not None:
         page.layout.info.push(request.exception)
@@ -535,7 +552,7 @@ def register(request):
 
 def registration_create(request):
     log = logging.getLogger("cloudhands.web.registration_create")
-    con = registered_connection()
+    con = registered_connection(request)
 
     data = RegistrationView(request.POST)
     if data.invalid:
@@ -572,7 +589,7 @@ def registration_create(request):
 def registration_read(request):
     log = logging.getLogger("cloudhands.web.registration_read")
     reg_uuid = request.matchdict["reg_uuid"]
-    con = registered_connection()
+    con = registered_connection(request)
     reg = con.session.query(Registration).filter(
         Registration.uuid == reg_uuid).first()
     if reg and reg.changes[-1].state.name == "postconfirm":
@@ -633,13 +650,23 @@ def wsgi_app(args):
 
     config.add_route("login", "/login")
     config.add_view(
-        login_read, route_name="login", request_method="GET",
+        login_read,
+        route_name="login", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer="cloudhands.web:templates/login.pt")
+
+    config.add_view(
+        login_read, context=LoginForbidden,
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/login.pt")
 
     config.add_view(
         login_update, route_name="login", request_method="POST")
         #renderer="hateoas", accept="application/json", xhr=None)
+
+    config.add_route("logout", "/logout")
+    config.add_view(
+        logout_update, route_name="logout", request_method="GET")
 
     config.add_route("host", "/host/{host_uuid}")
     config.add_view(

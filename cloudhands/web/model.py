@@ -55,6 +55,13 @@ class EventInfo(NamedDict):
         return ["at", "user", "event", "resources"]
 
 
+class FlashInfo(NamedDict):
+
+    @property
+    def public(self):
+        return ["comment", "exception", "message"]
+
+
 class OrganisationInfo(NamedDict):
     pass
 
@@ -304,7 +311,7 @@ class GenericRegion(Region):
             "exception": exception.detail,
             "message": exception.message,
         }
-        return StatusInfo(item)
+        return FlashInfo(item)
 
     @present.register(Host)
     def present_host(artifact):

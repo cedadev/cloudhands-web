@@ -31,6 +31,16 @@
             <li><button id='signout'>logout</button></li>
             </ul>
         </div>
+        <section id="info" metal:define-slot="info">
+        <div
+            tal:repeat="item info.values()"
+            tal:omit-tag="">
+        <p
+            tal:condition="'exception' in item"
+            tal:content="item.message">
+        </p>
+        </div>
+        </section>
         <section metal:use-macro="load: option_list.pt" >
         </section>
     </div>
