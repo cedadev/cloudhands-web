@@ -186,37 +186,6 @@ def top_read(request):
     return dict(page.termination())
 
 
-def hosts_read(request):
-    log = logging.getLogger("cloudhands.web.hosts_read")
-    userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
-
-    con = registered_connection(request)
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
-    if not user:
-        raise NotFound("User not found for {}".format(userId))
-
-    memberships = con.session.query(Membership).join(Touch).join(
-        State).join(User).filter(
-        User.id == user.id).filter(
-        State.name == "active").all()
-    log.debug(memberships)
-
-    # FIXME!
-    #hosts = con.session.query(Host).join(Touch).join(User).filter(
-    #    User == user).all() # JVOs are containers for hosts
-    hosts = con.session.query(Host).all()
-    page = Page(paths=paths(request))
-    for h in hosts:
-        page.layout.items.push(h)
-    for m in memberships:
-        page.layout.options.push(m)
-
-    return dict(page.termination())
-
-
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")
     con = registered_connection(request)
@@ -640,14 +609,6 @@ def wsgi_app(args):
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer="cloudhands.web:templates/top.pt")
 
-    config.add_route("hosts", "/hosts")
-    #config.add_view(
-    #    hosts_read, route_name="hosts", request_method="GET",
-    #    renderer="hateoas", accept="application/json", xhr=None)
-    config.add_view(
-        hosts_read, route_name="hosts", request_method="GET",
-        renderer="cloudhands.web:templates/hosts.pt")
-
     config.add_route("login", "/login")
     config.add_view(
         login_read,
@@ -694,8 +655,7 @@ def wsgi_app(args):
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
     config.add_view(
         organisation_hosts_create,
-        route_name="organisation_hosts", request_method="POST",
-        renderer="cloudhands.web:templates/hosts.pt")
+        route_name="organisation_hosts", request_method="POST")
 
     config.add_route(
         "organisation_memberships", "/organisation/{org_name}/memberships")
