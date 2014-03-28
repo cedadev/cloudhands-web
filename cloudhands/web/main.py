@@ -43,6 +43,7 @@ from cloudhands.burst.membership import Invitation
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import HostState
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import RegistrationState
@@ -581,20 +582,24 @@ def registration_read(request):
     return dict(page.termination())
 
 def wsgi_app(args):
-    # TODO: pick up settings by discovery
-    settings = {
-        "persona.secret": "FON85B9O3VCMQ90517Z1",
-        "persona.audiences": [
-            "http://jasmin-cloud.jc.rl.ac.uk:8080",
-            #"http://jasmin-cloud.jc.rl.ac.uk:80",
-            "http://{}:80".format(platform.node()),
-            "http://localhost:8080"],
-        "macauth.master_secret": "MU3D133C4FC4M0EDWHXK",
+    name, cfg = next(iter(settings.items()))
+    attribs = {
+        "macauth.master_secret": cfg["auth.macauth"]["secret"],
         "args": args
         }
-    config = Configurator(settings=settings)
+
+    config = Configurator(settings=attribs)
     config.include("pyramid_chameleon")
-    config.include("pyramid_persona")
+
+    if (cfg.has_section("auth.persona")
+        and cfg.getboolean("auth.persona", "enable")):
+        config.add_settings({
+        "persona.secret": cfg["auth.persona"]["secret"],
+        "persona.audiences": [
+            cfg["auth.persona"]["host"],
+            "http://{}:{}".format(platform.node(), args.port)],
+        })
+        config.include("pyramid_persona")
 
     hateoas = JSON(indent=4)
     hateoas.add_adapter(datetime.datetime, datetime_adapter)
@@ -702,15 +707,15 @@ def wsgi_app(args):
 
     authn_policy = AuthenticationStackPolicy()
     authn_policy.add_policy(
-        "email",
+        "auth_tkt",
         AuthTktAuthenticationPolicy(
-            settings["persona.secret"],
+            cfg["auth.macauth"]["secret"],
             callback=None)
         )
     authn_policy.add_policy(
         "apimac",
         MACAuthenticationPolicy(
-            settings["macauth.master_secret"],
+            attribs["macauth.master_secret"],
         ))
     authz_policy = ACLAuthorizationPolicy()
     config.set_authentication_policy(authn_policy)
