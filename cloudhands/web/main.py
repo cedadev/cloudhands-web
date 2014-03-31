@@ -612,19 +612,19 @@ def wsgi_app(args):
     config.add_view(
         top_read, route_name="top", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/top.pt")
+        renderer=cfg["paths.templates"]["home"])
 
     config.add_route("login", "/login")
     config.add_view(
         login_read,
         route_name="login", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/login.pt")
+        renderer=cfg["paths.templates"]["login"])
 
     config.add_view(
         login_read, context=LoginForbidden,
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/login.pt")
+        renderer=cfg["paths.templates"]["login"])
 
     config.add_view(
         login_update, route_name="login", request_method="POST")
@@ -643,7 +643,7 @@ def wsgi_app(args):
     config.add_view(
         membership_read, route_name="membership", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/membership.pt")
+        renderer=cfg["paths.templates"]["membership"])
 
     config.add_view(
         membership_update,
@@ -654,7 +654,7 @@ def wsgi_app(args):
     config.add_view(
         organisation_read, route_name="organisation", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/organisation.pt")
+        renderer=cfg["paths.templates"]["organisation"])
 
     # TODO: unify organisation/{} and organisation/{}/hosts (use options)
     config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
@@ -679,18 +679,18 @@ def wsgi_app(args):
     config.add_view(
         register, route_name="register", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/registration.pt")
+        renderer=cfg["paths.templates"]["registration"])
 
     config.add_view(
         registration_create, route_name="register", request_method="POST",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/registration.pt")
+        renderer=cfg["paths.templates"]["registration"])
 
     config.add_route("registration", "/registration/{reg_uuid}")
     config.add_view(
         registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/registration.pt")
+        renderer=cfg["paths.templates"]["registration"])
 
     config.add_route("creds", "/creds")
     config.add_view(
@@ -700,7 +700,7 @@ def wsgi_app(args):
 
     config.add_view(
         register, context=RegistrationForbidden,
-        renderer="cloudhands.web:templates/registration.pt")
+        renderer=cfg["paths.templates"]["registration"])
     config.add_static_view(name="css", path="cloudhands.web:static/css")
     config.add_static_view(name="js", path="cloudhands.web:static/js")
     config.add_static_view(name="img", path="cloudhands.web:static/img")
