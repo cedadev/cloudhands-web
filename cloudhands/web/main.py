@@ -3,6 +3,7 @@
 
 import argparse
 import datetime
+import functools
 import logging
 import operator
 import os.path
@@ -81,10 +82,22 @@ DFLT_IX = "cloudhands.wsh"
 CRED_TABLE = {}
 
 
+def cfg_paths(request, cfg=None):
+    cfg = cfg or {
+        "paths.assets": dict(
+            css = "cloudhands.web:static/css",
+            img = "cloudhands.web:static/img",
+            js = "cloudhands.web:static/js")
+    }
+    return {p: os.path.dirname(request.static_url(
+        '/'.join((cfg["paths.assets"][p], f))))
+        for p, f in (
+            ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
+
+
 def registered_connection(request):
     r = Registry()
     return r.connect(*next(iter(r.items)))
-
 
 def authenticate_user(request, refuse=None):
     # refuse should be an exception type like Forbidden
@@ -126,13 +139,6 @@ def create_membership_resources(session, m, rTyp, vals):
                 rTyp.value == v, rTyp.provider == provider).first()
 
 
-def paths(request):
-    return {p: os.path.dirname(request.static_url(
-        "cloudhands.web:static/{}/{}".format(p, f)))
-        for p, f in (
-            ("css", "any.css"), ("js", "any.js"), ("img", "any.png"))}
-
-
 def datetime_adapter(obj, request):
     return str(obj)
 
@@ -166,7 +172,8 @@ class RegistrationForbidden(Forbidden): pass
 def top_read(request):
     log = logging.getLogger("cloudhands.web.top_read")
     user = authenticate_user(request)
-    page = Page(paths=paths(request))
+    page = Page(
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     con = registered_connection(request)
 
     if user:
@@ -237,7 +244,8 @@ def host_update(request):
 
 def login_read(request):
     log = logging.getLogger("cloudhands.web.login_read")
-    page = Page(paths=paths(request))
+    page = Page(
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     if getattr(request, "exception", None) is not None:
         page.layout.info.push(request.exception)
     user = User()
@@ -305,7 +313,9 @@ def membership_read(request):
         act = Activation(user, mship, ea)(con.session)
         log.debug(user)
 
-    page = Page(session=con.session, user=user, paths=paths(request))
+    page = Page(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     rsrcs = con.session.query(Resource).join(Touch).join(Membership).filter(
         Membership.uuid == m_uuid).all()
     for r in rsrcs:
@@ -361,7 +371,9 @@ def organisation_read(request):
     if not user:
         raise NotFound("User not found for {}".format(userId))
 
-    page = Page(session=con.session, user=user, paths=paths(request))
+    page = Page(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     mships = con.session.query(Membership).join(Touch).join(User).filter(
         User.id==user.id).all()
 
@@ -474,7 +486,9 @@ def people_read(request):
     con = registered_connection(request)
     user = con.session.query(User).join(Touch).join(
         EmailAddress).filter(EmailAddress.value == userId).first()
-    page = PeoplePage(session=con.session, user=user, paths=paths(request))
+    page = PeoplePage(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     index = request.registry.settings["args"].index
     query = dict(request.GET).get("description", "")  # TODO: validate
     try:
@@ -509,7 +523,8 @@ def macauth_creds(request):
 def register(request):
     log = logging.getLogger("cloudhands.web.register")
     con = registered_connection(request)
-    page = Page(paths=paths(request))
+    page = Page(
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     if getattr(request, "exception", None) is not None:
         page.layout.info.push(request.exception)
 
@@ -572,7 +587,9 @@ def registration_read(request):
         con.session.commit()
         raise HTTPFound(location=request.route_url("login"))
 
-    page = Page(session=con.session, paths=paths(request))
+    page = Page(
+        session=con.session,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     acts = con.session.query(Touch).join(Registration).filter(
         Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
 
@@ -581,11 +598,11 @@ def registration_read(request):
     page.layout.options.push(reg)
     return dict(page.termination())
 
-def wsgi_app(args):
-    name, cfg = next(iter(settings.items()))
+def wsgi_app(args, cfg):
     attribs = {
         "macauth.master_secret": cfg["auth.macauth"]["secret"],
-        "args": args
+        "args": args,
+        "cfg": cfg
         }
 
     config = Configurator(settings=attribs)
@@ -673,7 +690,7 @@ def wsgi_app(args):
     config.add_view(
         people_read, route_name="people", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
-        renderer="cloudhands.web:templates/people.pt")
+        renderer=cfg["paths.templates"]["people"])
 
     config.add_route("register", "/registration")
     config.add_view(
@@ -701,9 +718,9 @@ def wsgi_app(args):
     config.add_view(
         register, context=RegistrationForbidden,
         renderer=cfg["paths.templates"]["registration"])
-    config.add_static_view(name="css", path="cloudhands.web:static/css")
-    config.add_static_view(name="js", path="cloudhands.web:static/js")
-    config.add_static_view(name="img", path="cloudhands.web:static/img")
+    config.add_static_view(name="css", path=cfg["paths.assets"]["css"])
+    config.add_static_view(name="js", path=cfg["paths.assets"]["js"])
+    config.add_static_view(name="img", path=cfg["paths.assets"]["img"])
 
     authn_policy = AuthenticationStackPolicy()
     authn_policy.add_policy(
@@ -730,14 +747,15 @@ def configure(args):
     logging.basicConfig(
         level=args.log_level,
         format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    cfgN, cfg = next(iter(settings.items()))
     r = Registry()
     session = r.connect(sqlite3, args.db).session
     initialise(session)
-    return session
+    return cfg, session
 
 
 def main(args):
-    session = configure(args)
+    cfg, session = configure(args)
     app = wsgi_app(args)
     serve(app, host=platform.node(), port=args.port, url_scheme="http")
     return 1

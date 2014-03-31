@@ -53,7 +53,6 @@ class WebFixture(object):
     def demo_email(req=None):
         return "ben.campbell@universityoflife.ac.uk"
 
-
     def create_subscriptions(session):
         log = logging.getLogger("cloudhands.web.demo.subscriptions")
         maintenance = session.query(
@@ -151,7 +150,6 @@ class WebFixture(object):
                 finally:
                     session.flush()
 
-
     def add_subscribed_resources(session, user):
         log = logging.getLogger("cloudhands.web.demo.resources")
         for name, provider in WebFixture.subscriptions:
@@ -193,7 +191,7 @@ def main(args):
     log.info("Generating index at {}".format(args.index))
     cloudhands.web.indexer.main(args)
 
-    session = cloudhands.web.main.configure(args)
+    cfg, session = cloudhands.web.main.configure(args)
 
     for t in WebFixture.create_subscriptions(session):
         try:
@@ -235,7 +233,7 @@ def main(args):
 
     cloudhands.web.main.authenticated_userid = WebFixture.demo_email
 
-    app = cloudhands.web.main.wsgi_app(args)
+    app = cloudhands.web.main.wsgi_app(args, cfg)
     cloudhands.web.main.serve(
         app, host=platform.node(), port=args.port, url_scheme="http")
     return 0
