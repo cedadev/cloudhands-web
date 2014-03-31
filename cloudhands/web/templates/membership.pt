@@ -1,36 +1,41 @@
-<html metal:use-macro="load: base.pt" lang="en">
-<nav metal:fill-slot="nav" class="pure-menu pure-menu-open">
-    <ul>
-    <li class="pure-menu-heading" ><a href="/">JASMIN</a></li>
-    <li><a href="#">Account</a></li>
-    <li><a href="/#">JVO</a></li>
-    <li><a href="/hosts">VMs</a></li>
-    <li><a href="/people">People</a></li>
-    </ul>
-</nav>
-<div tal:omit-tag="" metal:fill-slot="summary">
-<section id="items">
-<h1>Membership</h1>
-<ul>
-<li tal:repeat="(itemId, item) items.items()"
-tal:attributes="
-id itemId;
-">
-<dl tal:attributes="class item['data']['type'].lower();">
-<dt tal:content="item['data']['type']"></dt>
-<dd tal:content="item['value']"></dd>
-</dl>
-</li>
-</ul>
-</section>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="refresh" content="60">
+<title>JASMIN cloud portal</title>
+
+<!-- purecss.io -->
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.3.0/pure-min.css">
+<link rel="stylesheet" type="text/css" href="${info['paths'].css}/site.css" media="screen" />
+
+<!-- Font icons -->
+<link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
+
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-1-12">
+        <nav metal:use-macro="load: nav_list.pt">
+        </nav>
+    </div>
+    <div class="pure-u-7-12">
+        <section id="summary" metal:define-slot="summary">
+        </section>
+        <section metal:use-macro="load: item_list.pt" >
+        </section>
+    </div>
+    <div class="pure-u-1-3">
+        <div id="helpmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
+            <ul>
+            <li class="pure-menu-disabled"><a href="#">Documentation</a></li>
+            <li class="pure-menu-disabled"><a href="#">Contact</a></li>
+            <li><button id='signout'>logout</button></li>
+            </ul>
+        </div>
+        <section metal:define-slot="detail">
+        </section>
+    </div>
 </div>
-<section metal:fill-slot="detail" id="options">
-<dl tal:repeat="option options.values()"
-tal:attributes="
-class python:' '.join('{0.fsm} {0.name}'.format(s) for s in option['states']);">
-<div tal:omit-tag="" tal:repeat="(attr, val) sorted(option['data'].items())">
-<dt>${attr}</dt><dd>${val}</dd>
-</div>
-</dl>
-</section>
+</body>
 </html>
