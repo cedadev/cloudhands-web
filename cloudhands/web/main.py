@@ -756,7 +756,7 @@ def configure(args):
 
 def main(args):
     cfg, session = configure(args)
-    app = wsgi_app(args)
+    app = wsgi_app(args, cfg)
     serve(app, host=platform.node(), port=args.port, url_scheme="http")
     return 1
 

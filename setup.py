@@ -45,6 +45,7 @@ setup(
             "static/css/*.css",
             "static/js/*.js",
             "static/img/*.jpg",
+            "static/img/*.png",
             ],
         "cloudhands.web.test": []
         },
