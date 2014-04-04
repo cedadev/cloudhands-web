@@ -546,14 +546,14 @@ def registration_create(request):
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))
 
-    user = User(handle=data["handle"], uuid=uuid.uuid4().hex)
+    user = User(handle=data["username"], uuid=uuid.uuid4().hex)
     try:
         con.session.add(user)
         con.session.commit()
     except Exception as e:
         con.session.rollback()
         raise RegistrationForbidden(
-            "The handle you picked is already in use."
+            "The username you picked is already in use."
             " Please choose again.")
 
     preconfirm = con.session.query(RegistrationState).filter(

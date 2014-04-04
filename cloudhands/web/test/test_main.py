@@ -414,13 +414,13 @@ class RegistrationPageTests(ServerTests):
 
     def test_registration_create(self):
         request = testing.DummyRequest(
-            {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
+            {"username": "newuser", "password": "th!swillb3myPa55w0rd",
             "email": "somebody@some.ac.uk"})
         self.assertRaises(HTTPFound, registration_create, request)
 
     def test_registration_create_duplicate(self):
         request = testing.DummyRequest(
-            {"handle": "newuser", "password": "th!swillb3myPa55w0rd",
+            {"username": "newuser", "password": "th!swillb3myPa55w0rd",
             "email": "somebody@some.ac.uk"})
         try:
             registration_create(request)

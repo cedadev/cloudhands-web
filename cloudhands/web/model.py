@@ -238,7 +238,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
         """
         return [
             Parameter(
-                "handle", True, re.compile("\\w{3,32}$"),[self["handle"]], ""),
+                "username", True, re.compile("\\w{3,32}$"),[self["username"]], ""),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
@@ -257,7 +257,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
         self["_links"] = []
         if not session.query(Registration).filter(
             Registration.uuid == self["uuid"]).count():
-            self["handle"] = "Your user name"
+            self["username"] = "Your user name"
             self["email"] = "Your email address"
             self["password"] = ""
             self["_links"].append(
@@ -344,7 +344,7 @@ class GenericRegion(Region):
         hndl = latest.actor.handle if (
             latest and isinstance(latest.actor, User)) else ""
         item = {
-            "handle": hndl,
+            "username": hndl,
             "modified": latest.at if latest else None,
             "uuid": artifact.uuid,
         }

@@ -178,63 +178,63 @@ class TestRegistrationPage(unittest.TestCase):
 
     def test_registration_email_validation(self):
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody_somewhere.com",
             password="1A_" + "a" * 5)
         self.assertTrue(r.invalid)
 
     def test_registration_password_length_validation(self):
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="1A_" + "a" * 4)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="1A_" + "a" * 18)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="1A_" + "a" * 5)
         self.assertFalse(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="1A_" + "a" * 17)
         self.assertFalse(r.invalid)
 
     def test_registration_password_validation(self):
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="a" * 8)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="1" * 8)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="_" * 8)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="a" * 4 + "A" * 4)
         self.assertTrue(r.invalid)
 
         r = RegistrationView(
-            handle="userhandle",
+            username="username",
             email="somebody@somewhere.com",
             password="a" * 4 + "1" * 4)
         self.assertTrue(r.invalid)
