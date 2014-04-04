@@ -75,20 +75,20 @@ class HostView(Contextual, Validating, NamedDict):
     @property
     def parameters(self):
         return [
-            Parameter("name", True, re.compile("\\w{8,128}$"), []),
+            Parameter("name", True, re.compile("\\w{8,128}$"), [], ""),
             Parameter(
                 "jvo", True, re.compile("\\w{6,64}$"),
-                [self["organisation"]] if "organisation" in self else []),
+                [self["organisation"]] if "organisation" in self else [], ""),
             Parameter(
                 "image", True, re.compile("[\\S ]{6,64}$"),
-                getattr(self, "images", [])),
-            Parameter("description", False, re.compile("\\w{8,128}$"), []),
+                getattr(self, "images", []), ""),
+            Parameter("description", False, re.compile("\\w{8,128}$"), [], ""),
             Parameter(
                 "cpu", False, re.compile("\\d{1,2}$"),
-                ["1", "2", "3", "4"]),
+                ["1", "2", "3", "4"], ""),
             Parameter(
                 "ram", False, re.compile("\\d{3,4}$"),
-                ["1024"]),
+                ["1024"], ""),
         ]
 
     def configure(self, session, user=None):
@@ -193,10 +193,10 @@ class PersonView(Contextual, Validating, NamedDict):
         return [
             Parameter(
                 "description", True, re.compile("\\w{2,}$"),
-                [self["description"]] if "description" in self else []),
+                [self["description"]] if "description" in self else [], ""),
             Parameter(
                 "designator", True, re.compile("\\w{8,}$"),
-                [self["designator"]] if "designator" in self else [])
+                [self["designator"]] if "designator" in self else [], "")
         ]
 
     def configure(self, sn, user):
@@ -238,18 +238,18 @@ class RegistrationView(Contextual, Validating, NamedDict):
         """
         return [
             Parameter(
-                "handle", True, re.compile("\\w{3,32}$"),[self["handle"]]),
+                "handle", True, re.compile("\\w{3,32}$"),[self["handle"]], ""),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
                     "(?!.*\\s).{8,20}$"
-                ),[]),
+                ),[], ""),
             Parameter(
                 "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
                 "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
                 "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
                 # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-                ),[self["email"]]),
+                ),[self["email"]], ""),
         ]
 
 
@@ -291,10 +291,10 @@ class StateView(Validating, NamedDict):
         return [
             Parameter(
                 "fsm", True, re.compile("\\w{3,32}$"),
-                [self["fsm"]] if "fsm" in self else []),
+                [self["fsm"]] if "fsm" in self else [], ""),
             Parameter(
                 "name", True, re.compile("\\w{2,64}$"),
-                [self["name"]] if "name" in self else [])
+                [self["name"]] if "name" in self else [], "")
         ]
 
 

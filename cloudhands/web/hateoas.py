@@ -13,7 +13,7 @@ from cloudhands.common.types import NamedList
 
 Aspect = namedtuple(
     "Aspect", ["name", "rel", "typ", "ref", "method", "parameters", "action"])
-Parameter = namedtuple("Parameter", ["name", "required", "regex", "values"])
+Parameter = namedtuple("Parameter", ["name", "required", "regex", "values", "tip"])
 
 
 class Validating:

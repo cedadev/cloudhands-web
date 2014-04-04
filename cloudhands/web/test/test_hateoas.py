@@ -121,7 +121,7 @@ class OptionsRegion(Region):
         item["_links"] = [
             # NB: Parameters drawn from View object if validating
             Aspect("New object", "create-form", "/bag", None, "post",
-            [Parameter("name", True, re.compile("\\w{8,128}$"), [])],
+            [Parameter("name", True, re.compile("\\w{8,128}$"), [], "")],
             "Create")]
         return OwnershipView(item)
 
