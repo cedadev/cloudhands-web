@@ -231,11 +231,6 @@ class RegistrationView(Contextual, Validating, NamedDict):
 
     @property
     def parameters(self):
-        """
-        Password between 8 and 20 characters; must contain at least one
-        lowercase letter, one uppercase letter, one numeric digit, and one
-        special character, but cannot contain whitespace.
-        """
         return [
             Parameter(
                 "username", True, re.compile("\\w{3,32}$"),[self["username"]], ""),
@@ -243,7 +238,13 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
                     "(?!.*\\s).{8,20}$"
-                ),[], ""),
+                ),[],
+                """
+                Passwords are between 8 and 20 characters in length.
+                They must contain at least one lowercase letter, one uppercase
+                letter, one numeric digit, and one special character. They cannot
+                contain whitespace.
+                """),
             Parameter(
                 "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
                 "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
