@@ -233,9 +233,12 @@ class RegistrationView(Contextual, Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "username", True, re.compile("\\w{3,32}$"),
+                "username", True, re.compile("\\w{8,10}$"),
                 [self["username"]] if getattr(self, "username", None)
-                else [], ""),
+                else [],
+                """
+                Please choose a name 8 to 10 characters long.
+                """),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
@@ -243,9 +246,14 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 ),[],
                 """
                 Passwords are between 8 and 20 characters in length.
-                They must contain at least one lowercase letter, one uppercase
-                letter, one numeric digit, and one special character. They cannot
-                contain whitespace.
+                They must contain:
+                <ul>
+                <li>at least one lowercase letter</li>
+                <li>at least one uppercase letter</li>
+                <li>at least one numeric digit</li>
+                <li>at least one special character</li>
+                </ul>
+                They cannot contain whitespace.
                 """),
             Parameter(
                 "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
@@ -254,7 +262,11 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
                 ),
                 [self["email"]] if getattr(self, "email", None)
-                else [], ""),
+                else [],
+                """
+                We will send instructions to this address for you
+                to activate your account.
+                """),
         ]
 
 

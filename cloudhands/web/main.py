@@ -258,7 +258,7 @@ def login_update(request):
     con = registered_connection(request)
     data = dict(request.POST)
     user = con.session.query(User).filter(
-        User.handle == data["handle"]).first()
+        User.handle == data["username"]).first()
     if not user:
         raise HTTPClientError("User {} not found".format(data["handle"]))
 
