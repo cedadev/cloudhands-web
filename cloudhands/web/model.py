@@ -233,7 +233,9 @@ class RegistrationView(Contextual, Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "username", True, re.compile("\\w{3,32}$"),[self["username"]], ""),
+                "username", True, re.compile("\\w{3,32}$"),
+                [self["username"]] if getattr(self, "username", None)
+                else [], ""),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
@@ -250,7 +252,9 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
                 "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
                 # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-                ),[self["email"]], ""),
+                ),
+                [self["email"]] if getattr(self, "email", None)
+                else [], ""),
         ]
 
 
@@ -258,8 +262,8 @@ class RegistrationView(Contextual, Validating, NamedDict):
         self["_links"] = []
         if not session.query(Registration).filter(
             Registration.uuid == self["uuid"]).count():
-            self["username"] = "Your user name"
-            self["email"] = "Your email address"
+            self["username"] = ""
+            self["email"] = ""
             self["password"] = ""
             self["_links"].append(
                 Aspect(
