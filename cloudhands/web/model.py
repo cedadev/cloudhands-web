@@ -44,6 +44,12 @@ class VersionInfo(NamedDict):
                     for i in [cloudhands.web, cloudhands.common]})
 
 
+class PageInfo(NamedDict):
+
+    @property
+    def public(self):
+        return ["title"]
+
 class PathInfo(NamedDict):
     pass
 
@@ -375,6 +381,10 @@ class GenericRegion(Region):
             Aspect(obj.name, rel, "/organisation/{}", obj.name,
             "get", [], "View")]
         return OrganisationView(item)
+
+    @present.register(PageInfo)
+    def present_pageinfo(obj):
+        return obj.name("page")
 
     @present.register(PathInfo)
     def present_pathinfo(obj):

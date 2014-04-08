@@ -71,6 +71,7 @@ from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
 from cloudhands.web.model import Page
+from cloudhands.web.model import PageInfo
 from cloudhands.web.model import PeoplePage
 from cloudhands.web.model import RegistrationView
 from cloudhands.web.model import StateView
@@ -382,6 +383,8 @@ def organisation_read(request):
         Organisation.name == oN).first()
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
+    else:
+        page.layout.info.push(PageInfo(title=oN))
 
     for o in sorted(
         {i.organisation for i in mships}, key=operator.attrgetter("name")
