@@ -5,6 +5,7 @@ import argparse
 from collections import namedtuple
 import functools
 import logging
+from logging.handlers import WatchedFileHandler
 import os
 import sched
 import sys
@@ -132,9 +133,25 @@ def ingest(args, config, loop=None):
 
 
 def main(args):
-    logging.basicConfig(
-        level=args.log_level,
-        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    log = logging.getLogger("cloudhands.web.indexer")
+    log.setLevel(args.log_level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    ch = logging.StreamHandler()
+
+    if args.log_path is None:
+        ch.setLevel(args.log_level)
+    else:
+        fh = WatchedFileHandler(args.log_path)
+        fh.setLevel(args.log_level)
+        fh.setFormatter(formatter)
+        log.addHandler(fh)
+        ch.setLevel(logging.WARNING)
+
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
+
     provider, config = next(iter(settings.items()))
     loop = sched.scheduler()
 
@@ -172,6 +189,9 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--interval", default=None, type=int,
         help="Set the indexing interval (s)")
+    rv.add_argument(
+        "--log", default=None, dest="log_path",
+        help="Set a file path for log output")
     rv.add_argument(
         "--query", default=None,
         help="Issue a query and then exit")
