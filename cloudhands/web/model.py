@@ -48,7 +48,7 @@ class PageInfo(NamedDict):
 
     @property
     def public(self):
-        return ["title"]
+        return ["title", "refresh"]
 
 class PathInfo(NamedDict):
     pass

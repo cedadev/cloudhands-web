@@ -175,6 +175,7 @@ def top_read(request):
     user = authenticate_user(request)
     page = Page(
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+    page.layout.info.push(PageInfo(refresh=30))
     con = registered_connection(request)
 
     if user:
@@ -384,7 +385,7 @@ def organisation_read(request):
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
     else:
-        page.layout.info.push(PageInfo(title=oN))
+        page.layout.info.push(PageInfo(title=oN, refresh=10))
 
     for o in sorted(
         {i.organisation for i in mships}, key=operator.attrgetter("name")
