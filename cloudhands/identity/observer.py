@@ -39,7 +39,7 @@ class Observer:
 
     @asyncio.coroutine
     def monitor(self):
-        log = logging.getLogger("cloudhands.identity.observer")
+        log = logging.getLogger(__name__)
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         actor = session.query(Component).filter(

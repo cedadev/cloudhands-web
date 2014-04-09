@@ -4,6 +4,7 @@
 import argparse
 import asyncio
 import logging
+from logging.handlers import WatchedFileHandler
 import sys
 
 from cloudhands.common.connectors import initialise
@@ -19,10 +20,24 @@ This process performs tasks to process Registrations to the JASMIN cloud.
 DFLT_DB = ":memory:"
 
 def main(args):
-    logging.basicConfig(
-        level=args.log_level,
-        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
-    log = logging.getLogger("cloudhands.identity.main")
+    log = logging.getLogger("cloudhands.identity")
+    log.setLevel(args.log_level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    ch = logging.StreamHandler()
+
+    if args.log_path is None:
+        ch.setLevel(args.log_level)
+    else:
+        fh = WatchedFileHandler(args.log_path)
+        fh.setLevel(args.log_level)
+        fh.setFormatter(formatter)
+        log.addHandler(fh)
+        ch.setLevel(logging.WARNING)
+
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
 
     portalName, config = next(iter(settings.items()))
 
@@ -55,6 +70,9 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--interval", default=3, type=int,
         help="Set the monitoring interval (s)")
+    rv.add_argument(
+        "--log", default=None, dest="log_path",
+        help="Set a file path for log output")
     rv.add_argument(
         "--db", default=DFLT_DB,
         help="Set the path to the database [{}]".format(DFLT_DB))
