@@ -784,6 +784,9 @@ def parser(description=__doc__):
     rv.add_argument(
         "--index", default=DFLT_IX,
         help="Set the path to the index directory [{}]".format(DFLT_IX))
+    rv.add_argument(
+        "--log", default=None, dest="log_path",
+        help="Set a file path for log output")
     return rv
 
 
