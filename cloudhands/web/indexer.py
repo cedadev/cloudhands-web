@@ -98,6 +98,8 @@ def ingest(args, config, loop=None):
         getInfo=ldap3.GET_ALL_INFO)
     c = ldap3.connection.Connection(
         s, autoBind=True, clientStrategy=ldap3.STRATEGY_SYNC)
+    log.info("Opening LDAP connection to {}.".format(
+        config["ldap.search"]["host"]))
 
     search = functools.partial(
         c.search,
