@@ -392,7 +392,10 @@ def organisation_read(request):
     ):
         page.layout.nav.push(o, isSelf=o is org)
 
-    for h in org.hosts:
+    for t, h in sorted(
+        ((h.changes[-1].at, h) for h in org.hosts),
+        reverse=True
+    ):
         page.layout.items.push(h)
 
     mships = con.session.query(Membership).join(Organisation).join(
