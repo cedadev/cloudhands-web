@@ -7,7 +7,17 @@ import unittest
 
 import ldap3
 
-Record = defaultdict(list)
+def ldap_membership(con, uuid):
+    con.add(
+        "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
+        ["top", "person"], {
+            "objectClass": ["top", "person"],
+            "description": "test-add",
+            "description": "JASMIN2 vCloud registration",
+            "cn": uuid,
+            "sn": "UNKNOWN"}
+    )
+    return con
 
 class LDAPFaker:
 
@@ -17,8 +27,8 @@ class LDAPFaker:
             server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
         connection.add(
             "cn=test-add-operation,o=test",
-            "iNetOrgPerson", {
-                "objectClass": "iNetOrgPerson",
+            ["iNetOrgPerson"], {
+                "objectClass": ["iNetOrgPerson"],
                 "sn": "test-add",
                 "cn": "test-add-operation"}
         )
@@ -48,17 +58,35 @@ class LDAPRecordTests(unittest.TestCase):
     sshPublicKey: ssh-dss AAAAM5...
     """
 
+    def setUp(self):
+        self.connection = ldap3.Connection(
+            server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
+
+    @staticmethod
+    def ldif_content2dict(val):
+        rv = defaultdict(set)
+        for line in (i.strip() for i in val.splitlines()):
+            try:
+                k, v = line.split(":", maxsplit=1)
+            except ValueError:
+                if line.isspace():
+                    continue
+            else:
+                rv[k.strip()].add(v.strip())
+        return rv
+
     def test_state_one(self):
+        uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
         expect = """
-        dn: cn=3dceb7f3dc9947b78345f864972ee31f,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
+        dn: {uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
-        description: JASMIN2 vCloud membership
-        cn: 3dceb7f3dc9947b78345f864972ee31f
+        description: JASMIN2 vCloud registration
+        cn: {uuid}
         sn: UNKNOWN
-        """
-        print(LDAPFaker.demo().response)
-        self.fail(expect)
+        """.format(uuid=uuid_)
+        print(ldap_membership(self.connection, uuid_).response)
+        self.fail(LDAPRecordTests.ldif_content2dict(expect))
 
     def test_state_two(self):
         expect = """
@@ -67,7 +95,7 @@ class LDAPRecordTests(unittest.TestCase):
         objectclass: person
         objectclass: organizationalPerson
         objectclass: inetOrgPerson
-        description: JASMIN2 vCloud membership
+        description: JASMIN2 vCloud registration
         cn: 3dceb7f3dc9947b78345f864972ee31f
         sn: UNKNOWN
         ou: jasmin2
@@ -81,7 +109,7 @@ class LDAPRecordTests(unittest.TestCase):
         objectclass: person
         objectclass: organizationalPerson
         objectclass: inetOrgPerson
-        description: JASMIN2 vCloud membership
+        description: JASMIN2 vCloud registration
         cn: 3dceb7f3dc9947b78345f864972ee31f
         sn: Haynes
         ou: jasmin2
