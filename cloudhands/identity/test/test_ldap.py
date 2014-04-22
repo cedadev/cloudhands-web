@@ -2,7 +2,27 @@
 #   encoding: UTF-8
 
 
+from collections import defaultdict
 import unittest
+
+import ldap3
+
+Record = defaultdict(list)
+
+class LDAPFaker:
+
+    @staticmethod
+    def demo():
+        connection = ldap3.Connection(
+            server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
+        connection.add(
+            "cn=test-add-operation,o=test",
+            "iNetOrgPerson", {
+                "objectClass": "iNetOrgPerson",
+                "sn": "test-add",
+                "cn": "test-add-operation"}
+        )
+        return connection
 
 class LDAPRecordTests(unittest.TestCase):
 
@@ -37,6 +57,7 @@ class LDAPRecordTests(unittest.TestCase):
         cn: 3dceb7f3dc9947b78345f864972ee31f
         sn: UNKNOWN
         """
+        print(LDAPFaker.demo().response)
         self.fail(expect)
 
     def test_state_two(self):
