@@ -12,7 +12,6 @@ def ldap_membership(con, uuid):
         "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
         ["top", "person"], {
             "objectClass": ["top", "person"],
-            "description": "test-add",
             "description": "JASMIN2 vCloud registration",
             "cn": uuid,
             "sn": "UNKNOWN"}
@@ -77,16 +76,21 @@ class LDAPRecordTests(unittest.TestCase):
 
     def test_state_one(self):
         uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
+        uuid_ = "3dc9947b78345f864972ee31f"
         expect = """
-        dn: {uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
+        dn: cn={uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
         description: JASMIN2 vCloud registration
         cn: {uuid}
         sn: UNKNOWN
         """.format(uuid=uuid_)
-        print(ldap_membership(self.connection, uuid_).response)
-        self.fail(LDAPRecordTests.ldif_content2dict(expect))
+        ldif = LDAPRecordTests.ldif_content2dict(expect)
+        ldif.update({"version": {'1'}, "changetype": {"add"}})
+        result = ldap_membership(self.connection, uuid_).response
+        print(result)
+        print(set(ldif.values()) - 
+            set(LDAPRecordTests.ldif_content2dict(result).values()))
 
     def test_state_two(self):
         expect = """
