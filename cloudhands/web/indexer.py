@@ -92,12 +92,12 @@ def ingest(args, config, loop=None):
         **{k: v for k, v in ldap_types.items()
             if config.getboolean("ldap.attributes", k)})
 
-    s = ldap3.server.Server(
+    s = ldap3.Server(
         config["ldap.search"]["host"],
         port=int(config["ldap.search"]["port"]),
-        getInfo=ldap3.GET_ALL_INFO)
-    c = ldap3.connection.Connection(
-        s, autoBind=True, clientStrategy=ldap3.STRATEGY_SYNC)
+        get_info=ldap3.GET_ALL_INFO)
+    c = ldap3.Connection(
+        s, auto_bind=True, client_strategy=ldap3.STRATEGY_SYNC)
     log.info("Opening LDAP connection to {}.".format(
         config["ldap.search"]["host"]))
 
@@ -109,12 +109,12 @@ def ingest(args, config, loop=None):
 
     def pager(size=128):
         cookie = True
-        result = search(pagedSize=size)
+        result = search(paged_size=size)
         yield from c.response
         while result and cookie:
             ctrl = c.result["controls"]["1.2.840.113556.1.4.319"]
             cookie = ctrl["value"]["cookie"]
-            result = search(pagedSize=size, pagedCookie=cookie)
+            result = search(paged_size=size, paged_cookie=cookie)
             yield from c.response
 
     writer = ix.writer()
