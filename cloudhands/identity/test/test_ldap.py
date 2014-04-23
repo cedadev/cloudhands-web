@@ -9,6 +9,19 @@ import ldap3
 
 class LDAPRecord(UserDict):
 
+    @classmethod
+    def from_ldif(cls, val, **kwargs):
+        rv = cls(**kwargs)
+        for line in (i.strip() for i in val.splitlines()):
+            try:
+                k, v = line.split(":", maxsplit=1)
+            except ValueError:
+                if line.isspace():
+                    continue
+            else:
+                rv[k.strip()].add(v.strip())
+        return rv
+
     def __getitem__(self, key):
         try:
             rv = self.data[self.__keytransform__(key)]
@@ -22,14 +35,15 @@ class LDAPRecord(UserDict):
 
     def __eq__(self, other):
         keyDiff = set(self.keys()) ^ set(other.keys())
-        print(keyDiff)
-        return len(keyDiff) == 0
+        return len(keyDiff) == 0 and all(
+           self[i] == other[i] for i in sorted(self.keys()))
 
     def __keytransform__(self, key):
         return key.lower()
 
     def __setitem__(self, key, value):
         self.data[self.__keytransform__(key)] = value
+
 
 def ldap_membership(con, uuid):
     con.add(
@@ -42,7 +56,7 @@ def ldap_membership(con, uuid):
     )
     return con
 
-class TestMultiValue(unittest.TestCase):
+class TestLDAPRecord(unittest.TestCase):
 
     def test_missing_key(self):
         a = LDAPRecord()
@@ -51,7 +65,36 @@ class TestMultiValue(unittest.TestCase):
     def test_equality(self):
         len_ = 20
         a = LDAPRecord((str(n), set(range(0, n))) for n in range(len_))
-        print(a)
+        b = LDAPRecord((str(n), set(range(0, n))) for n in range(len_))
+        self.assertEqual(a, b)
+
+    def test_equality_negative(self):
+        len_ = 20
+        a = LDAPRecord((str(n), set(range(0, n))) for n in range(len_))
+        b = LDAPRecord((str(n), set(range(0, n+1))) for n in range(len_))
+        self.assertNotEqual(a, b)
+
+    def test_case_lowered_keys(self):
+        a = LDAPRecord()
+        b = LDAPRecord()
+
+        a["volume"].add(2)
+        b["VOLUME"].add(10)
+        self.assertNotEqual(a, b)
+
+        a["volume"].add(10)
+        b["VOLUME"].add(2)
+        self.assertEqual(a, b)
+
+    def test_instantiation_with_keyword_arguments(self):
+        a = {"one": {1}}
+        b = {"two": {2}}
+        c = LDAPRecord()
+        c.update(a)
+        c.update(b)
+
+        d = LDAPRecord(a, **b)
+        self.assertEqual(c, d)
 
 class LDAPRecordTests(unittest.TestCase):
 
@@ -105,12 +148,12 @@ class LDAPRecordTests(unittest.TestCase):
         cn: {uuid}
         sn: UNKNOWN
         """.format(uuid=uuid_)
-        ldif = LDAPRecordTests.ldif_content2dict(expect)
-        ldif.update({"version": {'1'}, "changetype": {"add"}})
+        ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
+        #ldif.update({"version": {'1'}, "changetype": {"add"}})
         result = ldap_membership(self.connection, uuid_).response
         self.assertEqual(
             ldif,
-            LDAPRecordTests.ldif_content2dict(result))
+            LDAPRecord.from_ldif(result))
 
     def test_state_two(self):
         expect = """
