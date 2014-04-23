@@ -3,6 +3,7 @@
 
 
 from collections import UserDict
+import textwrap
 import unittest
 
 import ldap3
@@ -96,7 +97,20 @@ class TestLDAPRecord(unittest.TestCase):
         d = LDAPRecord(a, **b)
         self.assertEqual(c, d)
 
-class LDAPRecordTests(unittest.TestCase):
+    def test_ldif_linelength(self):
+        uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
+        rcrd = textwrap.dedent("""
+        dn: cn={uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
+        objectclass: top
+        """.format(uuid=uuid_)).strip()
+        self.assertEqual(84, len(rcrd.splitlines()[0]))
+
+        ldif = textwrap.wrap(rcrd, width=78)
+        self.assertTrue(ldif[1].startswith(",dc=uk"))
+        r = LDAPRecord.from_ldif('\n'.join(ldif))
+        self.assertEqual({"dn", "objectclass"}, set(r.keys()))
+        
+class RecordChangeTests(unittest.TestCase):
 
     complete = """
     dn: cn=dehaynes,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
@@ -124,22 +138,9 @@ class LDAPRecordTests(unittest.TestCase):
         self.connection = ldap3.Connection(
             server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
 
-    @staticmethod
-    def ldif_content2dict(val):
-        rv = LDAPRecord()
-        for line in (i.strip() for i in val.splitlines()):
-            try:
-                k, v = line.split(":", maxsplit=1)
-            except ValueError:
-                if line.isspace():
-                    continue
-            else:
-                rv[k.strip()].add(v.strip())
-        return rv
-
     def test_state_one(self):
         uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
-        uuid_ = "3dc9947b78345f864972ee31f"
+        #uuid_ = "3dc9947b78345f864972ee31f"
         expect = """
         dn: cn={uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
