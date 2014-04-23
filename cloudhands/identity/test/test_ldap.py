@@ -13,7 +13,15 @@ class LDAPRecord(UserDict):
     @classmethod
     def from_ldif(cls, val, **kwargs):
         rv = cls(**kwargs)
-        for line in (i.strip() for i in val.splitlines()):
+        lines = val.splitlines()
+        while len(lines):
+            line = lines.pop(0)
+            try:
+                if lines[0].startswith(" "):
+                    line = line + lines.pop(0).lstrip()
+            except IndexError:
+                pass
+
             try:
                 k, v = line.split(":", maxsplit=1)
             except ValueError:
@@ -99,15 +107,18 @@ class TestLDAPRecord(unittest.TestCase):
 
     def test_ldif_linelength(self):
         uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
-        rcrd = textwrap.dedent("""
+        long = textwrap.dedent("""
         dn: cn={uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
-        objectclass: top
         """.format(uuid=uuid_)).strip()
-        self.assertEqual(84, len(rcrd.splitlines()[0]))
 
-        ldif = textwrap.wrap(rcrd, width=78)
+        self.assertEqual(84, len(long.splitlines()[0]))
+        ldif = textwrap.wrap(long, width=78)
         self.assertTrue(ldif[1].startswith(",dc=uk"))
-        r = LDAPRecord.from_ldif('\n'.join(ldif))
+        ldif[1] = " " + ldif[1]  # RFC2849 line folding
+
+        short = "objectclass: top"
+
+        r = LDAPRecord.from_ldif('\n'.join(ldif + [short]))
         self.assertEqual({"dn", "objectclass"}, set(r.keys()))
         
 class RecordChangeTests(unittest.TestCase):
@@ -141,14 +152,14 @@ class RecordChangeTests(unittest.TestCase):
     def test_state_one(self):
         uuid_ = "3dceb7f3dc9947b78345f864972ee31f"
         #uuid_ = "3dc9947b78345f864972ee31f"
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn={uuid},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
         description: JASMIN2 vCloud registration
         cn: {uuid}
         sn: UNKNOWN
-        """.format(uuid=uuid_)
+        """.format(uuid=uuid_))
         ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
         #ldif.update({"version": {'1'}, "changetype": {"add"}})
         result = ldap_membership(self.connection, uuid_).response
