@@ -2,10 +2,34 @@
 #   encoding: UTF-8
 
 
-from collections import defaultdict
+from collections import UserDict
 import unittest
 
 import ldap3
+
+class LDAPRecord(UserDict):
+
+    def __getitem__(self, key):
+        try:
+            rv = self.data[self.__keytransform__(key)]
+        except KeyError:
+            rv = self.data[self.__keytransform__(key)] = set()
+        finally:
+            return rv
+
+    def __delitem__(self, key):
+        del self.store[self.__keytransform__(key)]
+
+    def __eq__(self, other):
+        keyDiff = set(self.keys()) ^ set(other.keys())
+        print(keyDiff)
+        return len(keyDiff) == 0
+
+    def __keytransform__(self, key):
+        return key.lower()
+
+    def __setitem__(self, key, value):
+        self.data[self.__keytransform__(key)] = value
 
 def ldap_membership(con, uuid):
     con.add(
@@ -18,20 +42,16 @@ def ldap_membership(con, uuid):
     )
     return con
 
-class LDAPFaker:
+class TestMultiValue(unittest.TestCase):
 
-    @staticmethod
-    def demo():
-        connection = ldap3.Connection(
-            server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
-        connection.add(
-            "cn=test-add-operation,o=test",
-            ["iNetOrgPerson"], {
-                "objectClass": ["iNetOrgPerson"],
-                "sn": "test-add",
-                "cn": "test-add-operation"}
-        )
-        return connection
+    def test_missing_key(self):
+        a = LDAPRecord()
+        self.assertTrue(isinstance(a["new"], set))
+
+    def test_equality(self):
+        len_ = 20
+        a = LDAPRecord((str(n), set(range(0, n))) for n in range(len_))
+        print(a)
 
 class LDAPRecordTests(unittest.TestCase):
 
@@ -63,7 +83,7 @@ class LDAPRecordTests(unittest.TestCase):
 
     @staticmethod
     def ldif_content2dict(val):
-        rv = defaultdict(set)
+        rv = LDAPRecord()
         for line in (i.strip() for i in val.splitlines()):
             try:
                 k, v = line.split(":", maxsplit=1)
@@ -88,9 +108,9 @@ class LDAPRecordTests(unittest.TestCase):
         ldif = LDAPRecordTests.ldif_content2dict(expect)
         ldif.update({"version": {'1'}, "changetype": {"add"}})
         result = ldap_membership(self.connection, uuid_).response
-        print(result)
-        print(set(ldif.values()) - 
-            set(LDAPRecordTests.ldif_content2dict(result).values()))
+        self.assertEqual(
+            ldif,
+            LDAPRecordTests.ldif_content2dict(result))
 
     def test_state_two(self):
         expect = """
