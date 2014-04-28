@@ -54,6 +54,19 @@ class LDAPRecord(UserDict):
         self.data[self.__keytransform__(key)] = value
 
 
+class RecordPatterns:
+
+    registration_person = 1
+    registration_inetorgperson = 2
+    registration_inetorgperson_sn = 3
+    user_inetorgperson_dn = 4
+    user_posixaccount = 5
+    user_ldappublickey = 6
+
+    @staticmethod
+    def identify(val):
+        return None
+
 def ldap_membership(con, uuid):
     con.add(
         "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
@@ -161,11 +174,13 @@ class RecordChangeTests(unittest.TestCase):
         sn: UNKNOWN
         """.format(uuid=uuid_))
         ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
-        #ldif.update({"version": {'1'}, "changetype": {"add"}})
         result = ldap_membership(self.connection, uuid_).response
         self.assertEqual(
             ldif,
             LDAPRecord.from_ldif(result))
+        self.assertEqual(
+            RecordPatterns.registration_person,
+            RecordPatterns.identify(ldif))
 
     def test_state_two(self):
         expect = """
