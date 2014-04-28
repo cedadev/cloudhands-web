@@ -3,11 +3,13 @@
 
 
 from collections import UserDict
+import functools
 import textwrap
 import unittest
 
 import ldap3
 
+@functools.total_ordering
 class LDAPRecord(UserDict):
 
     @classmethod
@@ -47,6 +49,11 @@ class LDAPRecord(UserDict):
         return len(keyDiff) == 0 and all(
            self[i] == other[i] for i in sorted(self.keys()))
 
+    def __gt__(self, other):
+        return (
+            sum(len(i) for i in self.values())
+            > sum(len(i) for i in other.values()))
+
     def __keytransform__(self, key):
         return key.lower()
 
@@ -65,6 +72,25 @@ class RecordPatterns:
 
     @staticmethod
     def identify(val):
+        obj = LDAPRecord.from_ldif(val)
+        ref = LDAPRecord(
+            version=obj["version"], changetype=obj["changetype"],
+            dn=obj["dn"], cn=obj["cn"], sn=obj["sn"],
+            description=obj["description"],
+            objectclass={"top", "person"})
+        if obj == ref:
+            return RecordPatterns.registration_person
+        else:
+            ref["objectclass"].add("organizationalPerson")
+            ref["objectclass"].add("inetOrgPerson")
+            ref.update({"ou": obj["ou"], "mail": obj["mail"]})
+
+        if obj == ref:
+            if obj["sn"] == {"UNKNOWN"}:
+                return RecordPatterns.registration_inetorgperson
+            else:
+                return RecordPatterns.registration_inetorgperson_sn
+        print(ref)
         return None
 
 def ldap_membership(con, uuid):
@@ -174,16 +200,17 @@ class RecordChangeTests(unittest.TestCase):
         sn: UNKNOWN
         """.format(uuid=uuid_))
         ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
-        result = ldap_membership(self.connection, uuid_).response
+        result = ldap_membership(self.connection, uuid_).response  # FIXME
         self.assertEqual(
             ldif,
             LDAPRecord.from_ldif(result))
+
         self.assertEqual(
             RecordPatterns.registration_person,
-            RecordPatterns.identify(ldif))
+            RecordPatterns.identify(expect))
 
     def test_state_two(self):
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn=3dceb7f3dc9947b78345f864972ee31f,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
@@ -194,10 +221,13 @@ class RecordChangeTests(unittest.TestCase):
         sn: UNKNOWN
         ou: jasmin2
         mail: david.e.haynes@stfc.ac.uk
-        """
+        """)
+        self.assertEqual(
+            RecordPatterns.registration_inetorgperson,
+            RecordPatterns.identify(expect))
 
     def test_state_three(self):
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn=3dceb7f3dc9947b78345f864972ee31f,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
@@ -208,7 +238,10 @@ class RecordChangeTests(unittest.TestCase):
         sn: Haynes
         ou: jasmin2
         mail: david.e.haynes@stfc.ac.uk
-        """
+        """)
+        self.assertEqual(
+            RecordPatterns.registration_inetorgperson_sn,
+            RecordPatterns.identify(expect))
 
     def test_state_four(self):
         expect = """
