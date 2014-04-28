@@ -88,6 +88,8 @@ class RecordPatterns:
         if obj == ref:
             if obj["sn"] == {"UNKNOWN"}:
                 return RecordPatterns.registration_inetorgperson
+            elif any(i for i in obj["cn"] if len(i) == 8):
+                return RecordPatterns.user_inetorgperson_dn
             else:
                 return RecordPatterns.registration_inetorgperson_sn
         print(ref)
@@ -244,7 +246,7 @@ class RecordChangeTests(unittest.TestCase):
             RecordPatterns.identify(expect))
 
     def test_state_four(self):
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn=dehaynes,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
@@ -255,7 +257,10 @@ class RecordChangeTests(unittest.TestCase):
         sn: Haynes
         ou: jasmin2
         mail: david.e.haynes@stfc.ac.uk
-        """
+        """)
+        self.assertEqual(
+            RecordPatterns.user_inetorgperson_dn,
+            RecordPatterns.identify(expect))
 
     def test_state_five(self):
         expect = """
