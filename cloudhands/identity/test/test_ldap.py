@@ -92,8 +92,25 @@ class RecordPatterns:
                 return RecordPatterns.user_inetorgperson_dn
             else:
                 return RecordPatterns.registration_inetorgperson_sn
-        print(ref)
-        return None
+        else:
+            ref["objectclass"].add("posixAccount")
+            ref.update({
+                "uid": obj["uid"], "uidNumber": obj["uidNumber"],
+                "gidNumber": obj["gidNumber"],
+                "homeDirectory": obj["homeDirectory"],
+                "userPassword": obj["userPassword"],
+            })
+
+        if obj == ref:
+            return RecordPatterns.user_posixaccount
+        else:
+            ref["objectclass"].add("ldapPublicKey")
+            ref.update({"sshPublicKey": obj["sshPublicKey"]})
+
+        if obj == ref:
+            return RecordPatterns.user_ldappublickey
+        else:
+            return None
 
 def ldap_membership(con, uuid):
     con.add(
@@ -105,6 +122,7 @@ def ldap_membership(con, uuid):
             "sn": "UNKNOWN"}
     )
     return con
+
 
 class TestLDAPRecord(unittest.TestCase):
 
@@ -263,7 +281,7 @@ class RecordChangeTests(unittest.TestCase):
             RecordPatterns.identify(expect))
 
     def test_state_five(self):
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn=dehaynes,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
@@ -280,10 +298,13 @@ class RecordChangeTests(unittest.TestCase):
         gidNumber: 100
         mail: david.e.haynes@stfc.ac.uk
         homeDirectory: /home/dehaynes
-        """
+        """)
+        self.assertEqual(
+            RecordPatterns.user_posixaccount,
+            RecordPatterns.identify(expect))
 
     def test_state_six(self):
-        expect = """
+        expect = textwrap.dedent("""
         dn: cn=dehaynes,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
         objectclass: top
         objectclass: person
@@ -302,5 +323,8 @@ class RecordChangeTests(unittest.TestCase):
         mail: david.e.haynes@stfc.ac.uk
         homeDirectory: /home/dehaynes
         sshPublicKey: ssh-dss AAAAB3...
-        """
+        """)
+        self.assertEqual(
+            RecordPatterns.user_ldappublickey,
+            RecordPatterns.identify(expect))
 
