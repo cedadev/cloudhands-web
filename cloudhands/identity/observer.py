@@ -45,11 +45,11 @@ class Observer:
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
         preconfirm = session.query(RegistrationState).filter(
-            RegistrationState.name == "preconfirm").one()
+            RegistrationState.name == "pre_registration_inetorgperson").one()
         while True:
             unsent = [
                 r for r in session.query(Registration).all()
-                if r.changes[-1].state.name == "modified"]
+                if r.changes[-1].state.name == "pre_registration_person"]
             for reg in unsent:
                 try:
                     user = reg.changes[0].actor

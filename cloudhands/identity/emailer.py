@@ -16,6 +16,7 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Registration
+from cloudhands.common.schema import TimeInterval
 from cloudhands.common.schema import Touch
 
 
@@ -58,8 +59,6 @@ class Emailer:
             Component.handle=="identity.controller").one()
         postconfirm = session.query(RegistrationState).filter(
             RegistrationState.name == "postconfirm").one()
-        # TODO: Create an activation resource with a time limit. Remove
-        # postconfirm
         while True:
             dst, host, reg_uuid = yield from self.q.get()
             path = "registration/{}".format(reg_uuid)
@@ -68,8 +67,11 @@ class Emailer:
 
             reg = session.query(Registration).filter(
                 Registration.uuid == reg_uuid).first()
+            latest = reg.changes[-1]
             now = datetime.datetime.utcnow()
-            act = Touch(artifact=reg, actor=actor, state=postconfirm, at=now)
+            end = now + datetime.timedelta(hours=24)
+            act = Touch(artifact=reg, actor=actor, state=latest.state, at=now)
+            limit = TimeInterval(end=end, touch=act) 
 
             msg = MIMEMultipart("alternative")
             msg["Subject"] = self.config["smtp.src"]["subject"]
@@ -86,7 +88,7 @@ class Emailer:
             s.quit()
 
             try:
-                session.add(act)
+                session.add(limit)
                 session.commit()
             except Exception as e:
                 log.error(e)
