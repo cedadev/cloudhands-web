@@ -112,16 +112,24 @@ class RecordPatterns:
         else:
             return None
 
-def ldap_membership(con, uuid):
-    con.add(
-        "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
-        ["top", "person"], {
-            "objectClass": ["top", "person"],
-            "description": "JASMIN2 vCloud registration",
-            "cn": uuid,
-            "sn": "UNKNOWN"}
-    )
-    return con
+    @staticmethod
+    def next_mutator(pattern=None):
+        transitions = {
+            None: RecordPatterns.add_registration_person,
+        }
+        return transitions[pattern]
+
+    # TODO: arg is an LDAPRecord
+    def add_registration_person(con, uuid):
+        con.add(
+            "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
+            ["top", "person"], {
+                "objectClass": ["top", "person"],
+                "description": "JASMIN2 vCloud registration",
+                "cn": uuid,
+                "sn": "UNKNOWN"}
+        )
+        return con
 
 
 class TestLDAPRecord(unittest.TestCase):
@@ -220,7 +228,8 @@ class RecordChangeTests(unittest.TestCase):
         sn: UNKNOWN
         """.format(uuid=uuid_))
         ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
-        result = ldap_membership(self.connection, uuid_).response  # FIXME
+        result = RecordPatterns.add_registration_person(
+            self.connection, uuid_).response  # FIXME
         self.assertEqual(
             ldif,
             LDAPRecord.from_ldif(result))

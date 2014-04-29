@@ -58,6 +58,8 @@ class Emailer:
             Component.handle=="identity.controller").one()
         postconfirm = session.query(RegistrationState).filter(
             RegistrationState.name == "postconfirm").one()
+        # TODO: Create an activation resource with a time limit. Remove
+        # postconfirm
         while True:
             dst, host, reg_uuid = yield from self.q.get()
             path = "registration/{}".format(reg_uuid)
