@@ -262,12 +262,13 @@ def login_update(request):
     user = con.session.query(User).filter(
         User.handle == data["username"]).first()
     if not user:
-        raise HTTPClientError("User {} not found".format(data["handle"]))
+        raise HTTPClientError("User {} not found".format(data["username"]))
 
     # Find the most recent valid registration for this user
     reg = con.session.query(Registration).join(Touch).join(User).join(
-        State).filter(User.handle == data["handle"]).filter(
-        State.name == "valid").order_by(desc(Touch.at)).first()
+        State).filter(User.handle == data["username"]).filter(
+        State.name not in ("expired", "withdrawn")).order_by(
+        desc(Touch.at)).first()
     if not reg:
         raise HTTPInternalServerError(
             "No valid registration found for {}".format(user.handle))
@@ -584,10 +585,11 @@ def registration_read(request):
     con = registered_connection(request)
     reg = con.session.query(Registration).filter(
         Registration.uuid == reg_uuid).first()
-    if reg and reg.changes[-1].state.name == "postconfirm":
+    # TODO: Check TimeInterval hasn't expired
+    if reg and reg.changes[-1].state.name == "pre_registration_inetorgperson":
         user = reg.changes[0].actor
         valid = con.session.query(RegistrationState).filter(
-            RegistrationState.name == "valid").one()
+            RegistrationState.name == "pre_registration_inetorgperson_sn").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=reg, actor=user, state=valid, at=now)
         con.session.add(act)

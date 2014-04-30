@@ -57,8 +57,6 @@ class Emailer:
         initialise(session)
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
-        postconfirm = session.query(RegistrationState).filter(
-            RegistrationState.name == "postconfirm").one()
         while True:
             dst, host, reg_uuid = yield from self.q.get()
             path = "registration/{}".format(reg_uuid)
