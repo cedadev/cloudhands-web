@@ -46,18 +46,18 @@ class NewPasswordTests(RegistrationLifecycleTests):
         self.user = User(handle=None, uuid=uuid.uuid4().hex)
         preconfirm = self.session.query(
             RegistrationState).filter(
-            RegistrationState.name=="preconfirm").one()
+            RegistrationState.name=="pre_registration_inetorgperson").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=self.reg, actor=self.system, state=preconfirm, at=now)
         self.session.add_all((act, self.system, self.user))
         self.session.commit()
 
     def test_bring_registration_to_confirmation(self):
-        self.assertEqual("preconfirm", self.reg.changes[-1].state.name)
+        self.assertEqual("pre_registration_inetorgperson", self.reg.changes[-1].state.name)
         password = "existsinmemory"
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
-        self.assertEqual("modified", self.reg.changes[-1].state.name)
+        self.assertEqual("pre_registration_person", self.reg.changes[-1].state.name)
         self.assertTrue(self.session.query(BcryptedPassword).count())
         self.assertTrue(op.match(password))
         self.assertFalse(op.match(str(reversed(password))))

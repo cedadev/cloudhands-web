@@ -564,7 +564,7 @@ def registration_create(request):
             " Please choose again.")
 
     preconfirm = con.session.query(RegistrationState).filter(
-        RegistrationState.name == "preconfirm").one()
+        RegistrationState.name == "pre_registration_inetorgperson").one()
     reg = Registration(
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__)
