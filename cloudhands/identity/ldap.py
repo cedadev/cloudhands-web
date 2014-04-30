@@ -2,12 +2,10 @@
 # encoding: UTF-8
 
 import argparse
-import ast
 import asyncio
 from collections import UserDict
 import functools
 import logging
-import pprint
 import sys
 import textwrap
 
@@ -131,17 +129,15 @@ class LDAPProxy:
     _shared_state = {}
 
 
-    # TODO: arg is an LDAPRecord
-    def add_registration_person(con, uuid):
+    @staticmethod
+    def ldif_add(record):
+        con = ldap3.Connection(
+            server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
         con.add(
-            "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(uuid),
-            ["top", "person"], {
-                "objectClass": ["top", "person"],
-                "description": "JASMIN2 vCloud registration",
-                "cn": uuid,
-                "sn": "UNKNOWN"}
-        )
-        return con
+            list(record["dn"])[0], list(record["objectclass"]),
+            {k:list(v)[0] if len(v) == 1 else v
+            for k, v in record.items() if k not in ("dn", "objectclass")})
+        return con.response
 
     def __init__(self, q, args, config):
         self.__dict__ = self._shared_state
@@ -160,8 +156,7 @@ class LDAPProxy:
                 log.warning("Sentinel received. Shutting down.")
                 break
             else:
-                log.debug(obj)
-
+                log.debug(LDAPProxy.ldif_add(obj))
 
 def main(args):
     log = logging.getLogger("cloudhands.identity")
@@ -188,7 +183,6 @@ def main(args):
     else:
         log.info("Input recognised as {}.".format(pattern))
         record = LDAPRecord.from_ldif(input)
-        pprint.pprint(record)
         loop.call_soon_threadsafe(q.put_nowait, record)
 
     loop.call_soon_threadsafe(q.put_nowait, None)
