@@ -2,15 +2,24 @@
 # encoding: UTF-8
 
 import argparse
+import ast
 import asyncio
 from collections import UserDict
 import functools
 import logging
+import pprint
 import sys
+import textwrap
 
 from cloudhands.web import __version__
 
 import ldap3
+
+__doc__ = """
+This module has a test mode::
+
+python3 -m cloudhands.identity.ldap --name=dehaynes | python3 -m cloudhands.identity.ldap
+"""
 
 
 @functools.total_ordering
@@ -67,12 +76,12 @@ class LDAPRecord(UserDict):
 
 class RecordPatterns:
 
-    registration_person = 1
-    registration_inetorgperson = 2
-    registration_inetorgperson_sn = 3
-    user_inetorgperson_dn = 4
-    user_posixaccount = 5
-    user_ldappublickey = 6
+    registration_person = "unverified anonymous registration"
+    registration_inetorgperson = "verified anonymous registration"
+    registration_inetorgperson_sn = "verified registration"
+    user_inetorgperson_dn = "user without account"
+    user_posixaccount = "user account"
+    user_ldappublickey = "user account with public key"
 
     @staticmethod
     def identify(val):
@@ -150,6 +159,8 @@ class LDAPProxy:
             if obj is None:
                 log.warning("Sentinel received. Shutting down.")
                 break
+            else:
+                log.debug(obj)
 
 
 def main(args):
@@ -169,8 +180,18 @@ def main(args):
     loop = asyncio.get_event_loop()
     q = asyncio.Queue(loop=loop)
     proxy = LDAPProxy(q, args, config)
-    loop.call_soon_threadsafe(q.put_nowait, None)
 
+    input = sys.stdin.read()
+    pattern = RecordPatterns.identify(input)
+    if pattern is None:
+        log.warning("Unrecognised input.")
+    else:
+        log.info("Input recognised as {}.".format(pattern))
+        record = LDAPRecord.from_ldif(input)
+        pprint.pprint(record)
+        loop.call_soon_threadsafe(q.put_nowait, record)
+
+    loop.call_soon_threadsafe(q.put_nowait, None)
 
     tasks = asyncio.Task.all_tasks()
     loop.run_until_complete(asyncio.wait(tasks))
@@ -180,7 +201,12 @@ def main(args):
 
 
 def parser(descr=__doc__):
-    rv = argparse.ArgumentParser(description=descr)
+    rv = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=descr)
+    rv.add_argument(
+        "--name", default=None,
+        help="Print a new LDAP record with the given name")
     rv.add_argument(
         "--version", action="store_true", default=False,
         help="Print the current version number")
@@ -195,9 +221,18 @@ def parser(descr=__doc__):
 def run():
     p = parser()
     args = p.parse_args()
+    rv = 0
     if args.version:
         sys.stdout.write(__version__ + "\n")
-        rv = 0
+    if args.name:
+        sys.stdout.write(textwrap.dedent("""
+        dn: cn={0},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
+        objectclass: top
+        objectclass: person
+        description: JASMIN2 vCloud registration
+        cn: {0}
+        sn: UNKNOWN
+        """.format(args.name)))
     else:
         rv = main(args)
     sys.exit(rv)

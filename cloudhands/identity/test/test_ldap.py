@@ -69,7 +69,7 @@ class TestLDAPRecord(unittest.TestCase):
         
 class RecordChangeTests(unittest.TestCase):
 
-    complete = """
+    sample = """
     dn: cn=dehaynes,ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk
     objectclass: top
     objectclass: person
@@ -106,12 +106,12 @@ class RecordChangeTests(unittest.TestCase):
         cn: {uuid}
         sn: UNKNOWN
         """.format(uuid=uuid_))
-        ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
-        result = RecordPatterns.add_registration_person(
-            self.connection, uuid_).response  # FIXME
-        self.assertEqual(
-            ldif,
-            LDAPRecord.from_ldif(result))
+        #ldif = LDAPRecord.from_ldif(expect, version={"1"}, changetype={"add"})
+        #result = RecordPatterns.add_registration_person(
+        #    self.connection, uuid_).response  # FIXME
+        #self.assertEqual(
+        #    ldif,
+        #    LDAPRecord.from_ldif(result))
 
         self.assertEqual(
             RecordPatterns.registration_person,
