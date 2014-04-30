@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
+import argparse
 import asyncio
 from collections import UserDict
 import functools
+import logging
+import sys
+
+from cloudhands.web import __version__
 
 import ldap3
 
@@ -111,12 +116,11 @@ class RecordPatterns:
         else:
             return None
 
-    @staticmethod
-    def next_mutator(pattern=None):
-        transitions = {
-            None: RecordPatterns.add_registration_person,
-        }
-        return transitions[pattern]
+
+class LDAPProxy:
+
+    _shared_state = {}
+
 
     # TODO: arg is an LDAPRecord
     def add_registration_person(con, uuid):
@@ -130,4 +134,73 @@ class RecordPatterns:
         )
         return con
 
+    def __init__(self, q, args, config):
+        self.__dict__ = self._shared_state
+        if not hasattr(self, "task"):
+            self.q = q
+            self.args = args
+            self.config = config
+            self.task = asyncio.Task(self.modify())
 
+    @asyncio.coroutine
+    def modify(self):
+        log = logging.getLogger("cloudhands.identity.ldap")
+        while True:
+            obj = yield from self.q.get()
+            if obj is None:
+                log.warning("Sentinel received. Shutting down.")
+                break
+
+
+def main(args):
+    log = logging.getLogger("cloudhands.identity")
+    log.setLevel(args.log_level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    ch = logging.StreamHandler()
+    ch.setLevel(args.log_level)
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
+
+    #portalName, config = next(iter(settings.items()))
+    config = None
+
+    loop = asyncio.get_event_loop()
+    q = asyncio.Queue(loop=loop)
+    proxy = LDAPProxy(q, args, config)
+    loop.call_soon_threadsafe(q.put_nowait, None)
+
+
+    tasks = asyncio.Task.all_tasks()
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()
+
+    return 0
+
+
+def parser(descr=__doc__):
+    rv = argparse.ArgumentParser(description=descr)
+    rv.add_argument(
+        "--version", action="store_true", default=False,
+        help="Print the current version number")
+    rv.add_argument(
+        "-v", "--verbose", required=False,
+        action="store_const", dest="log_level",
+        const=logging.DEBUG, default=logging.INFO,
+        help="Increase the verbosity of output")
+    return rv
+
+
+def run():
+    p = parser()
+    args = p.parse_args()
+    if args.version:
+        sys.stdout.write(__version__ + "\n")
+        rv = 0
+    else:
+        rv = main(args)
+    sys.exit(rv)
+
+if __name__ == "__main__":
+    run()
