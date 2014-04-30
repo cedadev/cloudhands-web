@@ -9,6 +9,7 @@ import logging
 import sys
 import textwrap
 
+from cloudhands.common.discovery import settings
 from cloudhands.web import __version__
 
 import ldap3
@@ -157,6 +158,11 @@ class LDAPProxy:
                 break
             else:
                 log.debug(LDAPProxy.ldif_add(obj))
+                s = ldap3.Server(
+                    self.config["ldap.search"]["host"],
+                    port=int(self.config["ldap.search"]["port"]),
+                    get_info=ldap3.GET_NO_INFO)
+                log.debug(s)
 
 def main(args):
     log = logging.getLogger("cloudhands.identity")
@@ -169,8 +175,7 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    #portalName, config = next(iter(settings.items()))
-    config = None
+    portalName, config = next(iter(settings.items()))
 
     loop = asyncio.get_event_loop()
     q = asyncio.Queue(loop=loop)
