@@ -4,12 +4,19 @@
 import argparse
 import asyncio
 from collections import UserDict
+import datetime
 import functools
 import logging
+import sqlite3
 import sys
 import textwrap
 
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
+from cloudhands.common.fsm import RegistrationState
+from cloudhands.common.schema import Component
+from cloudhands.common.schema import Registration
 from cloudhands.web import __version__
 
 import ldap3
@@ -20,6 +27,8 @@ This module has a test mode::
 python3 -m cloudhands.identity.ldap --name=dehaynes | python3 -m cloudhands.identity.ldap
 """
 
+
+DFLT_DB = ":memory:"
 
 @functools.total_ordering
 class LDAPRecord(UserDict):
@@ -150,8 +159,14 @@ class LDAPProxy:
     @asyncio.coroutine
     def modify(self):
         log = logging.getLogger("cloudhands.identity.ldap")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        valid = session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
         while True:
-            record = yield from self.q.get()
+            record, reg_uuid = yield from self.q.get()
             if record is None:
                 log.warning("Sentinel received. Shutting down.")
                 break
@@ -168,14 +183,37 @@ class LDAPProxy:
                         password=self.config["ldap.creds"]["password"],
                         auto_bind=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
-                    c.add(
-                        list(record["dn"])[0], list(record["objectclass"]),
-                        {k:list(v)[0] if len(v) == 1 else v
-                        for k, v in record.items() if k not in ("dn", "objectclass")})
+
+                    dn = list(record["dn"])[0]
+                    found = c.search(
+                        search_base=dn,
+                        search_filter="(objectClass=Person)",
+                        search_scope=ldap3.SEARCH_SCOPE_BASE_OBJECT)
+                    log.debug(c.response)
+                    if not found:
+                        c.add(dn, list(record["objectclass"]),
+                              {k:list(v)[0] if len(v) == 1 else v
+                              for k, v in record.items()
+                              if k not in ("dn", "objectclass")})
+                    elif reg_uuid is not None:
+                        reg = session.query(Registration).filter(
+                            Registration.uuid == reg_uuid).first()
+                        now = datetime.datetime.utcnow()
+                        act = Touch(
+                            artifact=reg, actor=actor, state=valid, at=now)
+
+                        try:
+                            session.add(act)
+                            session.commit()
+                        except Exception as e:
+                            log.error(e)
+                            session.rollback()
+                        else:
+                            log.debug(act)
+
                 except Exception as e:
                     log.error(e)
-                    raise
-                log.debug(c.response)
+                    continue
 
 def main(args):
     log = logging.getLogger("cloudhands.identity")
@@ -201,9 +239,9 @@ def main(args):
     else:
         log.info("Input recognised as {}.".format(pattern))
         record = LDAPRecord.from_ldif(input)
-        loop.call_soon_threadsafe(q.put_nowait, record)
+        loop.call_soon_threadsafe(q.put_nowait, (record, None))
 
-    loop.call_soon_threadsafe(q.put_nowait, None)
+    loop.call_soon_threadsafe(q.put_nowait, (None, None))
 
     tasks = asyncio.Task.all_tasks()
     loop.run_until_complete(asyncio.wait(tasks))
@@ -219,6 +257,9 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--name", default=None,
         help="Print a new LDAP record with the given name")
+    rv.add_argument(
+        "--db", default=DFLT_DB,
+        help="Set the path to the database [{}]".format(DFLT_DB))
     rv.add_argument(
         "--version", action="store_true", default=False,
         help="Print the current version number")
