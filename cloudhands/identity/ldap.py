@@ -159,7 +159,7 @@ class LDAPProxy:
                 s = ldap3.Server(
                     self.config["ldap.search"]["host"],
                     port=int(self.config["ldap.search"]["port"]),
-                    use_ssl=True,
+                    use_ssl=self.config["ldap.creds"].getboolean("use_ssl"),
                     get_info=ldap3.GET_NO_INFO)
                 try:
                     c = ldap3.Connection(
