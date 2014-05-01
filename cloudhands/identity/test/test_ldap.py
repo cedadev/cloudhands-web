@@ -115,7 +115,7 @@ class RecordChangeTests(unittest.TestCase):
 
         self.assertEqual(
             RecordPatterns.registration_person,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 
     def test_state_two(self):
         expect = textwrap.dedent("""
@@ -132,7 +132,7 @@ class RecordChangeTests(unittest.TestCase):
         """)
         self.assertEqual(
             RecordPatterns.registration_inetorgperson,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 
     def test_state_three(self):
         expect = textwrap.dedent("""
@@ -149,7 +149,7 @@ class RecordChangeTests(unittest.TestCase):
         """)
         self.assertEqual(
             RecordPatterns.registration_inetorgperson_sn,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 
     def test_state_four(self):
         expect = textwrap.dedent("""
@@ -166,7 +166,7 @@ class RecordChangeTests(unittest.TestCase):
         """)
         self.assertEqual(
             RecordPatterns.user_inetorgperson_dn,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 
     def test_state_five(self):
         expect = textwrap.dedent("""
@@ -189,7 +189,7 @@ class RecordChangeTests(unittest.TestCase):
         """)
         self.assertEqual(
             RecordPatterns.user_posixaccount,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 
     def test_state_six(self):
         expect = textwrap.dedent("""
@@ -214,5 +214,5 @@ class RecordChangeTests(unittest.TestCase):
         """)
         self.assertEqual(
             RecordPatterns.user_ldappublickey,
-            RecordPatterns.identify(expect))
+            RecordPatterns.identify(LDAPRecord.from_ldif(expect)))
 

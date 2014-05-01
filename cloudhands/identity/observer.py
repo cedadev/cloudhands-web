@@ -50,6 +50,9 @@ class Observer:
             unsent = [
                 r for r in session.query(Registration).all()
                 if r.changes[-1].state.name == "pre_registration_person"]
+            unpublished = [
+                r for r in session.query(Registration).all()
+                if r.changes[-1].state.name == "pre_registration_person_sn"]
             for reg in unsent:
                 try:
                     user = reg.changes[0].actor
@@ -72,6 +75,10 @@ class Observer:
                         log.error(e)
                         session.rollback()
                         break
+
+            for reg in unpublished:
+                # Build LDAPRecord
+                pass
 
             log.debug("Waiting for {}s".format(self.args.interval))
             yield from asyncio.sleep(self.args.interval)

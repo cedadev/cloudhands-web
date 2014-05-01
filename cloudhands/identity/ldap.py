@@ -83,8 +83,7 @@ class RecordPatterns:
     user_ldappublickey = "user account with public key"
 
     @staticmethod
-    def identify(val):
-        obj = LDAPRecord.from_ldif(val)
+    def identify(obj):
         ref = LDAPRecord(
             version=obj["version"], changetype=obj["changetype"],
             dn=obj["dn"], cn=obj["cn"], sn=obj["sn"],
@@ -182,7 +181,7 @@ def main(args):
     proxy = LDAPProxy(q, args, config)
 
     input = sys.stdin.read()
-    pattern = RecordPatterns.identify(input)
+    pattern = RecordPatterns.identify(LDAPRecord.from_ldif(input))
     if pattern is None:
         log.warning("Unrecognised input.")
     else:
