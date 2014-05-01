@@ -77,7 +77,10 @@ class Observer:
                         break
 
             for reg in unpublished:
-                # Build LDAPRecord
+                # TODO: Build LDAPRecord
+                user = reg.changes[0].actor
+                resources = [r for i in reg.changes for r in i]
+                print(resources)
                 pass
 
             log.debug("Waiting for {}s".format(self.args.interval))

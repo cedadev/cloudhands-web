@@ -151,17 +151,31 @@ class LDAPProxy:
     def modify(self):
         log = logging.getLogger("cloudhands.identity.ldap")
         while True:
-            obj = yield from self.q.get()
-            if obj is None:
+            record = yield from self.q.get()
+            if record is None:
                 log.warning("Sentinel received. Shutting down.")
                 break
             else:
-                log.debug(LDAPProxy.ldif_add(obj))
                 s = ldap3.Server(
                     self.config["ldap.search"]["host"],
                     port=int(self.config["ldap.search"]["port"]),
+                    use_ssl=True,
                     get_info=ldap3.GET_NO_INFO)
-                log.debug(s)
+                try:
+                    c = ldap3.Connection(
+                        s,
+                        user=self.config["ldap.creds"]["user"],
+                        password=self.config["ldap.creds"]["password"],
+                        auto_bind=True,
+                        client_strategy=ldap3.STRATEGY_SYNC)
+                    c.add(
+                        list(record["dn"])[0], list(record["objectclass"]),
+                        {k:list(v)[0] if len(v) == 1 else v
+                        for k, v in record.items() if k not in ("dn", "objectclass")})
+                except Exception as e:
+                    log.error(e)
+                    raise
+                log.debug(c.response)
 
 def main(args):
     log = logging.getLogger("cloudhands.identity")
