@@ -30,16 +30,19 @@ class Observer:
 
     _shared_state = {}
 
-    def __init__(self, q, args, config):
+    def __init__(self, emailQ, ldapQ, args, config):
         self.__dict__ = self._shared_state
-        if not hasattr(self, "task"):
-            self.q = q
+        if not hasattr(self, "tasks"):
+            self.emailQ = emailQ
+            self.ldapQ = ldapQ
             self.args = args
-            self.task = asyncio.Task(self.monitor())
+            self.tasks = [
+                asyncio.Task(self.mailer()),
+                asyncio.Task(self.publisher())]
 
     @asyncio.coroutine
-    def monitor(self):
-        log = logging.getLogger(__name__)
+    def mailer(self):
+        log = logging.getLogger(__name__ + ".mailer")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         actor = session.query(Component).filter(
@@ -67,7 +70,7 @@ class Observer:
                     log.debug(msg)
                     now = datetime.datetime.utcnow()
                     act = Touch(artifact=reg, actor=actor, state=preconfirm, at=now)
-                    yield from self.q.put(msg)
+                    yield from self.emailQ.put(msg)
                     try:
                         session.add(act)
                         session.commit()
@@ -76,12 +79,31 @@ class Observer:
                         session.rollback()
                         break
 
-            for reg in unpublished:
-                # TODO: Build LDAPRecord
-                user = reg.changes[0].actor
-                resources = [r for i in reg.changes for r in i]
-                print(resources)
-                pass
+            log.debug("Waiting for {}s".format(self.args.interval))
+            yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publisher(self):
+        log = logging.getLogger(__name__ + ".publisher")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    r for r in session.query(Registration).all() if (
+                    r.changes[-1].state.name ==
+                    "pre_registration_inetorgperson_sn")]
+
+                for reg in unpublished:
+                    # TODO: Build LDAPRecord
+                    user = reg.changes[0].actor
+                    resources = [r for i in reg.changes for r in i.resources]
+                    log.debug(resources)
+                    msg = (None, reg.uuid)
+            except Exception as e:
+                log.error(e)
 
             log.debug("Waiting for {}s".format(self.args.interval))
             yield from asyncio.sleep(self.args.interval)

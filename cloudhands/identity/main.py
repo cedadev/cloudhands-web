@@ -11,6 +11,7 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 from cloudhands.identity.emailer import Emailer
+from cloudhands.identity.ldap import LDAPProxy
 from cloudhands.identity.observer import Observer
 
 __doc__ = """
@@ -42,13 +43,12 @@ def main(args):
     portalName, config = next(iter(settings.items()))
 
     loop = asyncio.get_event_loop()
-    q = asyncio.Queue(loop=loop)
-    emailer = Emailer(q, args, config)
-    observer = Observer(q, args, config)
-    #emailer.q.put_nowait(
-    #    ("david.e.haynes@stfc.ac.uk",
-    #    "http://jasmin-cloud.jc.rl.ac.uk:8080/"
-    #    "registration/1a3c37c3a2f646eea4447e0b629ba899"))
+    emailQ = asyncio.Queue(loop=loop)
+    ldapQ = asyncio.Queue(loop=loop)
+
+    emailer = Emailer(emailQ, args, config)
+    ldap = LDAPProxy(ldapQ, args, config)
+    observer = Observer(emailQ, ldapQ, args, config)
 
     tasks = asyncio.Task.all_tasks()
     loop.run_until_complete(asyncio.wait(tasks))
