@@ -21,6 +21,9 @@ from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.identity.ldap import LDAPRecord
+from cloudhands.identity.ldap import RecordPatterns
+
 __doc__ = """
 This process performs tasks to process Registrations to the JASMIN cloud.
 """
@@ -99,9 +102,23 @@ class Observer:
                 for reg in unpublished:
                     # TODO: Build LDAPRecord
                     user = reg.changes[0].actor
-                    resources = [r for i in reg.changes for r in i.resources]
-                    log.debug(resources)
-                    msg = (None, reg.uuid)
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
+                        objectclass={"top", "person", "organizationalPerson",
+                            "inetOrgPerson"},
+                        description={"JASMIN2 vCloud registration"},
+                        cn={reg.uuid},
+                        sn={"UNKNOWN"},
+                    )
+                    resources = [
+                        r for i in reg.changes for r in i.resources
+                        if isinstance(r, EmailAddress)]
+                    if resources:
+                        record["mail"].add(resources[0].value)
+                    msg = (record, reg.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(reg)
             except Exception as e:
                 log.error(e)
 

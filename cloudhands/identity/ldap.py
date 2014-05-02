@@ -17,6 +17,7 @@ from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Registration
+from cloudhands.common.schema import Touch
 from cloudhands.web import __version__
 
 import ldap3
