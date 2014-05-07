@@ -188,11 +188,12 @@ class LDAPProxy:
                         client_strategy=ldap3.STRATEGY_SYNC)
 
                     dn = list(record["dn"])[0]
+                    cn = list(record["cn"])[0]
                     found = c.search(
-                        search_base=dn,
-                        search_filter="(objectClass=Person)",
-                        search_scope=ldap3.SEARCH_SCOPE_BASE_OBJECT)
-                    log.debug(c.response)
+                        search_base=self.config["ldap.match"]["query"],
+                        search_filter=self.config["ldap.match"]["filter"].format(cn),
+                        search_scope=ldap3.SEARCH_SCOPE_WHOLE_SUBTREE)
+                        #SEARCH_SCOPE_BASE_OBJECT)
                     #TODO: change found logic
                     if not found:
                         c.add(dn, list(record["objectclass"]),
