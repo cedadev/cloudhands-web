@@ -193,28 +193,32 @@ class LDAPProxy:
                         search_base=self.config["ldap.match"]["query"],
                         search_filter=self.config["ldap.match"]["filter"].format(cn),
                         search_scope=ldap3.SEARCH_SCOPE_WHOLE_SUBTREE)
-                        #SEARCH_SCOPE_BASE_OBJECT)
-                    #TODO: change found logic
+
                     if not found:
                         c.add(dn, list(record["objectclass"]),
                               {k:list(v)[0] if len(v) == 1 else v
                               for k, v in record.items()
                               if k not in ("dn", "objectclass")})
+                        state = success
                     elif reg_uuid is not None:
-                        reg = session.query(Registration).filter(
-                            Registration.uuid == reg_uuid).first()
-                        now = datetime.datetime.utcnow()
-                        act = Touch(
-                            artifact=reg, actor=actor, state=success, at=now)
+                        state = fail
 
-                        try:
-                            session.add(act)
-                            session.commit()
-                        except Exception as e:
-                            log.error(e)
-                            session.rollback()
-                        else:
-                            log.debug(act)
+                    reg = session.query(Registration).filter(
+                        Registration.uuid == reg_uuid).first()
+                    now = datetime.datetime.utcnow()
+                    act = Touch(
+                        artifact=reg, actor=actor, state=state, at=now)
+
+                    # TODO: make PosixUId
+                    try:
+                        session.add(act)
+                        session.commit()
+                    except Exception as e:
+                        log.error(e)
+                        session.rollback()
+                    else:
+                        log.debug(act)
+
 
                 except Exception as e:
                     log.error(e)
