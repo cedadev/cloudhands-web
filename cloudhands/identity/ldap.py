@@ -208,8 +208,11 @@ class LDAPProxy:
                     now = datetime.datetime.utcnow()
                     act = Touch(
                         artifact=reg, actor=actor, state=state, at=now)
+                    
+                    is state is success:
+                        #uid = PosixUId()
+                        # TODO: make PosixUId
 
-                    # TODO: make PosixUId
                     try:
                         session.add(act)
                         session.commit()
