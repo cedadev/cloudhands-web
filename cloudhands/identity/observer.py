@@ -17,6 +17,7 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -41,7 +42,8 @@ class Observer:
             self.args = args
             self.tasks = [
                 asyncio.Task(self.mailer()),
-                asyncio.Task(self.publisher())]
+                asyncio.Task(self.publish_userhandle()),
+                asyncio.Task(self.publish_uid())]
 
     @asyncio.coroutine
     def mailer(self):
@@ -56,9 +58,6 @@ class Observer:
             unsent = [
                 r for r in session.query(Registration).all()
                 if r.changes[-1].state.name == "pre_registration_person"]
-            unpublished = [
-                r for r in session.query(Registration).all()
-                if r.changes[-1].state.name == "pre_registration_person_sn"]
             for reg in unsent:
                 try:
                     user = reg.changes[0].actor
@@ -86,7 +85,7 @@ class Observer:
             yield from asyncio.sleep(self.args.interval)
 
     @asyncio.coroutine
-    def publisher(self):
+    def publish_userhandle(self):
         log = logging.getLogger(__name__ + ".publisher")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
@@ -97,10 +96,55 @@ class Observer:
                 unpublished = [
                     r for r in session.query(Registration).all() if (
                     r.changes[-1].state.name ==
-                    "pre_registration_inetorgperson_sn")]
+                    "pre_registration_inetorgperson_cn")]
 
                 for reg in unpublished:
-                    # TODO: Build LDAPRecord
+                    user = reg.changes[0].actor
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(user.handle)},
+                        objectclass={"top", "person", "organizationalPerson",
+                            "inetOrgPerson"},
+                        description={"JASMIN2 vCloud registration"},
+                        cn={user.handle},
+                        sn={"UNKNOWN"},
+                    )
+                    resources = [
+                        r for i in reg.changes for r in i.resources
+                        if isinstance(r, EmailAddress)]
+                    if resources:
+                        record["mail"].add(resources[0].value)
+                    msg = (record, reg.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(reg)
+            except Exception as e:
+                log.error(e)
+
+            log.debug("Waiting for {}s".format(self.args.interval))
+            yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_uid(self):
+        log = logging.getLogger(__name__ + ".publish_reg")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    r for r in session.query(Registration).all() if (
+                    r.changes[-1].state.name ==
+                    "pre_user_inetorgperson_dn")]
+
+                for reg in unpublished:
+                    # TODO: Get latest PosixUId resource
+                    try:
+                        uid = next(r for c in reversed(reg.changes)
+                            for r in r.resources if isinstance(r, PosixUId))
+                    except StopIteration:
+                        continue
+                    log.debug(uid)
                     user = reg.changes[0].actor
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
@@ -121,6 +165,6 @@ class Observer:
                     session.expire(reg)
             except Exception as e:
                 log.error(e)
-
-            log.debug("Waiting for {}s".format(self.args.interval))
-            yield from asyncio.sleep(self.args.interval)
+            finally:
+                log.debug("Waiting for {}s".format(self.args.interval))
+                yield from asyncio.sleep(self.args.interval)

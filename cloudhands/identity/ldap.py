@@ -164,8 +164,10 @@ class LDAPProxy:
         initialise(session)
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
-        valid = session.query(RegistrationState).filter(
-            RegistrationState.name == "valid").one()
+        success = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_posixaccount").one()
+        fail = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_inetorgperson_dn").one()
         while True:
             record, reg_uuid = yield from self.q.get()
             if record is None:
@@ -191,6 +193,7 @@ class LDAPProxy:
                         search_filter="(objectClass=Person)",
                         search_scope=ldap3.SEARCH_SCOPE_BASE_OBJECT)
                     log.debug(c.response)
+                    #TODO: change found logic
                     if not found:
                         c.add(dn, list(record["objectclass"]),
                               {k:list(v)[0] if len(v) == 1 else v
@@ -201,7 +204,7 @@ class LDAPProxy:
                             Registration.uuid == reg_uuid).first()
                         now = datetime.datetime.utcnow()
                         act = Touch(
-                            artifact=reg, actor=actor, state=valid, at=now)
+                            artifact=reg, actor=actor, state=success, at=now)
 
                         try:
                             session.add(act)

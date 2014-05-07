@@ -589,7 +589,7 @@ def registration_read(request):
     if reg and reg.changes[-1].state.name == "pre_registration_inetorgperson":
         user = reg.changes[0].actor
         valid = con.session.query(RegistrationState).filter(
-            RegistrationState.name == "pre_registration_inetorgperson_sn").one()
+            RegistrationState.name == "pre_registration_inetorgperson_cn").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=reg, actor=user, state=valid, at=now)
         con.session.add(act)

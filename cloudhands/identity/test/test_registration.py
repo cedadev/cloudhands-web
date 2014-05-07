@@ -68,3 +68,22 @@ class NewPasswordTests(RegistrationLifecycleTests):
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
         self.assertIsInstance(act, Touch)
+
+
+class PosixUidTests(RegistrationLifecycleTests):
+
+    def setUp(self):
+        super().setUp()
+        self.system = Component(handle="System", uuid=uuid.uuid4().hex)
+        self.user = User(handle="testuser", uuid=uuid.uuid4().hex)
+        preuser = self.session.query(
+            RegistrationState).filter(
+            RegistrationState.name=="pre_user_inetorgperson_dn").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=self.reg, actor=self.system, state=preuser, at=now)
+        self.session.add_all((act, self.system, self.user))
+        self.session.commit()
+
+    def test_user_handle_okay_for_posix_account(self):
+        self.fail(self.user.handle)
+
