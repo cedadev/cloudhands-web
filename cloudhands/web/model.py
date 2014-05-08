@@ -17,6 +17,7 @@ from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
@@ -189,6 +190,21 @@ class OrganisationView(Contextual, NamedDict):
         return self
 
 
+class PosixUIdView(Validating, NamedDict):
+
+    @property
+    def public(self):
+        return []
+
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "name", True, re.compile("\\w{8,}$"), [], ""
+            )
+        ]
+
+
 class PersonView(Contextual, Validating, NamedDict):
     """
     Used for free-text search of contacts list
@@ -359,6 +375,17 @@ class GenericRegion(Region):
             "uuid": artifact.uuid,
         }
         return MembershipView(item)
+
+    @present.register(PosixUId)
+    def present_posixuid(obj):
+        item = PosixUIdView(
+            name=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+        item["_links"] = [
+            Aspect("Select account name", "create-form", "#", "",  # FIXME
+            "post", item.parameters, "Ok")]
+        return item
 
     @present.register(Registration)
     def present_registration(artifact):

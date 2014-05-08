@@ -585,8 +585,14 @@ def registration_read(request):
     con = registered_connection(request)
     reg = con.session.query(Registration).filter(
         Registration.uuid == reg_uuid).first()
-    # TODO: Check TimeInterval hasn't expired
-    if reg and reg.changes[-1].state.name == "pre_registration_inetorgperson":
+    if not reg:
+        raise NotFound("Registration {} not found".format(reg_uuid))
+    sName = reg.changes[-1].state.name
+    page = Page(
+        session=con.session,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+    if sName == "pre_registration_inetorgperson":
+        # TODO: Check TimeInterval hasn't expired
         user = reg.changes[0].actor
         valid = con.session.query(RegistrationState).filter(
             RegistrationState.name == "pre_registration_inetorgperson_cn").one()
@@ -595,16 +601,14 @@ def registration_read(request):
         con.session.add(act)
         con.session.commit()
         raise HTTPFound(location=request.route_url("login"))
+    elif sName == "pre_user_inetorgperson_dn":
+        page.layout.options.push(PosixUId())
 
-    page = Page(
-        session=con.session,
-        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     acts = con.session.query(Touch).join(Registration).filter(
         Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
 
     for t in acts:
         page.layout.items.push(t)
-    page.layout.options.push(reg)
     return dict(page.termination())
 
 def wsgi_app(args, cfg):
