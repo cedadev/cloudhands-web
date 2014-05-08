@@ -141,7 +141,7 @@ class Observer:
                     # TODO: Get latest PosixUId resource
                     try:
                         uid = next(r for c in reversed(reg.changes)
-                            for r in r.resources if isinstance(r, PosixUId))
+                            for r in c.resources if isinstance(r, PosixUId))
                     except StopIteration:
                         continue
                     log.debug(uid)

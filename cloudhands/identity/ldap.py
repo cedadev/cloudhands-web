@@ -16,6 +16,7 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
+from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.web import __version__
@@ -202,6 +203,8 @@ class LDAPProxy:
                         state = success
                     elif reg_uuid is not None:
                         state = fail
+                    else:
+                        continue
 
                     reg = session.query(Registration).filter(
                         Registration.uuid == reg_uuid).first()
@@ -209,12 +212,13 @@ class LDAPProxy:
                     act = Touch(
                         artifact=reg, actor=actor, state=state, at=now)
                     
-                    is state is success:
-                        #uid = PosixUId()
-                        # TODO: make PosixUId
-
                     try:
-                        session.add(act)
+                        if state is success:
+                            uid = PosixUId(value=cn, touch=act)
+                            session.add(uid)
+                        else:
+                            session.add(act)
+
                         session.commit()
                     except Exception as e:
                         log.error(e)
