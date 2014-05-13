@@ -263,24 +263,7 @@ class TestPeoplePage(unittest.TestCase):
             self.assertEqual(10, len(output["items"]))
 
 
-class TestPeoplePage(unittest.TestCase):
+class TestCataloguePage(unittest.TestCase):
 
-    def test_people_data_comes_from_index(self):
-
-        with tempfile.TemporaryDirectory() as td:
-            ix = create_index(td, descr=whoosh.fields.TEXT(stored=True))
-            wrtr = ix.writer()
-
-            for i in range(10):
-                wrtr.add_document(id=str(i), descr="User {}".format(i))
-            wrtr.commit()
-
-            ppl = list(people(td, "User", "descr"))
-            self.assertEqual(10, len(ppl))
-
-            peoplePage = Page()
-            for p in ppl:
-                peoplePage.layout.items.push(p)
-
-            output = dict(peoplePage.termination())
-            self.assertEqual(10, len(output["items"]))
+    def test_catalogueitem_view_finds_logo(self):
+        self.fail()
