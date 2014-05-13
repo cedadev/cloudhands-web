@@ -22,6 +22,14 @@ from cloudhands.web.hateoas import Validating
 from cloudhands.web.model import GenericRegion
 
 
+
+class CatalogItemView(NamedDict):
+
+    @property
+    def public(self):
+        return ["name", "description", "note"]
+
+
 @GenericRegion.present.register(CatalogueItem)
 def present_catalogueitem(obj):
     # TODO: Get View Class from provider, item name

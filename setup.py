@@ -70,6 +70,8 @@ setup(
             "cloud-index = cloudhands.web.indexer:run",
             "cloud-identity = cloudhands.identity.main:run",
         ],
+        "jasmin.portal.catalogue": [
+        ],
     },
     zip_safe=False
 )
