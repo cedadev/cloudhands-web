@@ -135,6 +135,15 @@ class WebFixture(object):
                 organisation=org
             ),
             CatalogueItem(
+                name="NFS-client-server",
+                description="Headless VM for file transfer operations",
+                note=textwrap.dedent("""
+                    <p>This VM runs NFS services on CentOS 6.5.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
                 name="Web-Server",
                 description="Headless VM with Web server",
                 note=textwrap.dedent("""
