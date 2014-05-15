@@ -466,7 +466,6 @@ class GenericRegion(Region):
 class NavRegion(Region):
 
     @singledispatch
-    @staticmethod
     def present(obj):
         return None
 

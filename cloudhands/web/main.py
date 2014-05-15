@@ -733,8 +733,9 @@ def wsgi_app(args, cfg):
         "organisation_catalogue", "/organisation/{org_name}/catalogue")
     config.add_view(
         organisation_catalogue_read,
-        route_name="organisation_memberships", request_method="POST",
-        renderer="hateoas", accept="application/json", xhr=None)
+        route_name="organisation_catalogue", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer=cfg["paths.templates"]["catalogue"])
 
     config.add_route("people", "/people")
     config.add_view(

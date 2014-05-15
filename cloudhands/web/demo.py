@@ -8,6 +8,7 @@ import logging
 import platform
 import sqlite3
 import sys
+import textwrap
 import uuid
 
 from cloudhands.burst.membership import handle_from_email
@@ -21,6 +22,7 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import SubscriptionState
 
 from cloudhands.common.schema import Archive
+from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Directory
 from cloudhands.common.schema import EmailAddress
@@ -45,8 +47,8 @@ DFLT_DB = ":memory:"
 class WebFixture(object):
 
     subscriptions = [
-        ("MARMITE", "cloudhands.jasmin.vcloud.phase03.cfg"),
-        ("BRANSTON", "cloudhands.jasmin.vcloud.phase03.cfg"),
+        ("EOSCloud", "cloudhands.jasmin.vcloud.phase03.cfg"),
+        ("NERC-EW", "cloudhands.jasmin.vcloud.phase03.cfg"),
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
@@ -108,6 +110,55 @@ class WebFixture(object):
                 finally:
                     session.flush()
 
+    def create_catalogue(session):
+        org = session.query(Organisation).first()
+        session.add_all((
+            CatalogueItem(
+                name="Bastion-host",
+                description="Headless VM for admin tasks",
+                note=textwrap.dedent("""
+                    <p>This VM runs OpenSSH on CentOS 6.5.
+                    It is used for administration and monitoring tasks.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                name="nfs-client",
+                description="Headless VM for file transfer operations",
+                note=textwrap.dedent("""
+                    <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
+                    no X server. It is used for file transfer operations from the
+                    command line.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                name="Web-Server",
+                description="Headless VM with Web server",
+                note=textwrap.dedent("""
+                    <p>This VM runs Apache on CentOS 6.5.
+                    It has 8GB RAM and 4 CPU cores.
+                    It is used for hosting websites and applications with a
+                    Web API.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                name="steve-pasco",
+                description="JASMIN Analysis Platform",
+                note=textwrap.dedent("""
+                    <p>This VM runs IPython notebook.
+                    It has a wide range of uses for research and analysis.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            )
+        ))
+        session.commit()
+        
     def grant_admin_memberships(session, user):
         log = logging.getLogger("cloudhands.web.demo.memberships")
         active = session.query(MembershipState).filter(
@@ -201,6 +252,7 @@ def main(args):
         except AttributeError:
             log.debug("Subscription pre-exists")
 
+    WebFixture.create_catalogue(session)
     user = User(
         handle=handle_from_email(WebFixture.demo_email()),
         uuid=uuid.uuid4().hex)
