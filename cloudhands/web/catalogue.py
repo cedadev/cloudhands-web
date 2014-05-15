@@ -23,21 +23,30 @@ from cloudhands.web.model import GenericRegion
 
 
 
-class CatalogItemView(NamedDict):
+class CatalogueItemView(Validating, NamedDict):
 
     @property
     def public(self):
         return ["name", "description", "note"]
 
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "name", True, re.compile("\\w{2,32}$"),
+                [self["name"]] if "name" in self else [], "")
+        ]
+
 
 @GenericRegion.present.register(CatalogueItem)
 def present_catalogueitem(obj):
-    # TODO: Get View Class from provider, item name
-    item = WhatKindOfView(
-        name=obj.value,
+    item = CatalogueItemView(
+        name=obj.name,
+        description=obj.description,
+        note=obj.note,
         uuid=uuid.uuid4().hex,
     )
     item["_links"] = [
-        Aspect("Select account name", "create-form", "#", "",  # FIXME
+        Aspect("Configure appliance", "create-form", "#", "",  # FIXME
         "post", item.parameters, "Ok")]
     return item

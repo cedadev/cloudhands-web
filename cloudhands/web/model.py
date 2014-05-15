@@ -340,7 +340,6 @@ class StateView(Validating, NamedDict):
 class GenericRegion(Region):
 
     @singledispatch
-    @staticmethod
     def present(obj):
         return None
 

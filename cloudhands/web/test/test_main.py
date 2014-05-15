@@ -7,6 +7,7 @@ import operator
 import re
 import sqlite3
 import tempfile
+import textwrap
 import unittest
 import uuid
 
@@ -29,6 +30,7 @@ from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import RegistrationState
 
 from cloudhands.common.schema import BcryptedPassword
+from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
@@ -49,6 +51,7 @@ from cloudhands.web.main import top_read
 from cloudhands.web.main import membership_read
 from cloudhands.web.main import membership_update
 from cloudhands.web.main import organisation_read
+from cloudhands.web.main import organisation_catalogue_read
 from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import people_read
 from cloudhands.web.main import register
@@ -325,6 +328,51 @@ class OrganisationPageTests(ServerTests):
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
 
+
+class CataloguePageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route(
+            "catalogue", "/organisation/{org_name}/catalogue")
+
+    def test_no_options_seen_in_catalogue_view(self):
+        act = ServerTests.make_test_user_role_user(self.session)
+        org = act.artifact.organisation
+        self.session.add_all((
+            CatalogueItem(
+                name="nfs-client",
+                description="Headless VM for file transfer operations",
+                note=textwrap.dedent("""
+                    <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
+                    no X server. It is used for file transfer operations from the
+                    command line.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                name="Web-Server",
+                description="Headless VM with Web server",
+                note=textwrap.dedent("""
+                    <p>This VM runs Apache on CentOS 6.5.
+                    It has 8GB RAM and 4 CPU cores.
+                    It is used for hosting websites and applications with a
+                    Web API.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            )
+        ))
+        self.session.commit()
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
+        page = organisation_catalogue_read(request)
+        self.assertFalse(list(page["options"].values()))
+        items = list(page["items"].values())
+        self.assertEqual(2, len(items))
+        self.assertTrue(any(i["name"] == "nfs-client" for i in items))
+        self.assertTrue(any(i["name"] == "Web-Server" for i in items))
 
 class PeoplePageTests(ServerTests):
 

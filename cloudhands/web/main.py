@@ -410,6 +410,36 @@ def organisation_read(request):
     return dict(page.termination())
 
 
+def organisation_catalogue_read(request):
+    log = logging.getLogger("cloudhands.web.organisation_catalogue_read")
+    user = authenticate_user(request)
+
+    con = registered_connection(request)
+    page = Page(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
+
+    oN = request.matchdict["org_name"]
+    org = con.session.query(Organisation).filter(
+        Organisation.name == oN).first()
+    if not org:
+        raise NotFound("Organisation not found for {}".format(oN))
+    else:
+        page.layout.info.push(PageInfo(title=oN))
+
+    for o in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(o, isSelf=o is org)
+
+    for i in org.catalogue:
+        page.layout.items.push(i)
+
+    return dict(page.termination())
+
+
 def organisation_hosts_create(request):
     log = logging.getLogger("cloudhands.web.organisation_hosts_create")
     userId = authenticated_userid(request)
@@ -696,6 +726,13 @@ def wsgi_app(args, cfg):
         "organisation_memberships", "/organisation/{org_name}/memberships")
     config.add_view(
         organisation_memberships_create,
+        route_name="organisation_memberships", request_method="POST",
+        renderer="hateoas", accept="application/json", xhr=None)
+
+    config.add_route(
+        "organisation_catalogue", "/organisation/{org_name}/catalogue")
+    config.add_view(
+        organisation_catalogue_read,
         route_name="organisation_memberships", request_method="POST",
         renderer="hateoas", accept="application/json", xhr=None)
 
