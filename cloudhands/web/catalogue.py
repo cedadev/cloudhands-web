@@ -33,8 +33,8 @@ class CatalogueItemView(Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "name", True, re.compile("\\w{2,32}$"),
-                [self["name"]] if "name" in self else [], "")
+                "uuid", True, re.compile("\\w{32}$"),
+                self["uuid"] if "uuid" in self else "", "")
         ]
 
 
@@ -47,6 +47,7 @@ def present_catalogueitem(obj):
         uuid=uuid.uuid4().hex,
     )
     item["_links"] = [
-        Aspect("Configure appliance", "create-form", "#", "",  # FIXME
+        Aspect("Configure appliance", "create-form",
+        "/organisation/{}", obj.organisation.name,
         "post", item.parameters, "Ok")]
     return item

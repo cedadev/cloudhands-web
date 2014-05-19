@@ -341,6 +341,7 @@ class CataloguePageTests(ServerTests):
         org = act.artifact.organisation
         self.session.add_all((
             CatalogueItem(
+                uuid=uuid.uuid4().hex,
                 name="nfs-client",
                 description="Headless VM for file transfer operations",
                 note=textwrap.dedent("""
@@ -352,6 +353,7 @@ class CataloguePageTests(ServerTests):
                 organisation=org
             ),
             CatalogueItem(
+                uuid=uuid.uuid4().hex,
                 name="Web-Server",
                 description="Headless VM with Web server",
                 note=textwrap.dedent("""

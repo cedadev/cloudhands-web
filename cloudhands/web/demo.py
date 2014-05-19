@@ -121,7 +121,8 @@ class WebFixture(object):
                     It is used for administration and monitoring tasks.</p>
                     """),
                 logo="headless",
-                organisation=org
+                organisation=org,
+                uuid=uuid.uuid4().hex,
             ),
             CatalogueItem(
                 name="nfs-client",
@@ -132,7 +133,8 @@ class WebFixture(object):
                     command line.</p>
                     """),
                 logo="headless",
-                organisation=org
+                organisation=org,
+                uuid=uuid.uuid4().hex,
             ),
             CatalogueItem(
                 name="NFS-client-server",
@@ -141,7 +143,8 @@ class WebFixture(object):
                     <p>This VM runs NFS services on CentOS 6.5.</p>
                     """),
                 logo="headless",
-                organisation=org
+                organisation=org,
+                uuid=uuid.uuid4().hex,
             ),
             CatalogueItem(
                 name="Web-Server",
@@ -153,7 +156,8 @@ class WebFixture(object):
                     Web API.</p>
                     """),
                 logo="headless",
-                organisation=org
+                organisation=org,
+                uuid=uuid.uuid4().hex,
             ),
             CatalogueItem(
                 name="steve-pasco",
@@ -163,7 +167,8 @@ class WebFixture(object):
                     It has a wide range of uses for research and analysis.</p>
                     """),
                 logo="headless",
-                organisation=org
+                organisation=org,
+                uuid=uuid.uuid4().hex,
             )
         ))
         session.commit()
