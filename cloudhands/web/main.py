@@ -67,6 +67,7 @@ from cloudhands.common.schema import User
 
 import cloudhands.web
 from cloudhands.identity.registration import NewPassword
+from cloudhands.web.catalogue import CatalogueItemView
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
@@ -440,6 +441,7 @@ def organisation_catalogue_read(request):
     return dict(page.termination())
 
 
+# TODO: Remove
 def organisation_hosts_create(request):
     log = logging.getLogger("cloudhands.web.organisation_hosts_create")
     userId = authenticated_userid(request)
@@ -468,6 +470,43 @@ def organisation_hosts_create(request):
     if not org:
         raise NotFound("Organisation '{}' not found".format(oN))
 
+    now = datetime.datetime.utcnow()
+    requested = con.session.query(HostState).filter(
+        HostState.name == "requested").one()
+    host = Host(
+        uuid=uuid.uuid4().hex,
+        model=cloudhands.common.__version__,
+        organisation=org,
+        name=data["name"]
+        )
+    act = Touch(artifact=host, actor=user, state=requested, at=now)
+    host.changes.append(act)
+    con.session.add(OSImage(name=data["image"], touch=act))
+    log.info(host)
+    con.session.add(host)
+    con.session.commit()
+    raise HTTPFound(
+        location=request.route_url("organisation", org_name=oN))
+
+
+def organisation_appliances_create(request):
+    log = logging.getLogger("cloudhands.web.organisation_appliances_create")
+    user = authenticate_user(request, Forbidden)
+    data = CatalogueItemView(request.POST)
+    if data.invalid:
+        log.debug(request.POST)
+        log.debug(data)
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
+    con = registered_connection(request)
+    oN = request.matchdict["org_name"]
+    org = con.session.query(Organisation).filter(
+        Organisation.name == oN).first()
+    if not org:
+        raise NotFound("Organisation '{}' not found".format(oN))
+
+    # TODO: Create a new Appliance and give it a cataloguechoice
     now = datetime.datetime.utcnow()
     requested = con.session.query(HostState).filter(
         HostState.name == "requested").one()
@@ -716,11 +755,11 @@ def wsgi_app(args, cfg):
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["organisation"])
 
-    # TODO: unify organisation/{} and organisation/{}/hosts (use options)
-    config.add_route("organisation_hosts", "/organisation/{org_name}/hosts")
+    config.add_route(
+        "organisation_appliances", "/organisation/{org_name}/appliances")
     config.add_view(
-        organisation_hosts_create,
-        route_name="organisation_hosts", request_method="POST")
+        organisation_appliances_create,
+        route_name="organisation_appliances", request_method="POST")
 
     config.add_route(
         "organisation_memberships", "/organisation/{org_name}/memberships")

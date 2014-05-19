@@ -44,10 +44,10 @@ def present_catalogueitem(obj):
         name=obj.name,
         description=obj.description,
         note=obj.note,
-        uuid=uuid.uuid4().hex,
+        uuid=obj.uuid,
     )
     item["_links"] = [
         Aspect("Configure appliance", "create-form",
-        "/organisation/{}", obj.organisation.name,
+        "/organisation/{}/appliances", obj.organisation.name,
         "post", item.parameters, "Ok")]
     return item
