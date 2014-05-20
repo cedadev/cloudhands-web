@@ -153,10 +153,10 @@ class LabelView(Validating, NamedDict):
         return [
             Parameter(
                 "name", True, re.compile("\\w{2,}$"),
-                [self["name"]] if "name" in self else [], ""),
+                self.get("name", ""), ""),
             Parameter(
                 "description", True, re.compile("\\w{8,}$"),
-                [self["description"]] if "description" in self else [], "")
+                self.get("description", ""), "")
         ]
 
 class MembershipView(Contextual, NamedDict):
