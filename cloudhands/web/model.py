@@ -13,6 +13,7 @@ from pyramid.httpexceptions import HTTPForbidden
 
 import cloudhands.common
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import Label
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
@@ -139,6 +140,13 @@ class HostView(Contextual, Validating, NamedDict):
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "start"))
         return self
+
+
+class LabelView(NamedDict):
+
+    @property
+    def public(self):
+        return ["name", "description"]
 
 
 class MembershipView(Contextual, NamedDict):
@@ -364,6 +372,15 @@ class GenericRegion(Region):
             "latest":  artifact.changes[-1],
         }
         return HostView(item)
+
+    @present.register(Label)
+    def present_label(obj):
+        item = {
+            "name": obj.name,
+            "description": obj.description,
+            "uuid": obj.uuid,
+        }
+        return LabelView(item)
 
     @present.register(Membership)
     def present_membership(artifact):
