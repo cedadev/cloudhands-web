@@ -45,10 +45,14 @@ from cloudhands.burst.membership import Invitation
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
+from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.fsm import HostState
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import RegistrationState
+from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
+from cloudhands.common.schema import CatalogueChoice
+from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Membership
@@ -196,6 +200,15 @@ def top_read(request):
 
     return dict(page.termination())
 
+
+def appliance_read(request):
+    log = logging.getLogger("cloudhands.web.appliance_read")
+    con = registered_connection(request)
+    user = con.session.merge(authenticate_user(request, Forbidden))
+    appUuid = request.matchdict["app_uuid"]
+    app = con.session.query(Appliance).filter(
+        Appliance.uuid == appUuid).first()
+    return app
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")
@@ -491,7 +504,8 @@ def organisation_hosts_create(request):
 
 def organisation_appliances_create(request):
     log = logging.getLogger("cloudhands.web.organisation_appliances_create")
-    user = authenticate_user(request, Forbidden)
+    con = registered_connection(request)
+    user = con.session.merge(authenticate_user(request, Forbidden))
     data = CatalogueItemView(request.POST)
     if data.invalid:
         log.debug(request.POST)
@@ -499,31 +513,32 @@ def organisation_appliances_create(request):
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))
 
-    con = registered_connection(request)
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
     if not org:
         raise NotFound("Organisation '{}' not found".format(oN))
 
-    # TODO: Create a new Appliance and give it a cataloguechoice
     now = datetime.datetime.utcnow()
-    requested = con.session.query(HostState).filter(
-        HostState.name == "requested").one()
-    host = Host(
+    requested = con.session.query(ApplianceState).filter(
+        ApplianceState.name == "requested").one()
+    app = Appliance(
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__,
         organisation=org,
-        name=data["name"]
         )
-    act = Touch(artifact=host, actor=user, state=requested, at=now)
-    host.changes.append(act)
-    con.session.add(OSImage(name=data["image"], touch=act))
-    log.info(host)
-    con.session.add(host)
+    act = Touch(artifact=app, actor=user, state=requested, at=now)
+
+    tmplt = con.session.query(CatalogueItem).first()
+    choice = CatalogueChoice(
+        provider=None, touch=act,
+        **{k: getattr(tmplt, k, None)
+        for k in ("name", "description", "logo")})
+    con.session.add(choice)
     con.session.commit()
+
     raise HTTPFound(
-        location=request.route_url("organisation", org_name=oN))
+        location=request.route_url("appliance_read", app_uuid=app.uuid))
 
 
 def organisation_memberships_create(request):

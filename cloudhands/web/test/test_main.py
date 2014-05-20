@@ -29,6 +29,7 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import RegistrationState
 
+from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
@@ -45,11 +46,13 @@ import cloudhands.web
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
+from cloudhands.web.main import appliance_read
 from cloudhands.web.main import authenticate_user
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_read
 from cloudhands.web.main import membership_read
 from cloudhands.web.main import membership_update
+from cloudhands.web.main import organisation_appliances_create
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_catalogue_read
 from cloudhands.web.main import organisation_memberships_create
@@ -178,6 +181,71 @@ class VersionInfoTests(ServerTests):
         self.assertEqual(
             cloudhands.common.__version__,
             top_read(self.request)["info"]["versions"]["cloudhands.common"])
+
+class AppliancePageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route(
+            "appliance_read", "/appliance/{app_uuid}")
+        self.config.add_route(
+            "organisation_appliances", "/organisation/{org_name}/appliances")
+        act = ServerTests.make_test_user_role_user(self.session)
+        org = act.artifact.organisation
+        self.session.add_all((
+            CatalogueItem(
+                uuid=uuid.uuid4().hex,
+                name="nfs-client",
+                description="Headless VM for file transfer operations",
+                note=textwrap.dedent("""
+                    <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
+                    no X server. It is used for file transfer operations from the
+                    command line.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                uuid=uuid.uuid4().hex,
+                name="Web-Server",
+                description="Headless VM with Web server",
+                note=textwrap.dedent("""
+                    <p>This VM runs Apache on CentOS 6.5.
+                    It has 8GB RAM and 4 CPU cores.
+                    It is used for hosting websites and applications with a
+                    Web API.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            )
+        ))
+        self.session.commit()
+
+    def test_organisation_appliances_create(self):
+        self.assertEqual(0, self.session.query(Appliance).count())
+        org = self.session.query(Organisation).one()
+        ci = self.session.query(CatalogueItem).first()
+        self.assertIn(ci, org.catalogue)
+        request = testing.DummyRequest(post={"uuid": ci.uuid})
+        request.matchdict.update({"org_name": org.name})
+        self.assertRaises(
+            HTTPFound, organisation_appliances_create, request)
+        self.assertEqual(1, self.session.query(Appliance).count())
+
+    def test_organisation_appliances_create_then_view_appliance(self):
+        self.test_organisation_appliances_create()
+        self.assertEqual(1, self.session.query(Appliance).count())
+        app = self.session.query(Appliance).one()
+        request = testing.DummyRequest()
+        request.matchdict.update({"app_uuid": app.uuid})
+        reply = appliance_read(request)
+        self.assertTrue(reply)
+
+    def test_appliance_read_with_missing_uuid(self):
+        request = testing.DummyRequest()
+        request.matchdict.update({"app_uuid": uuid.uuid4().hex})
+        reply = appliance_read(request)
+        self.assertTrue(reply)
 
 class MembershipPageTests(ServerTests):
 
