@@ -142,12 +142,22 @@ class HostView(Contextual, Validating, NamedDict):
         return self
 
 
-class LabelView(NamedDict):
+class LabelView(Validating, NamedDict):
 
     @property
     def public(self):
         return ["name", "description"]
 
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "name", True, re.compile("\\w{2,}$"),
+                [self["name"]] if "name" in self else [], ""),
+            Parameter(
+                "description", True, re.compile("\\w{8,}$"),
+                [self["description"]] if "description" in self else [], "")
+        ]
 
 class MembershipView(Contextual, NamedDict):
 
