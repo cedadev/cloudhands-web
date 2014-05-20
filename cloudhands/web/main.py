@@ -208,7 +208,14 @@ def appliance_read(request):
     appUuid = request.matchdict["app_uuid"]
     app = con.session.query(Appliance).filter(
         Appliance.uuid == appUuid).first()
-    return app
+    if not app:
+        raise NotFound("Appliance {} not found".format(appUuid))
+    page = Page(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+    for i in [r for c in app.changes for r in c.resources]:
+        page.layout.items.push(i)
+    return dict(page.termination())
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")

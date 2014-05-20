@@ -238,14 +238,15 @@ class AppliancePageTests(ServerTests):
         app = self.session.query(Appliance).one()
         request = testing.DummyRequest()
         request.matchdict.update({"app_uuid": app.uuid})
-        reply = appliance_read(request)
-        self.assertTrue(reply)
+        page = appliance_read(request)
+        items = list(page["items"].values())
+        self.assertTrue(items)
 
     def test_appliance_read_with_missing_uuid(self):
         request = testing.DummyRequest()
         request.matchdict.update({"app_uuid": uuid.uuid4().hex})
-        reply = appliance_read(request)
-        self.assertTrue(reply)
+        self.assertRaises(
+            HTTPNotFound, appliance_read, request)
 
 class MembershipPageTests(ServerTests):
 
