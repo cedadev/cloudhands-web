@@ -55,6 +55,7 @@ from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
+from cloudhands.common.schema import Label
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import OSImage
@@ -210,12 +211,32 @@ def appliance_read(request):
         Appliance.uuid == appUuid).first()
     if not app:
         raise NotFound("Appliance {} not found".format(appUuid))
+
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
+
     page = Page(
         session=con.session, user=user,
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
-    for i in [r for c in app.changes for r in c.resources]:
+    page.layout.info.push(PageInfo(title="Configure appliance"))
+
+    for o in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(o)
+
+    resources = [r for c in app.changes for r in c.resources]
+    for i in resources:
         page.layout.items.push(i)
+    if not any(i for i in resources if isinstance(i, Label)):
+        label = Label()
+        label.uuid = appUuid
+        page.layout.items.push(label)
     return dict(page.termination())
+
+
+def appliance_modify(request):
+    pass
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")

@@ -33,6 +33,7 @@ from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import Label
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Membership
@@ -47,6 +48,7 @@ from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
 from cloudhands.web.main import appliance_read
+from cloudhands.web.main import appliance_modify
 from cloudhands.web.main import authenticate_user
 from cloudhands.web.main import parser
 from cloudhands.web.main import top_read
@@ -182,6 +184,7 @@ class VersionInfoTests(ServerTests):
             cloudhands.common.__version__,
             top_read(self.request)["info"]["versions"]["cloudhands.common"])
 
+
 class AppliancePageTests(ServerTests):
 
     def setUp(self):
@@ -240,7 +243,10 @@ class AppliancePageTests(ServerTests):
         request.matchdict.update({"app_uuid": app.uuid})
         page = appliance_read(request)
         items = list(page["items"].values())
-        self.assertTrue(items)
+        catalogueChoice = items[0]["_links"][0]
+        self.assertEqual("collection", catalogueChoice.rel)
+        blankLabel = items[1]
+        self.assertIn("uuid", blankLabel)
 
     def test_appliance_read_with_missing_uuid(self):
         request = testing.DummyRequest()
@@ -248,6 +254,19 @@ class AppliancePageTests(ServerTests):
         self.assertRaises(
             HTTPNotFound, appliance_read, request)
 
+    def test_appliance_modify_adds_label(self):
+        self.test_organisation_appliances_create()
+        self.assertEqual(1, self.session.query(Appliance).count())
+        self.assertEqual(0, self.session.query(Label).count())
+        app = self.session.query(Appliance).one()
+        request = testing.DummyRequest(post={"name": "Test name"})
+        request.matchdict.update({"app_uuid": app.uuid})
+        print(appliance_modify(request))
+        app = self.session.query(Appliance).one()
+        print(app.changes[-1].state.name)
+        self.assertEqual(1, self.session.query(Label).count())
+
+ 
 class MembershipPageTests(ServerTests):
 
     def setUp(self):

@@ -12,6 +12,7 @@ except ImportError:
 from pyramid.httpexceptions import HTTPForbidden
 
 import cloudhands.common
+from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import IPAddress
@@ -337,6 +338,12 @@ class ResourceView(NamedDict):
     pass
 
 
+class CatalogueChoiceView(ResourceView):
+
+    @property
+    def public(self):
+        return ["template", "purpose"]
+
 class StateView(Validating, NamedDict):
 
     @property
@@ -360,6 +367,18 @@ class GenericRegion(Region):
     @singledispatch
     def present(obj):
         return None
+
+    @present.register(CatalogueChoice)
+    def present_catalogue_choice(obj):
+        item = {
+            "template": obj.name,
+            "purpose": obj.description,
+            "uuid": uuid.uuid4().hex,
+        }
+        item["_links"] = [
+            Aspect("Catalogue", "collection", "#", "",  # FIXME
+            "get", [], "Ok")]
+        return CatalogueChoiceView(item)
 
     @present.register(HTTPForbidden)
     def present_forbidden(exception):
@@ -385,12 +404,20 @@ class GenericRegion(Region):
 
     @present.register(Label)
     def present_label(obj):
-        item = {
-            "name": obj.name,
-            "description": obj.description,
-            "uuid": obj.uuid,
-        }
-        return LabelView(item)
+        item = LabelView(
+            name = obj.name,
+            description = obj.description,
+            uuid = uuid.uuid4().hex,
+        )
+        item["_links"] = [Aspect(
+            name="General information",
+            rel="edit-form",
+            typ="/appliance/{}",
+            ref=obj.uuid,
+            method="post",
+            parameters=item.parameters,
+            action="OK")]
+        return item
 
     @present.register(Membership)
     def present_membership(artifact):
