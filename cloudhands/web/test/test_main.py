@@ -187,7 +187,7 @@ class AppliancePageTests(ServerTests):
     def setUp(self):
         super().setUp()
         self.config.add_route(
-            "appliance_read", "/appliance/{app_uuid}")
+            "appliance", "/appliance/{app_uuid}")
         self.config.add_route(
             "organisation_appliances", "/organisation/{org_name}/appliances")
         act = ServerTests.make_test_user_role_user(self.session)

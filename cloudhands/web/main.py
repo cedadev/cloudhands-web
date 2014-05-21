@@ -545,7 +545,7 @@ def organisation_appliances_create(request):
     con.session.commit()
 
     raise HTTPFound(
-        location=request.route_url("appliance_read", app_uuid=app.uuid))
+        location=request.route_url("appliance", app_uuid=app.uuid))
 
 
 def organisation_memberships_create(request):
@@ -728,6 +728,13 @@ def wsgi_app(args, cfg):
     hateoas.add_adapter(Serializable, record_adapter)
     hateoas.add_adapter(Touch, touch_adapter)
     config.add_renderer("hateoas", hateoas)
+
+    config.add_route(
+        "appliance", "/appliance/{app_uuid}")
+    config.add_view(
+        appliance_read,
+        route_name="appliance", request_method="GET",
+        renderer=cfg["paths.templates"]["appliance"])
 
     config.add_route("top", "/")
     config.add_view(
