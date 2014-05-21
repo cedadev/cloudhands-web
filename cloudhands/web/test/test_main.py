@@ -16,6 +16,7 @@ import bcrypt
 from pyramid import testing
 from pyramid.exceptions import Forbidden
 from pyramid.exceptions import NotFound
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
@@ -254,12 +255,23 @@ class AppliancePageTests(ServerTests):
         self.assertRaises(
             HTTPNotFound, appliance_read, request)
 
+    def test_appliance_modify_validates_label(self):
+        self.test_organisation_appliances_create()
+        self.assertEqual(1, self.session.query(Appliance).count())
+        self.assertEqual(0, self.session.query(Label).count())
+        app = self.session.query(Appliance).one()
+        request = testing.DummyRequest(post={"name": "No blanks"})
+        request.matchdict.update({"app_uuid": app.uuid})
+        self.assertRaises(
+            HTTPBadRequest, appliance_modify, request)
+ 
     def test_appliance_modify_adds_label(self):
         self.test_organisation_appliances_create()
         self.assertEqual(1, self.session.query(Appliance).count())
         self.assertEqual(0, self.session.query(Label).count())
         app = self.session.query(Appliance).one()
-        request = testing.DummyRequest(post={"name": "Test name"})
+        request = testing.DummyRequest(
+            post={"name": "Test_name", "description": "Test description"})
         request.matchdict.update({"app_uuid": app.uuid})
         print(appliance_modify(request))
         app = self.session.query(Appliance).one()

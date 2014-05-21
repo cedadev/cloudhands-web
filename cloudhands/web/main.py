@@ -76,6 +76,7 @@ from cloudhands.web.catalogue import CatalogueItemView
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
+from cloudhands.web.model import LabelView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PageInfo
 from cloudhands.web.model import PeoplePage
@@ -236,7 +237,22 @@ def appliance_read(request):
 
 
 def appliance_modify(request):
-    pass
+    log = logging.getLogger("cloudhands.web.appliance_read")
+    con = registered_connection(request)
+    user = con.session.merge(authenticate_user(request, Forbidden))
+    appUuid = request.matchdict["app_uuid"]
+    app = con.session.query(Appliance).filter(
+        Appliance.uuid == appUuid).first()
+    if not app:
+        raise NotFound("Appliance {} not found".format(appUuid))
+
+    data = LabelView(request.POST)
+    if data.invalid:
+        log.debug(request.POST)
+        log.debug(data)
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")
@@ -755,6 +771,11 @@ def wsgi_app(args, cfg):
     config.add_view(
         appliance_read,
         route_name="appliance", request_method="GET",
+        renderer=cfg["paths.templates"]["appliance"])
+
+    config.add_view(
+        appliance_modify,
+        route_name="appliance", request_method="POST",
         renderer=cfg["paths.templates"]["appliance"])
 
     config.add_route("top", "/")
