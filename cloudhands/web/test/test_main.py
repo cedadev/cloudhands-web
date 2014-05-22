@@ -192,6 +192,7 @@ class AppliancePageTests(ServerTests):
         super().setUp()
         self.config.add_route(
             "appliance", "/appliance/{app_uuid}")
+        self.config.add_route("organisation", "/organisation/{org_name}")
         self.config.add_route(
             "organisation_appliances", "/organisation/{org_name}/appliances")
         act = ServerTests.make_test_user_role_user(self.session)
@@ -274,9 +275,22 @@ class AppliancePageTests(ServerTests):
         request = testing.DummyRequest(
             post={"name": "Test_name", "description": "Test description"})
         request.matchdict.update({"app_uuid": app.uuid})
-        print(appliance_modify(request))
+        self.assertRaises(
+            HTTPFound, appliance_modify, request)
         app = self.session.query(Appliance).one()
-        print(app.changes[-1].state.name)
+        self.assertEqual(1, self.session.query(Label).count())
+
+    def test_appliance_label_permits_hyphens_in_name(self):
+        self.test_organisation_appliances_create()
+        self.assertEqual(1, self.session.query(Appliance).count())
+        self.assertEqual(0, self.session.query(Label).count())
+        app = self.session.query(Appliance).one()
+        request = testing.DummyRequest(
+            post={"name": "Test-name", "description": "Test description"})
+        request.matchdict.update({"app_uuid": app.uuid})
+        self.assertRaises(
+            HTTPFound, appliance_modify, request)
+        app = self.session.query(Appliance).one()
         self.assertEqual(1, self.session.query(Label).count())
 
  

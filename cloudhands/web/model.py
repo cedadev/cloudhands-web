@@ -153,7 +153,7 @@ class LabelView(Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "name", True, re.compile("\\w{2,}$"),
+                "name", True, re.compile("[\\w-]{2,}$"),
                 [self["name"]] if "name" in self else [], ""),
             Parameter(
                 "description", True, re.compile("[\\w ]{8,}$"),

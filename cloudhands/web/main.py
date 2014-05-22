@@ -258,6 +258,20 @@ def appliance_modify(request):
         log.debug(data)
         raise HTTPBadRequest(
             "Bad value in '{}' field".format(data.invalid[0].name))
+    else:
+        pre_provision  = con.session.query(ApplianceState).filter(
+            ApplianceState.name == "pre_provision").one()
+        act = Touch(artifact=app, actor=user, state=pre_provision, at=now)
+
+        label = Label(
+            name=data["name"], description=data["description"],
+            touch=act)
+        con.session.add(label)
+        con.session.commit()
+    raise HTTPFound(
+        location=request.route_url(
+            "organisation", org_name=app.organisation.name))
+        
 
 
 def host_update(request):
