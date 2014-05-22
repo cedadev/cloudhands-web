@@ -456,8 +456,6 @@ def organisation_read(request):
         Organisation.name == oN).first()
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
-    else:
-        page.layout.info.push(PageInfo(title=oN, refresh=30))
 
     for o in sorted(
         {i.organisation for i in mships},
@@ -465,12 +463,21 @@ def organisation_read(request):
     ):
         page.layout.nav.push(o, isSelf=o is org)
 
-    for t, a in sorted(
-        ((a.changes[-1].at, a) for a in org.appliances),
+    refresh = 300
+    seconds = {
+        "pre_provision": 5,
+        "provisioning": 30,
+    }
+    for t, s, a in sorted((
+        (a.changes[-1].at, a.changes[-1].state.name, a)
+        for a in org.appliances),
         reverse=True
     ):
+        refresh = min(refresh, seconds.get(s, 300))
         page.layout.items.push(a)
 
+ 
+    page.layout.info.push(PageInfo(title=oN, refresh=refresh))
     mships = con.session.query(Membership).join(Organisation).join(
         Touch).join(State).join(User).filter(
         User.id == user.id).filter(
