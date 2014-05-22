@@ -237,7 +237,7 @@ def appliance_read(request):
 
 
 def appliance_modify(request):
-    log = logging.getLogger("cloudhands.web.appliance_read")
+    log = logging.getLogger("cloudhands.web.appliance_modify")
     con = registered_connection(request)
     user = con.session.merge(authenticate_user(request, Forbidden))
     appUuid = request.matchdict["app_uuid"]
@@ -246,8 +246,14 @@ def appliance_modify(request):
     if not app:
         raise NotFound("Appliance {} not found".format(appUuid))
 
+    now = datetime.datetime.utcnow()
     data = LabelView(request.POST)
     if data.invalid:
+        configuring = con.session.query(ApplianceState).filter(
+            ApplianceState.name == "configuring").one()
+        act = Touch(artifact=app, actor=user, state=configuring, at=now)
+        con.session.add(act)
+        con.session.commit()
         log.debug(request.POST)
         log.debug(data)
         raise HTTPBadRequest(

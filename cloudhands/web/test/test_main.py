@@ -264,6 +264,7 @@ class AppliancePageTests(ServerTests):
         request.matchdict.update({"app_uuid": app.uuid})
         self.assertRaises(
             HTTPBadRequest, appliance_modify, request)
+        self.assertEqual("configuring", app.changes[-1].state.name)
  
     def test_appliance_modify_adds_label(self):
         self.test_organisation_appliances_create()
