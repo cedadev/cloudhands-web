@@ -12,6 +12,7 @@ except ImportError:
 from pyramid.httpexceptions import HTTPForbidden
 
 import cloudhands.common
+from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Label
@@ -73,6 +74,59 @@ class FlashInfo(NamedDict):
 
 class OrganisationInfo(NamedDict):
     pass
+
+
+class ApplianceView(Contextual, Validating, NamedDict):
+
+    @property
+    def public(self):
+        return ["name", "latest", "ips"]
+
+    @property
+    def parameters(self):
+        return [
+            Parameter("name", True, re.compile("\\w{8,128}$"), [], ""),
+            Parameter(
+                "jvo", True, re.compile("\\w{6,64}$"),
+                [self["organisation"]] if "organisation" in self else [], ""),
+            Parameter(
+                "image", True, re.compile("[\\S ]{6,64}$"),
+                getattr(self, "images", []), ""),
+            Parameter("description", False, re.compile("\\w{8,128}$"), [], ""),
+        ]
+
+    def configure(self, session, user=None):
+        self["_links"] = []
+
+        subs = session.query(Subscription).join(Organisation).filter(
+            Organisation.name==self["organisation"]).first()
+        if subs:
+           self.images = [i.name for i in subs.changes[-1].resources]
+
+        try:
+            state = self["latest"].state.name
+        except KeyError:
+            # Not a live object
+            return self
+
+        if state == "requested":
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_delete").parameters,
+                "cancel"))
+        elif state in (
+            "configuring", "pre_provision", "provisioning", "pre_operational",
+            "operational", "pre_stop", "stopped"
+        ):
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/appliance/{}", self["uuid"],
+                "get", [], "check"))
+        elif state in ("pre_delete", "deleting"):
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/host/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_delete").parameters,
+                "stop"))
+        return self
 
 
 class HostView(Contextual, Validating, NamedDict):
@@ -363,6 +417,20 @@ class GenericRegion(Region):
     @singledispatch
     def present(obj):
         return None
+
+    @present.register(Appliance)
+    def present_host(artifact):
+        resources = [r for i in artifact.changes for r in i.resources]
+        names = {i.name for i in resources if isinstance(i, Label)}
+        item = {
+            "uuid": artifact.uuid,
+            "name": names.pop() if names else None,
+            "organisation": artifact.organisation.name,
+            "nodes": [i.name for i in resources if isinstance(i, Node)],
+            "ips": [i.value for i in resources if isinstance(i, IPAddress)],
+            "latest":  artifact.changes[-1],
+        }
+        return ApplianceView(item)
 
     @present.register(CatalogueChoice)
     def present_catalogue_choice(obj):

@@ -442,15 +442,8 @@ def membership_update(request):
 
 def organisation_read(request):
     log = logging.getLogger("cloudhands.web.organisation_read")
-    userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
-
     con = registered_connection(request)
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
-    if not user:
-        raise NotFound("User not found for {}".format(userId))
+    user = con.session.merge(authenticate_user(request, Forbidden))
 
     page = Page(
         session=con.session, user=user,
@@ -464,10 +457,11 @@ def organisation_read(request):
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
     else:
-        page.layout.info.push(PageInfo(title=oN, refresh=10))
+        page.layout.info.push(PageInfo(title=oN, refresh=30))
 
     for o in sorted(
-        {i.organisation for i in mships}, key=operator.attrgetter("name")
+        {i.organisation for i in mships},
+        key=operator.attrgetter("name")
     ):
         page.layout.nav.push(o, isSelf=o is org)
 

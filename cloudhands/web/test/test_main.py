@@ -308,7 +308,6 @@ class AppliancePageTests(ServerTests):
         request = testing.DummyRequest()
         request.matchdict.update({"org_name": app.organisation.name})
         page = organisation_read(request)
-        print(page)
         self.assertEqual(1, len(page["items"]))
 
  
