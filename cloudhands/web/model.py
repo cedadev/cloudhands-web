@@ -170,11 +170,7 @@ class MembershipView(Contextual, NamedDict):
         hf = HostView(organisation=self["organisation"])
         hf.configure(session, user)
         # Create new host, etc belongs in membership view
-        self["_links"] = [
-            Aspect(
-                "New VM", "collection",
-                "/organisation/{}/hosts", self["organisation"], "post",
-                hf.parameters, "Create")]
+        self["_links"] = []
         if self["role"] == "admin":
             self["_links"].append(
                 Aspect(

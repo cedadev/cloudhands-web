@@ -471,11 +471,11 @@ def organisation_read(request):
     ):
         page.layout.nav.push(o, isSelf=o is org)
 
-    for t, h in sorted(
-        ((h.changes[-1].at, h) for h in org.hosts),
+    for t, a in sorted(
+        ((a.changes[-1].at, a) for a in org.appliances),
         reverse=True
     ):
-        page.layout.items.push(h)
+        page.layout.items.push(a)
 
     mships = con.session.query(Membership).join(Organisation).join(
         Touch).join(State).join(User).filter(

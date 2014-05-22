@@ -293,6 +293,24 @@ class AppliancePageTests(ServerTests):
         app = self.session.query(Appliance).one()
         self.assertEqual(1, self.session.query(Label).count())
 
+    def test_appliance_appears_in_organisation(self):
+        self.test_organisation_appliances_create()
+        self.assertEqual(1, self.session.query(Appliance).count())
+        self.assertEqual(0, self.session.query(Label).count())
+        app = self.session.query(Appliance).one()
+        request = testing.DummyRequest(
+            post={"name": "Test_name", "description": "Test description"})
+        request.matchdict.update({"app_uuid": app.uuid})
+        self.assertRaises(
+            HTTPFound, appliance_modify, request)
+        app = self.session.query(Appliance).one()
+        self.assertEqual(1, self.session.query(Label).count())
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": app.organisation.name})
+        page = organisation_read(request)
+        print(page)
+        self.assertEqual(1, len(page["items"]))
+
  
 class MembershipPageTests(ServerTests):
 
