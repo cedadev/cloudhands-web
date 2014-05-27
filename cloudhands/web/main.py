@@ -594,7 +594,8 @@ def organisation_appliances_create(request):
         )
     act = Touch(artifact=app, actor=user, state=requested, at=now)
 
-    tmplt = con.session.query(CatalogueItem).first()
+    tmplt = con.session.query(CatalogueItem).filter(
+        CatalogueItem.uuid == data["uuid"]).first()
     choice = CatalogueChoice(
         provider=None, touch=act,
         **{k: getattr(tmplt, k, None)
