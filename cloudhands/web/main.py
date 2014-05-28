@@ -466,7 +466,9 @@ def organisation_read(request):
     refresh = 300
     seconds = {
         "pre_provision": 5,
-        "provisioning": 30,
+        "provisioning": 15,
+        "pre_operational": 5,
+        "operational": 60,
     }
     for t, s, a in sorted((
         (a.changes[-1].at, a.changes[-1].state.name, a)
