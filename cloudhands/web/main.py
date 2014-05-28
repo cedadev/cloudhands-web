@@ -197,7 +197,7 @@ def top_read(request):
     ):
         page.layout.nav.push(org)
 
-    for act in con.session.query(Touch).order_by(desc(Touch.at)).limit(6):
+    for act in con.session.query(Touch).order_by(desc(Touch.at)).limit(5):
         page.layout.items.push(act)
 
     return dict(page.termination())

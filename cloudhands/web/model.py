@@ -109,23 +109,27 @@ class ApplianceView(Contextual, Validating, NamedDict):
             # Not a live object
             return self
 
-        if state == "requested":
+        if state in ("requested", "configuring"):
             self["_links"].append(Aspect(
-                "Command", "canonical", "/host/{}", self["uuid"],
-                "post", StateView(fsm="appliance", name="pre_delete").parameters,
-                "cancel"))
+                "Command", "canonical", "/appliance/{}", self["uuid"],
+                "post", [], "Cancel"))
         elif state in (
-            "configuring", "pre_provision", "provisioning", "pre_operational",
+            "pre_provision", "provisioning", "pre_operational",
+        ):
+            self["_links"].append(Aspect(
+                "Command", "canonical", "/appliance/{}", self["uuid"],
+                "post", [], "Check"))
+        elif state in (
             "operational", "pre_stop", "stopped"
         ):
             self["_links"].append(Aspect(
                 "Command", "canonical", "/appliance/{}", self["uuid"],
-                "get", [], "check"))
+                "post", [], "Stop"))
         elif state in ("pre_delete", "deleting"):
             self["_links"].append(Aspect(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", StateView(fsm="appliance", name="pre_delete").parameters,
-                "stop"))
+                "Check"))
         return self
 
 
@@ -419,7 +423,7 @@ class GenericRegion(Region):
         return None
 
     @present.register(Appliance)
-    def present_host(artifact):
+    def present_appliance(artifact):
         resources = [r for i in artifact.changes for r in i.resources]
         names = {i.name for i in resources if isinstance(i, Label)}
         item = {
@@ -427,7 +431,8 @@ class GenericRegion(Region):
             "name": names.pop() if names else None,
             "organisation": artifact.organisation.name,
             "nodes": [i.name for i in resources if isinstance(i, Node)],
-            "ips": [i.value for i in resources if isinstance(i, IPAddress)],
+            "ips": ', '.join(
+                [i.value for i in resources if isinstance(i, IPAddress)]),
             "latest":  artifact.changes[-1],
         }
         return ApplianceView(item)
