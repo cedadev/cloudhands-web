@@ -12,16 +12,20 @@ __doc__ = """
 Command line tool to change LDAP passwords.
 """
 
-"""
- ldappasswd -D " cn=Nick
-Aurelius-Haddock,ou=jasmin,ou=People,o=hpc,dc=rl,dc=ac,dc=uk " -w
-"<your_password>" -H ldap://ldap-test.jc.rl.ac.uk  -A -S
-"cn=nahaddock,ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk"
-"""
+
+def change_password(cn, pwd):
+    shellArgs = ["ldappasswd",
+    "-h", "ldap-test.jc.rl.ac.uk",
+    "-D", "cn=dehaynes,ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk",
+    "-w", "password",
+    "-s", pwd,
+    "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(cn)]
+    rv = subprocess.call(shellArgs)
+    return rv
+
 
 def main(args):
-    rv = subprocess.call(["ldappasswd", "-h"])
-    return rv
+    return change_password("pjk12345", "firstpwd")
 
     
 def parser(descr=__doc__):
