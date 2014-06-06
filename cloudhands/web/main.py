@@ -914,6 +914,10 @@ def wsgi_app(args, cfg):
         renderer=cfg["paths.templates"]["registration"])
 
     config.add_view(
+        register, context=RegistrationForbidden,
+        renderer=cfg["paths.templates"]["registration"])
+
+    config.add_view(
         registration_create, route_name="register", request_method="POST",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["registration"])
@@ -930,9 +934,12 @@ def wsgi_app(args, cfg):
         renderer="json", accept="application/json")
         #renderer="cloudhands.web:templates/creds.pt")
 
+    config.add_route("user", "/user/{user_uuid}")
     config.add_view(
-        register, context=RegistrationForbidden,
-        renderer=cfg["paths.templates"]["registration"])
+        user_read, route_name="user", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer=cfg["paths.templates"]["user"])
+
     config.add_static_view(name="css", path=cfg["paths.assets"]["css"])
     config.add_static_view(name="js", path=cfg["paths.assets"]["js"])
     config.add_static_view(name="img", path=cfg["paths.assets"]["img"])
