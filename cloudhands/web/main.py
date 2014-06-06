@@ -763,6 +763,36 @@ def registration_read(request):
         page.layout.items.push(t)
     return dict(page.termination())
 
+def user_read(request):
+    log = logging.getLogger("cloudhands.web.user_read")
+    con = registered_connection(request)
+    user = con.session.merge(authenticate_user(request, Forbidden))
+    u_uuid = request.matchdict["user_uuid"]
+    actor = con.session.query(User).filter(User.uuid == u_uuid).first()
+
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
+
+    page = Page(
+        session=con.session, user=user,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+
+    for o in sorted(
+        {i.organisation for i in mships}, key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(o)
+
+    regs = con.session.query(Registration).join(Touch).join(User).filter(
+        User.uuid == u_uuid).all()
+    resources = [r for reg in regs for c in reg.changes for r in c.resources]
+    for i in resources:
+        page.layout.items.push(i)
+    #if not any(i for i in resources if isinstance(i, Label)):
+    #    label = Label()
+    #    label.uuid = appUuid
+    #    page.layout.items.push(label)
+    return dict(page.termination())
+
 def wsgi_app(args, cfg):
     attribs = {
         "macauth.master_secret": cfg["auth.macauth"]["secret"],
