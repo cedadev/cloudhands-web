@@ -19,6 +19,7 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import MembershipState
+from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.fsm import SubscriptionState
 
 from cloudhands.common.schema import Archive
@@ -28,10 +29,14 @@ from cloudhands.common.schema import Directory
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.identity.registration import NewPassword
 
 import cloudhands.web.indexer
 import cloudhands.web.main
@@ -52,9 +57,15 @@ class WebFixture(object):
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
+    @staticmethod
     def demo_email(req=None):
         return "ben.campbell@universityoflife.ac.uk"
 
+    @staticmethod
+    def demo_password(req=None):
+        return "IWannaS33TheDemo!"
+
+    @staticmethod
     def create_subscriptions(session):
         log = logging.getLogger("cloudhands.web.demo.subscriptions")
         maintenance = session.query(
@@ -110,6 +121,7 @@ class WebFixture(object):
                 finally:
                     session.flush()
 
+    @staticmethod
     def create_catalogue(session):
         org = session.query(Organisation).first()
         try:
@@ -177,7 +189,48 @@ class WebFixture(object):
             session.rollback()
         finally:
             session.flush()
-        
+
+    @staticmethod
+    def create_registration(session, user):
+        preconfirm = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_registration_inetorgperson").one()
+        reg = Registration(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__)
+        act = NewPassword(user, WebFixture.demo_password(), reg)(session)
+        ea = EmailAddress(touch=act, value=WebFixture.demo_email())
+        try:
+            session.add(ea)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            session.flush()
+
+        yield act
+
+        confirmed = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_posixaccount").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=confirmed, at=now)
+
+        # TODO: Formalise function (wildcard unpacking of forenames?)
+        cn = ''.join(i[:n] for i, n in zip(
+            reversed(user.handle.split()), (6, 1, 1))).lower()
+        uid = PosixUId(value=cn, touch=act)
+        # TODO: PosixUIdNumber of 7010001
+
+        try:
+            session.add(uid)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            session.flush()
+
+        yield act
+
+    @staticmethod
     def grant_admin_memberships(session, user):
         log = logging.getLogger("cloudhands.web.demo.memberships")
         active = session.query(MembershipState).filter(
@@ -220,6 +273,7 @@ class WebFixture(object):
                 finally:
                     session.flush()
 
+    @staticmethod
     def add_subscribed_resources(session, user):
         log = logging.getLogger("cloudhands.web.demo.resources")
         for name, provider in WebFixture.subscriptions:
@@ -283,6 +337,10 @@ def main(args):
     finally:
         session.flush()
 
+
+    for t in WebFixture.create_registration(session, user):
+        for r in t.resources:
+            log.info(r)
 
     user = session.query(User).filter(User.handle == user.handle).one()
     for t in WebFixture.grant_admin_memberships(session, user):
