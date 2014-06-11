@@ -379,6 +379,14 @@ class RegistrationView(Contextual, Validating, NamedDict):
                     "/registration", None,
                     "post", self.parameters, "Register me")
             )
+        else:
+            self["_links"].append(
+                Aspect(
+                    "Account",
+                    "canonical",
+                    "/registration/{}", self["uuid"],
+                    "get", [], "View")
+            )
 
 
 class LoginView(RegistrationView):
@@ -600,6 +608,19 @@ class NavRegion(Region):
             Aspect(obj.name, rel, "/organisation/{}", obj.name,
             "get", [], "View")]
         return OrganisationInfo(item)
+
+    @present.register(Registration)
+    def present_registration(artifact):
+        latest = artifact.changes[-1] if artifact.changes else None 
+        resources = [r for i in artifact.changes for r in i.resources]
+        hndl = latest.actor.handle if (
+            latest and isinstance(latest.actor, User)) else ""
+        item = {
+            "username": hndl,
+            "modified": latest.at if latest else None,
+            "uuid": artifact.uuid,
+        }
+        return RegistrationView(item)
 
 
 class Page(PageBase):

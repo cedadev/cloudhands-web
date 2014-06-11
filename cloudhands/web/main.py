@@ -457,6 +457,10 @@ def organisation_read(request):
     if not org:
         raise NotFound("Organisation not found for {}".format(oN))
 
+    reg = con.session.query(Registration).join(Touch).join(User).filter(
+        User.uuid == user.uuid).first()
+    page.layout.nav.push(reg)
+
     for o in sorted(
         {i.organisation for i in mships},
         key=operator.attrgetter("name")
