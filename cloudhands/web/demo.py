@@ -197,7 +197,13 @@ class WebFixture(object):
         reg = Registration(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__)
-        act = NewPassword(user, WebFixture.demo_password(), reg)(session)
+        try:
+            act = NewPassword(user, WebFixture.demo_password(), reg)(session)
+        except Exception:
+            session.rollback()
+            session.flush()
+            return
+
         ea = EmailAddress(touch=act, value=WebFixture.demo_email())
         try:
             session.add(ea)
