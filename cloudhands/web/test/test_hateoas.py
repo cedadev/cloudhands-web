@@ -17,7 +17,7 @@ import pkg_resources
 
 from cloudhands.common.types import NamedDict
 
-from cloudhands.web.hateoas import Aspect
+from cloudhands.web.hateoas import Action
 from cloudhands.web.hateoas import PageBase
 from cloudhands.web.hateoas import Parameter
 from cloudhands.web.hateoas import Region
@@ -88,7 +88,7 @@ class ItemsRegion(Region):
     def present_objects(obj):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         item["_links"] = [
-            Aspect(obj.name, "canonical", "/object/{}", obj.uuid,
+            Action(obj.name, "canonical", "/object/{}", obj.uuid,
             "post", [], "View")]
         return ObjectView(item)
 
@@ -104,7 +104,7 @@ class NavRegion(Region):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         rel = "self" if isSelf else "canonical"
         item["_links"] = [
-            Aspect(obj.name, rel, "/object/{}", obj.uuid,
+            Action(obj.name, rel, "/object/{}", obj.uuid,
             "get", [], "View")]
         return ObjectView(item)
 
@@ -120,7 +120,7 @@ class OptionsRegion(Region):
         item = vars(obj)
         item["_links"] = [
             # NB: Parameters drawn from View object if validating
-            Aspect("New object", "create-form", "/bag", None, "post",
+            Action("New object", "create-form", "/bag", None, "post",
             [Parameter("name", True, re.compile("\\w{8,128}$"), [], "")],
             "Create")]
         return OwnershipView(item)

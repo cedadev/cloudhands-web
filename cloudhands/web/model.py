@@ -31,7 +31,7 @@ from cloudhands.common.schema import User
 from cloudhands.common.types import NamedDict
 
 import cloudhands.web
-from cloudhands.web.hateoas import Aspect
+from cloudhands.web.hateoas import Action
 from cloudhands.web.hateoas import Contextual
 from cloudhands.web.hateoas import PageBase
 from cloudhands.web.hateoas import Parameter
@@ -110,23 +110,23 @@ class ApplianceView(Contextual, Validating, NamedDict):
             return self
 
         if state in ("requested", "configuring"):
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/appliance/{}", self["uuid"],
                 "post", [], "Cancel"))
         elif state in (
             "pre_provision", "provisioning", "pre_operational",
         ):
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/appliance/{}", self["uuid"],
                 "post", [], "Check"))
         elif state in (
             "operational", "pre_stop", "stopped"
         ):
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/appliance/{}", self["uuid"],
                 "post", [], "Stop"))
         elif state in ("pre_delete", "deleting"):
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", StateView(fsm="appliance", name="pre_delete").parameters,
                 "Check"))
@@ -173,29 +173,29 @@ class HostView(Contextual, Validating, NamedDict):
             return self
 
         if state == "requested":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", StateView(fsm="host", name="deleting").parameters,
                 "cancel"))
         elif state == "scheduling":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "get", [], "check"))
         elif state == "unknown":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", StateView(fsm="host", name="deleting").parameters,
                 "stop"))
         elif state == "up":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "stop"))
         elif state == "deleting":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "get", [], "check"))
         elif state == "down":
-            self["_links"].append(Aspect(
+            self["_links"].append(Action(
                 "Command", "canonical", "/host/{}", self["uuid"],
                 "post", [], "start"))
         return self
@@ -231,7 +231,7 @@ class MembershipView(Contextual, NamedDict):
         self["_links"] = []
         if self["role"] == "admin":
             self["_links"].append(
-                Aspect(
+                Action(
                     "Invitation to {}".format(self["organisation"]),
                     "create-form",
                     "/organisation/{}/memberships", self["organisation"],
@@ -255,7 +255,7 @@ class OrganisationView(Contextual, NamedDict):
             return self
 
         self["_links"] = [
-            Aspect(
+            Action(
                 "Invitation to {}".format(self["data"]["name"]), "self",
                 "/organisation/{}/memberships", self["data"]["name"], "post",
                 [], "Create")
@@ -309,7 +309,7 @@ class PersonView(Contextual, Validating, NamedDict):
         else:
             if m is not None:
                 self["_links"] = [
-                    Aspect(
+                    Action(
                         m.organisation.name, "parent",
                         "/membership/{}", m.uuid, "post",
                         self.parameters, "Invite")
@@ -373,7 +373,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
             self["email"] = ""
             self["password"] = ""
             self["_links"].append(
-                Aspect(
+                Action(
                     "New user",
                     "create-form",
                     "/registration", None,
@@ -381,7 +381,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
             )
         else:
             self["_links"].append(
-                Aspect(
+                Action(
                     "Account",
                     "canonical",
                     "/account/{}", self["uuid"],
@@ -453,7 +453,7 @@ class GenericRegion(Region):
             "uuid": uuid.uuid4().hex,
         }
         item["_links"] = [
-            Aspect("Catalogue", "collection", "#", "",  # FIXME
+            Action("Catalogue", "collection", "#", "",  # FIXME
             "get", [], "Ok")]
         return CatalogueChoiceView(item)
 
@@ -486,14 +486,14 @@ class GenericRegion(Region):
             description = obj.description,
             uuid = uuid.uuid4().hex,
         )
-        item["_links"] = [Aspect(
+        item["_links"] = [Action(
             name="General information",
             rel="edit-form",
             typ="/appliance/{}",
             ref=obj.uuid,
             method="post",
             parameters=item.parameters,
-            action="OK")]
+            prompt="OK")]
         return item
 
     @present.register(Membership)
@@ -514,7 +514,7 @@ class GenericRegion(Region):
             uuid=uuid.uuid4().hex,
         )
         item["_links"] = [
-            Aspect("Select account name", "create-form", "#", "",  # FIXME
+            Action("Select account name", "create-form", "#", "",  # FIXME
             "post", item.parameters, "Ok")]
         return item
 
@@ -536,7 +536,7 @@ class GenericRegion(Region):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         rel = "self" if isSelf else "canonical"
         item["_links"] = [
-            Aspect(obj.name, rel, "/organisation/{}", obj.name,
+            Action(obj.name, rel, "/organisation/{}", obj.name,
             "get", [], "View")]
         return OrganisationView(item)
 
@@ -574,7 +574,7 @@ class GenericRegion(Region):
             "uuid": uuid.uuid4().hex,
         }
         item["_links"] = [
-            Aspect(act.artifact.typ, "collection", "/user/{}", act.actor.uuid,
+            Action(act.artifact.typ, "collection", "/user/{}", act.actor.uuid,
             "get", [], "View")]
         return EventInfo(item)
 
@@ -585,7 +585,7 @@ class GenericRegion(Region):
             "handle": obj.handle,
             "email": None})
         item["_links"] = [
-            Aspect("User login", "payment", "/login", "",
+            Action("User login", "payment", "/login", "",
             "post", item.parameters[0:2], "Log in")]
         return item
 
@@ -605,7 +605,7 @@ class NavRegion(Region):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
         rel = "self" if isSelf else "canonical"
         item["_links"] = [
-            Aspect(obj.name, rel, "/organisation/{}", obj.name,
+            Action(obj.name, rel, "/organisation/{}", obj.name,
             "get", [], "View")]
         return OrganisationInfo(item)
 
@@ -642,7 +642,7 @@ class PeoplePage(Page):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        link = Aspect(
+        link = Action(
             "Find people", "self",
             "/people", "people", "get",
             PersonView().parameters, "Search")

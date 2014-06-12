@@ -14,7 +14,7 @@ from pyramid.httpexceptions import HTTPForbidden
 from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.types import NamedDict
 
-from cloudhands.web.hateoas import Aspect
+from cloudhands.web.hateoas import Action
 from cloudhands.web.hateoas import Contextual
 from cloudhands.web.hateoas import Parameter
 from cloudhands.web.hateoas import Validating
@@ -47,7 +47,7 @@ def present_catalogueitem(obj):
         uuid=obj.uuid,
     )
     item["_links"] = [
-        Aspect("Configure appliance", "create-form",
+        Action("Configure appliance", "create-form",
         "/organisation/{}/appliances", obj.organisation.name,
         "post", item.parameters, "Ok")]
     return item

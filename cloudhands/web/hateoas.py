@@ -11,8 +11,8 @@ from cloudhands.common.types import NamedDict
 from cloudhands.common.types import NamedList
 
 
-Aspect = namedtuple(
-    "Aspect", ["name", "rel", "typ", "ref", "method", "parameters", "action"])
+Action = namedtuple(
+    "Action", ["name", "rel", "typ", "ref", "method", "parameters", "prompt"])
 Parameter = namedtuple("Parameter", ["name", "required", "regex", "values", "tip"])
 
 

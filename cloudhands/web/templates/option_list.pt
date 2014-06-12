@@ -59,7 +59,7 @@ value value;
 </p>
 </div>
 <div tal:attributes="class 'pure-control-group'">
-<button tal:content="aspect.action"
+<button tal:content="aspect.prompt"
 tal:attributes="
 type 'submit';
 class 'pure-button pure-button-primary'"></button>

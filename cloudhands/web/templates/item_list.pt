@@ -74,7 +74,7 @@ value value;
 </select>
 </label>
 </div>
-<button tal:content="aspect.action"
+<button tal:content="aspect.prompt"
 tal:attributes="
 type 'submit';
 class 'pure-button pure-button-primary'"></button>
