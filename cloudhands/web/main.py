@@ -60,6 +60,7 @@ from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PosixGId
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import PublicKey
@@ -781,6 +782,10 @@ def registration_read(request):
     for t in acts:
         page.layout.items.push(t)
 
+    missing = ({BcryptedPassword, EmailAddress, PosixUId, PosixUIdNumber,
+                PosixGId, PublicKey} -
+                {type(r) for t in acts for r in t.resources})
+    log.debug(missing)
     if sName == "pre_user_inetorgperson_dn":
         page.layout.options.push(PosixUId())
 
