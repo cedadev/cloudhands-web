@@ -35,19 +35,19 @@ class keylabel">
 </dd>
 </div>
 </dl>
-<div tal:omit-tag="" tal:repeat="aspect item.get('_links', [])">
+<div tal:omit-tag="" tal:repeat="action item.get('_links', [])">
 <form class="pure-form"
-tal:condition="aspect.method != 'get'"
+tal:condition="action.method != 'get'"
 tal:attributes="
-action aspect.typ.format(aspect.ref);
-method aspect.method;
-name '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.method, aspect.rel).replace(' ','').lower();">
+action action.typ.format(action.ref);
+method action.method;
+name '{}-{}-{}-{}'.format(itemId, action.name, action.method, action.rel).replace(' ','').lower();">
 <fieldset>
 <div
-tal:repeat="field aspect.parameters"
+tal:repeat="field action.parameters"
 tal:omit-tag="">
 <label
-tal:define="id_ '{}-{}-{}-{}'.format(itemId, aspect.name, aspect.rel, field.name).lower();"
+tal:define="id_ '{}-{}-{}-{}'.format(itemId, action.name, action.rel, field.name).lower();"
 tal:attributes="for id_">
 ${field.name.upper() if field.name in ('cpu', 'jvo', 'ram') else field.name.capitalize()}
 <input
@@ -74,7 +74,7 @@ value value;
 </select>
 </label>
 </div>
-<button tal:content="aspect.prompt"
+<button tal:content="action.prompt"
 tal:attributes="
 type 'submit';
 class 'pure-button pure-button-primary'"></button>

@@ -69,7 +69,7 @@ required python:'required' if field.required else None;
 type python:'hidden' if field.name in ('designator,') else 'text';"/>
 </label>
 </div>
-<button type="submit" class="pure-button pure-button-primary">${link.action}</button>
+<button type="submit" class="pure-button pure-button-primary">${link.prompt}</button>
 </fieldset>
 </form>
 </li>
