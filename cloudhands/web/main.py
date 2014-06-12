@@ -743,10 +743,10 @@ def registration_read(request):
         Registration.uuid == reg_uuid).first()
     if not reg:
         raise NotFound("Registration {} not found".format(reg_uuid))
+
+    # This page can be visited while unauthenticated but only in the
+    # first phase of the onboarding process.
     sName = reg.changes[-1].state.name
-    page = Page(
-        session=con.session,
-        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     if sName == "pre_registration_inetorgperson":
         # TODO: Check TimeInterval hasn't expired
         user = reg.changes[0].actor
@@ -757,16 +757,36 @@ def registration_read(request):
         con.session.add(act)
         con.session.commit()
         raise HTTPFound(location=request.route_url("login"))
-    elif sName == "pre_user_inetorgperson_dn":
-        page.layout.options.push(PosixUId())
+
+    user = con.session.merge(authenticate_user(request, Forbidden))
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
+
+    page = Page(
+        session=con.session,
+        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
+    page.layout.info.push(PageInfo(title=user.handle))
+
+    page.layout.nav.push(reg)
+
+    for o in sorted(
+        {i.organisation for i in mships},
+        key=operator.attrgetter("name")
+    ):
+        page.layout.nav.push(o)
+
 
     acts = con.session.query(Touch).join(Registration).filter(
         Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
-
     for t in acts:
         page.layout.items.push(t)
+
+    if sName == "pre_user_inetorgperson_dn":
+        page.layout.options.push(PosixUId())
+
     return dict(page.termination())
 
+# TODO: Remove this view. Everything happens in registration
 def user_read(request):
     log = logging.getLogger("cloudhands.web.user_read")
     con = registered_connection(request)
@@ -926,7 +946,13 @@ def wsgi_app(args, cfg):
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["registration"])
 
+    config.add_route("account", "/account/{reg_uuid}")
     config.add_route("registration", "/registration/{reg_uuid}")
+    config.add_view(
+        registration_read, route_name="account", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer=cfg["paths.templates"]["registration"])
+
     config.add_view(
         registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)

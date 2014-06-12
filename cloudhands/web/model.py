@@ -384,7 +384,7 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 Aspect(
                     "Account",
                     "canonical",
-                    "/registration/{}", self["uuid"],
+                    "/account/{}", self["uuid"],
                     "get", [], "View")
             )
 
