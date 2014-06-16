@@ -784,17 +784,19 @@ def registration_read(request):
         page.layout.nav.push(o)
 
 
-    acts = con.session.query(Touch).join(Registration).filter(
-        Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
-    for t in acts:
-        page.layout.items.push(t)
-
-    missing = ({BcryptedPassword, EmailAddress, PosixUId, PosixUIdNumber,
-                PosixGId, PublicKey} -
-                {type(r) for t in acts for r in t.resources})
-    log.debug(missing)
     if sName == "pre_user_inetorgperson_dn":
         page.layout.options.push(PosixUId())
+        return dict(page.termination())
+
+    required = (PosixUIdNumber, PosixUId, EmailAddress, BcryptedPassword,
+                PosixGId, PublicKey)
+    for class_ in required:
+        rsrcs = con.session.query(class_).join(Touch).join(Registration).filter(
+            Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
+        if not rsrcs:
+            page.layout.items.push(class_())
+        for r in rsrcs:
+            page.layout.items.push(r)
 
     return dict(page.termination())
 
