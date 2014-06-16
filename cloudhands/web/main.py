@@ -180,16 +180,20 @@ class RegistrationForbidden(Forbidden): pass
 
 def top_read(request):
     log = logging.getLogger("cloudhands.web.top_read")
+    con = registered_connection(request)
     user = authenticate_user(request)
     page = Page(
+        session=con.session, user=user,
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     page.layout.info.push(PageInfo(refresh=30))
-    con = registered_connection(request)
 
     if user:
-        page.layout.nav.push(user)
         mships = con.session.query(Membership).join(Touch).join(User).filter(
             User.id==user.id).all()
+        reg = con.session.query(Registration).join(Touch).join(User).filter(
+            User.uuid == user.uuid).first()
+        if reg:
+            page.layout.nav.push(reg)
     else:
         mships = []
 
@@ -498,9 +502,9 @@ def organisation_read(request):
 
 def organisation_catalogue_read(request):
     log = logging.getLogger("cloudhands.web.organisation_catalogue_read")
-    user = authenticate_user(request)
-
     con = registered_connection(request)
+    user = con.session.merge(authenticate_user(request, Forbidden))
+
     page = Page(
         session=con.session, user=user,
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
@@ -515,6 +519,9 @@ def organisation_catalogue_read(request):
     else:
         page.layout.info.push(PageInfo(title=oN))
 
+    reg = con.session.query(Registration).join(Touch).join(User).filter(
+        User.uuid == user.uuid).first()
+    page.layout.nav.push(reg)
     for o in sorted(
         {i.organisation for i in mships}, key=operator.attrgetter("name")
     ):
