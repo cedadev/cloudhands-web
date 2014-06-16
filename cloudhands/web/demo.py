@@ -30,6 +30,7 @@ from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Subscription
@@ -224,10 +225,11 @@ class WebFixture(object):
         cn = ''.join(i[:n] for i, n in zip(
             reversed(user.handle.split()), (6, 1, 1))).lower()
         uid = PosixUId(value=cn, touch=act)
-        # TODO: PosixUIdNumber of 7010001
+        uidN = PosixUIdNumber(value=7010001, touch=act)
 
         try:
             session.add(uid)
+            session.add(uidN)
             session.commit()
         except Exception as e:
             session.rollback()

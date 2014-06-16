@@ -13,14 +13,19 @@ from pyramid.httpexceptions import HTTPForbidden
 
 import cloudhands.common
 from cloudhands.common.schema import Appliance
+from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import CatalogueChoice
+from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import PosixGId
+from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
@@ -54,8 +59,16 @@ class PageInfo(NamedDict):
     def public(self):
         return ["title", "refresh"]
 
+
 class PathInfo(NamedDict):
     pass
+
+
+class ResourceInfo(NamedDict):
+
+    @property
+    def public(self):
+        return [i for i in self.keys() if i != "uuid"]
 
 
 class EventInfo(NamedDict):
@@ -218,6 +231,7 @@ class LabelView(Validating, NamedDict):
                 [self["description"]] if "description" in self else [], ""),
         ]
 
+
 class MembershipView(Contextual, NamedDict):
 
     @property
@@ -263,11 +277,11 @@ class OrganisationView(Contextual, NamedDict):
         return self
 
 
-class PosixUIdView(Validating, NamedDict):
+class PosixUIdView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):
-        return []
+        return ["name"]
 
     @property
     def parameters(self):
@@ -276,6 +290,13 @@ class PosixUIdView(Validating, NamedDict):
                 "name", True, re.compile("\\w{8,}$"), [], ""
             )
         ]
+
+    def configure(self, session, user):
+        self["_links"] = []
+        if not self["name"]:
+            self["_links"].append(
+                Action("Select account name", "create-form", "#", "",
+                "post", self.parameters, "Ok"))
 
 
 class PersonView(Contextual, Validating, NamedDict):
@@ -445,6 +466,20 @@ class GenericRegion(Region):
         }
         return ApplianceView(item)
 
+    @present.register(BcryptedPassword)
+    def present_bcryptedpassword(obj):
+        return ResourceInfo(
+            hash=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+
+    @present.register(EmailAddress)
+    def present_bcryptedpassword(obj):
+        return ResourceInfo(
+            email=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+
     @present.register(CatalogueChoice)
     def present_catalogue_choice(obj):
         item = {
@@ -513,10 +548,28 @@ class GenericRegion(Region):
             name=obj.value,
             uuid=uuid.uuid4().hex,
         )
-        item["_links"] = [
-            Action("Select account name", "create-form", "#", "",  # FIXME
-            "post", item.parameters, "Ok")]
         return item
+
+    @present.register(PosixUIdNumber)
+    def present_posixuidnumber(obj):
+        return ResourceInfo(
+            uid=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+
+    @present.register(PosixGId)
+    def present_posixgid(obj):
+        return ResourceInfo(
+            gid=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+
+    @present.register(PublicKey)
+    def present_publickey(obj):
+        return ResourceInfo(
+            key=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
 
     @present.register(Registration)
     def present_registration(artifact):

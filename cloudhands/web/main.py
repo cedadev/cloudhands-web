@@ -793,6 +793,7 @@ def registration_read(request):
     for class_ in required:
         rsrcs = con.session.query(class_).join(Touch).join(Registration).filter(
             Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
+        log.debug(rsrcs)
         if not rsrcs:
             page.layout.items.push(class_())
         for r in rsrcs:
