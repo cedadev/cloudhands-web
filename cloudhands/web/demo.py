@@ -5,6 +5,7 @@ import argparse
 from configparser import ConfigParser
 import datetime
 import logging
+import os.path
 import platform
 import sqlite3
 import sys
@@ -32,6 +33,7 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
@@ -192,7 +194,7 @@ class WebFixture(object):
             session.flush()
 
     @staticmethod
-    def create_registration(session, user):
+    def create_registration(session, user, key=None):
         preconfirm = session.query(RegistrationState).filter(
             RegistrationState.name == "pre_registration_inetorgperson").one()
         reg = Registration(
@@ -216,6 +218,7 @@ class WebFixture(object):
 
         yield act
 
+        # TODO: When gids are sorted out, set to pre_user_ldappublickey
         confirmed = session.query(RegistrationState).filter(
             RegistrationState.name == "pre_user_posixaccount").one()
         now = datetime.datetime.utcnow()
@@ -230,6 +233,25 @@ class WebFixture(object):
         try:
             session.add(uid)
             session.add(uidN)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            session.flush()
+
+        yield act
+
+        if key is None:
+            return
+
+        valid = session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        pk = PublicKey(value=key, touch=act)
+
+        try:
+            session.add(pk)
             session.commit()
         except Exception as e:
             session.rollback()
@@ -346,9 +368,16 @@ def main(args):
         session.flush()
 
 
-    for t in WebFixture.create_registration(session, user):
+    try:
+        pKey = open(os.path.expanduser(args.identity), 'r').read().strip()
+    except FileNotFoundError as e:
+        log.error(e)
+        return 1
+
+
+    for t in WebFixture.create_registration(session, user, key=pKey):
         for r in t.resources:
-            log.info(r)
+            log.debug(r)
 
     user = session.query(User).filter(User.handle == user.handle).one()
     for t in WebFixture.grant_admin_memberships(session, user):
@@ -378,6 +407,10 @@ def main(args):
 
 def parser(description=__doc__):
     rv = cloudhands.web.main.parser(description)
+    rv.add_argument(
+        "--identity", required=True,
+        help="Set the path to an OpenSSH public key file")
+    
     return rv
 
 
