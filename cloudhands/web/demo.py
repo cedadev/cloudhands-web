@@ -55,8 +55,8 @@ DFLT_DB = ":memory:"
 class WebFixture(object):
 
     subscriptions = [
-        ("EOSCloud", "cloudhands.jasmin.vcloud.phase03.cfg"),
-        ("NERC-EW", "cloudhands.jasmin.vcloud.phase03.cfg"),
+        ("EOSCloud", "cloudhands.jasmin.vcloud.phase04.cfg"),
+        ("NERC-EW", "cloudhands.jasmin.vcloud.phase04.cfg"),
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
