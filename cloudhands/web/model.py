@@ -25,6 +25,7 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixGId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import ProviderReport
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
@@ -127,7 +128,7 @@ class ApplianceView(Contextual, Validating, NamedDict):
                 "Command", "canonical", "/appliance/{}", self["uuid"],
                 "post", [], "Cancel"))
         elif state in (
-            "pre_provision", "provisioning", "pre_operational",
+            "pre_provision", "provisioning", "pre_operational", "pre_check",
         ):
             self["_links"].append(Action(
                 "Command", "canonical", "/appliance/{}", self["uuid"],
