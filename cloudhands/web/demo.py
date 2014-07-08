@@ -28,6 +28,7 @@ from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Directory
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixUId
@@ -107,11 +108,26 @@ class WebFixture(object):
                     model=cloudhands.common.__version__,
                     organisation=org,
                     provider=provider)
-                subs.changes.append(
-                    Touch(
-                        artifact=subs, actor=actor, state=maintenance,
-                        at=datetime.datetime.utcnow())
-                    )
+                act = Touch(
+                    artifact=subs, actor=actor, state=maintenance,
+                    at=datetime.datetime.utcnow())
+
+                session.add(act)
+                session.commit()
+
+                publicIP = IPAddress(
+                    value="172.16.151.166", provider=provider, touch=act)
+
+                try:
+                    session.add(publicIP)
+                    session.commit()
+                    yield act
+                except Exception as e:
+                    log.debug(e)
+                    session.rollback()
+                finally:
+                    session.flush()
+
                 act = Online(actor, subs)(session)
                 subs.changes.append(act)
                 try:
