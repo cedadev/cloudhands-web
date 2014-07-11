@@ -238,6 +238,9 @@ def appliance_read(request):
         label = Label()
         label.uuid = appUuid
         page.layout.items.push(label)
+
+        # option for public IP address
+
     return dict(page.termination())
 
 
