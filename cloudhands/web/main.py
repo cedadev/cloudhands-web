@@ -252,32 +252,38 @@ def appliance_modify(request):
         raise NotFound("Appliance {} not found".format(appUuid))
 
     now = datetime.datetime.utcnow()
-    data = LabelView(request.POST)
+    data = StateView(request.POST)
     if data.invalid:
-        configuring = con.session.query(ApplianceState).filter(
-            ApplianceState.name == "configuring").one()
-        act = Touch(artifact=app, actor=user, state=configuring, at=now)
-        con.session.add(act)
-        con.session.commit()
-        log.debug(request.POST)
-        log.debug(data)
-        raise HTTPBadRequest(
-            "Bad value in '{}' field".format(data.invalid[0].name))
-    else:
-        pre_provision  = con.session.query(ApplianceState).filter(
-            ApplianceState.name == "pre_provision").one()
-        act = Touch(artifact=app, actor=user, state=pre_provision, at=now)
+        data = LabelView(request.POST)
+        if data.invalid:
+            raise HTTPBadRequest(
+                "Bad value in '{}' field".format(data.invalid[0].name))
+        else:
+            pre_provision  = con.session.query(ApplianceState).filter(
+                ApplianceState.name == "pre_provision").one()
+            act = Touch(artifact=app, actor=user, state=pre_provision, at=now)
 
-        label = Label(
-            name=data["name"], description=data["description"],
-            touch=act)
-        con.session.add(label)
-        con.session.commit()
+            label = Label(
+                name=data["name"], description=data["description"],
+                touch=act)
+            con.session.add(label)
+            con.session.commit()
+    else:
+        state = con.session.query(State).filter(
+            State.fsm == data["fsm"]).filter(
+            State.name == data["name"]).first()
+        if state is None:
+            raise HTTPBadRequest(
+                "No such state {fsm} {name}".format(**data))
+        else:
+            act = Touch(artifact=app, actor=user, state=state, at=now)
+            con.session.add(act)
+            con.session.commit()
+
     raise HTTPFound(
         location=request.route_url(
             "organisation", org_name=app.organisation.name))
         
-
 
 def host_update(request):
     log = logging.getLogger("cloudhands.web.host_update")
@@ -600,14 +606,14 @@ def organisation_appliances_create(request):
         raise NotFound("Organisation '{}' not found".format(oN))
 
     now = datetime.datetime.utcnow()
-    requested = con.session.query(ApplianceState).filter(
-        ApplianceState.name == "requested").one()
+    configuring = con.session.query(ApplianceState).filter(
+        ApplianceState.name == "configuring").one()
     app = Appliance(
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__,
         organisation=org,
         )
-    act = Touch(artifact=app, actor=user, state=requested, at=now)
+    act = Touch(artifact=app, actor=user, state=configuring, at=now)
 
     tmplt = con.session.query(CatalogueItem).filter(
         CatalogueItem.uuid == data["uuid"]).first()
