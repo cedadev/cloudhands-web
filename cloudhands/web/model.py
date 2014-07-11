@@ -129,7 +129,8 @@ class ApplianceView(Contextual, Validating, NamedDict):
                 "post", StateView(fsm="appliance", name="pre_delete").parameters,
                 "Cancel"))
         elif state in (
-            "pre_provision", "provisioning", "pre_operational", "pre_check",
+            "pre_provision", "provisioning", "pre_operational",
+            "pre_start", "pre_check",
         ):
             self["_links"].append(Action(
                 "_hidden", "canonical", "/appliance/{}", self["uuid"],
@@ -163,7 +164,7 @@ class ApplianceView(Contextual, Validating, NamedDict):
                 "Start"))
         elif state in ("pre_delete", "deleting"):
             self["_links"].append(Action(
-                "_hidden", "canonical", "/host/{}", self["uuid"],
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
                 "post", StateView(fsm="appliance", name="pre_check").parameters,
                 "Check"))
         return self

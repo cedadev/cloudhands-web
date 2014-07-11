@@ -483,6 +483,9 @@ def organisation_read(request):
         "pre_provision": 5,
         "provisioning": 15,
         "pre_check": 2,
+        "pre_delete": 2,
+        "pre_start": 2,
+        "pre_stop": 2,
         "pre_operational": 5,
         "operational": 60,
     }
