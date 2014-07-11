@@ -131,18 +131,39 @@ class ApplianceView(Contextual, Validating, NamedDict):
             "pre_provision", "provisioning", "pre_operational", "pre_check",
         ):
             self["_links"].append(Action(
-                "Command", "canonical", "/appliance/{}", self["uuid"],
-                "post", [], "Check"))
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_check").parameters,
+                "Check"))
         elif state in (
-            "operational", "pre_stop", "stopped"
+            "operational",
         ):
             self["_links"].append(Action(
-                "Command", "canonical", "/appliance/{}", self["uuid"],
-                "post", [], "Stop"))
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_check").parameters,
+                "Check"))
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_stop").parameters,
+                "Stop"))
+        elif state in (
+            "pre_stop", "stopped"
+        ):
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_check").parameters,
+                "Check"))
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_delete").parameters,
+                "Delete"))
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_start").parameters,
+                "Start"))
         elif state in ("pre_delete", "deleting"):
             self["_links"].append(Action(
-                "Command", "canonical", "/host/{}", self["uuid"],
-                "post", StateView(fsm="appliance", name="pre_delete").parameters,
+                "_hidden", "canonical", "/host/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_check").parameters,
                 "Check"))
         return self
 

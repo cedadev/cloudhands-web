@@ -116,7 +116,7 @@ class WebFixture(object):
                 session.commit()
 
                 publicIP = IPAddress(
-                    value="172.16.151.166", provider=provider, touch=act)
+                    value="172.16.151.170", provider=provider, touch=act)
 
                 try:
                     session.add(publicIP)
