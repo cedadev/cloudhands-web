@@ -717,6 +717,7 @@ def register(request):
         uuid=uuid.uuid4().hex,
         model=cloudhands.common.__version__)
     page.layout.options.push(reg, session=con.session)
+    log.debug(reg)
     return dict(page.termination())
 
 

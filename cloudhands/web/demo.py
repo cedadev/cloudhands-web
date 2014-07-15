@@ -62,12 +62,16 @@ class WebFixture(object):
     ]
 
     @staticmethod
-    def demo_email(req=None):
-        return "ben.campbell@universityoflife.ac.uk"
+    def demo_username(req=None):
+        return "bcampbel"
 
     @staticmethod
     def demo_password(req=None):
         return "IWannaS33TheDemo!"
+
+    @staticmethod
+    def demo_email(req=None):
+        return "ben.campbell@universityoflife.ac.uk"
 
     @staticmethod
     def create_subscriptions(session):
@@ -241,9 +245,9 @@ class WebFixture(object):
         act = Touch(artifact=reg, actor=user, state=confirmed, at=now)
 
         # TODO: Formalise function (wildcard unpacking of forenames?)
-        cn = ''.join(i[:n] for i, n in zip(
-            reversed(user.handle.split()), (6, 1, 1))).lower()
-        uid = PosixUId(value=cn, touch=act)
+        #cn = ''.join(i[:n] for i, n in zip(
+        #    reversed(user.handle.split()), (7, 1, 1))).lower()
+        uid = PosixUId(value=WebFixture.demo_username(), touch=act)
         uidN = PosixUIdNumber(value=7010001, touch=act)
 
         try:
@@ -373,7 +377,7 @@ def main(args):
 
     WebFixture.create_catalogue(session)
     user = User(
-        handle=handle_from_email(WebFixture.demo_email()),
+        handle=WebFixture.demo_username(),
         uuid=uuid.uuid4().hex)
     try:
         session.add(user)
@@ -413,7 +417,7 @@ def main(args):
                 getattr(r, "description", "?")))
 
 
-    cloudhands.web.main.authenticated_userid = WebFixture.demo_email
+    #cloudhands.web.main.authenticated_userid = WebFixture.demo_email
 
     app = cloudhands.web.main.wsgi_app(args, cfg)
     cloudhands.web.main.serve(
