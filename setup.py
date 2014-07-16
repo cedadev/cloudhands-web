@@ -25,7 +25,7 @@ setup(
     description="Web portal for cloudhands PaaS",
     author="D Haynes",
     author_email="david.e.haynes@stfc.ac.uk",
-    url="http://pypi.python.org/pypi/cloudhands-web",
+    url="https://github.com/cedadev/cloudhands-web.git",
     long_description=__doc__,
     classifiers=[
         "Operating System :: OS Independent",
@@ -51,7 +51,7 @@ setup(
         },
     install_requires=[
         "asyncio>=0.4.1",
-        "cloudhands-common>=0.23",
+        "cloudhands-common>=0.24",
         "singledispatch>=3.4.0.2",
         "pyramid>=1.4.0",
         "pyramid_authstack>=1.0.1",
