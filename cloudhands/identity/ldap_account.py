@@ -58,6 +58,18 @@ def change_password(cn, pwd, config=None):
     return rv
 
 
+def change_password(cn, pwd, config=None):
+    config = config or next(iter(settings.values()))
+    shellArgs = ["ldappasswd",
+    "-h", config["ldap.match"]["host"],
+    "-D", config["ldap.creds"]["user"],
+    "-w", config["ldap.creds"]["password"],
+    "-s", pwd,
+    "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(cn)]
+    rv = subprocess.call(shellArgs)
+    return rv
+
+
 def main(args):
     print(next_uidnumber())
     #return change_password("pjk12345", "firstpwd")

@@ -72,6 +72,7 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 import cloudhands.web
+from cloudhands.identity.ldap_account import next_uidnumber
 from cloudhands.identity.registration import NewPassword
 from cloudhands.web.catalogue import CatalogueItemView
 from cloudhands.web.indexer import people
@@ -366,6 +367,11 @@ def login_update(request):
             "No valid registration found for {}".format(user.handle))
 
     try:
+        # FIXME:  get last password properly
+        #changes = sorted(
+        #    reg.changes,
+        #    key=operator.attrgetter("at"),
+        #    reverse=True)
         hash = next(r for r in reg.changes[0].resources
                     if isinstance(r, BcryptedPassword)).value
     except StopIteration:
@@ -374,7 +380,9 @@ def login_update(request):
 
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
-        log.debug(headers)
+        if reg.changes[-1].state.name == "pre_user_posixaccount":
+            uidN = next_uidnumber()
+            log.info("Allocating user id number {}".format(uidN))
         raise HTTPFound(
             location = request.route_url("top"), headers = headers)
     else:
