@@ -6,11 +6,30 @@ import logging
 import subprocess
 import sys
 
+import ldap3
+
+from cloudhands.common.discovery import settings
 from cloudhands.web import __version__
 
 __doc__ = """
 Command line tool to change LDAP passwords.
 """
+
+def discover_uids(config):
+    log = logging.getLogger("cloudhands.identity.discovery")
+    s = ldap3.Server(
+        config["ldap.search"]["host"],
+        port=int(config["ldap.search"]["port"]),
+        get_info=ldap3.GET_ALL_INFO)
+    c = ldap3.Connection(
+        s, auto_bind=True, client_strategy=ldap3.STRATEGY_SYNC)
+    log.info("Opening LDAP connection to {}.".format(
+        config["ldap.search"]["host"]))
+
+    c.search(config["ldap.search"]["query"], "(objectclass=posixAccount)",
+        ldap3.SEARCH_SCOPE_WHOLE_SUBTREE,
+        attributes=["uidNumber"])
+    return set(int(n) for i in c.response for n in i["attributes"].get("uidNumber", []))
 
 
 def change_password(cn, pwd):
@@ -25,7 +44,9 @@ def change_password(cn, pwd):
 
 
 def main(args):
-    return change_password("pjk12345", "firstpwd")
+    provider, config = next(iter(settings.items()))
+    print(discover_uids(config).intersection(range(24000, 26000)))
+    #return change_password("pjk12345", "firstpwd")
 
     
 def parser(descr=__doc__):
