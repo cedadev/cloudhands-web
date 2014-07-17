@@ -20,6 +20,10 @@ def handle_from_email(addrVal):
         i.capitalize() for i in addrVal.split('@')[0].split('.'))
 
 
+def from_pool(pool:set, taken:set=set()):
+    return iter(sorted(pool - taken))
+
+
 class NewPassword:
     """
     Adds a new password to a user account

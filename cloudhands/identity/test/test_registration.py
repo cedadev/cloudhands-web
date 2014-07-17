@@ -7,6 +7,7 @@ import unittest
 import uuid
 
 from cloudhands.identity.registration import NewPassword
+from cloudhands.identity.registration import from_pool
 
 import cloudhands.common
 from cloudhands.common.connectors import initialise
@@ -36,6 +37,28 @@ class RegistrationLifecycleTests(unittest.TestCase):
 
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
+
+
+class UidNumberTests(unittest.TestCase):
+
+    def test_pool_allocation(self):
+        pool = set(range(0, 10))
+        taken = {0, 1, 2, 9 }
+        self.assertEqual(3, next(from_pool(pool, taken)))
+
+    def test_pool_allocation_none_taken(self):
+        pool = {7, 5, 9 }
+        self.assertEqual(5, next(from_pool(pool)))
+
+    def test_pool_exactly_taken(self):
+        pool = set(range(0, 10))
+        taken = pool
+        self.assertRaises(StopIteration, next, from_pool(pool, taken))
+
+    def test_pool_over_taken(self):
+        pool = set(range(0, 10))
+        taken = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+        self.assertRaises(StopIteration, next, from_pool(pool, taken))
 
 
 class NewPasswordTests(RegistrationLifecycleTests):

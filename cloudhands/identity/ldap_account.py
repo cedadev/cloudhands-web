@@ -8,15 +8,20 @@ import sys
 
 import ldap3
 
+from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
+from cloudhands.identity.registration import from_pool
 from cloudhands.web import __version__
 
 __doc__ = """
 Command line tool to change LDAP passwords.
 """
 
-def discover_uids(config):
+DFLT_DB = ":memory:"
+
+def discover_uids(config=None):
     log = logging.getLogger("cloudhands.identity.discovery")
+    config = config or next(iter(settings.values()))
     s = ldap3.Server(
         config["ldap.search"]["host"],
         port=int(config["ldap.search"]["port"]),
@@ -32,7 +37,17 @@ def discover_uids(config):
     return set(int(n) for i in c.response for n in i["attributes"].get("uidNumber", []))
 
 
-def change_password(cn, pwd):
+def next_uidnumber(provider=None):
+    provider = provider or next(reversed(providers["vcloud"]))
+    start = int(provider["uidnumbers"]["start"])
+    stop = int(provider["uidnumbers"]["stop"])
+    pool = set(range(start, stop))
+    taken = discover_uids()
+    return next(from_pool(pool, taken))
+
+
+def change_password(cn, pwd, config=None):
+    config = config or next(iter(settings.values()))
     shellArgs = ["ldappasswd",
     "-h", "ldap-test.jc.rl.ac.uk",
     "-D", "cn=dehaynes,ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk",
@@ -44,8 +59,7 @@ def change_password(cn, pwd):
 
 
 def main(args):
-    provider, config = next(iter(settings.items()))
-    print(discover_uids(config).intersection(range(24000, 26000)))
+    print(next_uidnumber())
     #return change_password("pjk12345", "firstpwd")
 
     
@@ -61,6 +75,9 @@ def parser(descr=__doc__):
         action="store_const", dest="log_level",
         const=logging.DEBUG, default=logging.INFO,
         help="Increase the verbosity of output")
+    rv.add_argument(
+        "--db", default=DFLT_DB,
+        help="Set the path to the database [{}]".format(DFLT_DB))
     return rv
 
 
