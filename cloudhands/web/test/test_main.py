@@ -36,6 +36,8 @@ from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import Organisation
+from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Registration
@@ -107,15 +109,15 @@ class ServerTests(unittest.TestCase):
 
     @staticmethod
     def make_test_user(session):
-        valid = session.query(RegistrationState).filter(
-            RegistrationState.name == "valid").one()
+        just_registered = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_registration_inetorgperson_cn").one()
         reg = Registration(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__)
         user = User(handle="Test User", uuid=uuid.uuid4().hex)
         hash = bcrypt.hashpw("TestPassw0rd", bcrypt.gensalt(12))
         now = datetime.datetime.utcnow()
-        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        act = Touch(artifact=reg, actor=user, state=just_registered, at=now)
         pwd = BcryptedPassword(touch=act, value=hash)
         ea = EmailAddress(
             touch=act,
@@ -126,12 +128,14 @@ class ServerTests(unittest.TestCase):
 
     @staticmethod
     def make_test_user_role_user(session):
+        session.add(
+            Provider(
+                name="testcloud.io", uuid=uuid.uuid4().hex)
+        )
         user = ServerTests.make_test_user(session).actor
         org = Organisation(
             uuid=uuid.uuid4().hex,
             name="TestOrg")
-        provider = Provider(
-            name="testcloud.io", uuid=uuid.uuid4().hex)
         userMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
@@ -376,6 +380,50 @@ class LoginAndOutTests(ServerTests):
             post={"username": "Test User", "password": "TestPassw0rd"})
         self.assertRaises(HTTPFound, login_update, request)
 
+    def test_registration_lifecycle_pre_registration_inet_orgperson_cn(self):
+        act = ServerTests.make_test_user_role_user(self.session)
+        request = testing.DummyRequest(
+            post={"username": "Test User", "password": "TestPassw0rd"})
+        self.assertRaises(HTTPFound, login_update, request)
+        self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(1, self.session.query(Registration).count())
+        self.assertEqual(1, self.session.query(BcryptedPassword).count())
+        self.assertEqual(1, self.session.query(EmailAddress).count())
+        self.assertEqual(0, self.session.query(PosixUId).count())
+        self.assertEqual(0, self.session.query(PosixUIdNumber).count())
+
+        reg = self.session.query(Registration).one()
+        self.assertEqual(
+            "pre_registration_inetorgperson_cn",
+            reg.changes[-1].state.name)
+
+    def test_registration_lifecycle_pre_registration_inet_orgperson_cn(self):
+        act = ServerTests.make_test_user_role_user(self.session)
+        user = act.actor
+        prvdr = self.session.query(Provider).one()
+        reg = self.session.query(Registration).one()
+        
+        state = self.session.query(State).filter(
+            State.name == "pre_user_posixaccount").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=state, at=now)
+        self.session.add(
+            PosixUId(value="testuser", touch=act, provider=prvdr))
+        self.session.commit()
+
+        request = testing.DummyRequest(
+            post={"username": "Test User", "password": "TestPassw0rd"})
+        self.assertRaises(HTTPFound, login_update, request)
+        self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(1, self.session.query(Registration).count())
+        self.assertEqual(1, self.session.query(BcryptedPassword).count())
+        self.assertEqual(1, self.session.query(EmailAddress).count())
+        self.assertEqual(1, self.session.query(PosixUId).count())
+        self.assertEqual(1, self.session.query(PosixUIdNumber).count())
+
+        self.assertEqual(
+            "pre_user_ldappublickey",
+            reg.changes[-1].state.name)
 
 class MembershipPageTests(ServerTests):
 
