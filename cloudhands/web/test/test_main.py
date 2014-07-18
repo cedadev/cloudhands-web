@@ -48,22 +48,23 @@ import cloudhands.web
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
 from cloudhands.web.indexer import ldap_types
-from cloudhands.web.main import appliance_read
 from cloudhands.web.main import appliance_modify
+from cloudhands.web.main import appliance_read
 from cloudhands.web.main import authenticate_user
-from cloudhands.web.main import parser
-from cloudhands.web.main import top_read
+from cloudhands.web.main import login_read
+from cloudhands.web.main import login_update
 from cloudhands.web.main import membership_read
 from cloudhands.web.main import membership_update
 from cloudhands.web.main import organisation_appliances_create
-from cloudhands.web.main import organisation_read
 from cloudhands.web.main import organisation_catalogue_read
 from cloudhands.web.main import organisation_memberships_create
+from cloudhands.web.main import organisation_read
+from cloudhands.web.main import parser
 from cloudhands.web.main import people_read
 from cloudhands.web.main import register
-from cloudhands.web.main import registration_create
 from cloudhands.web.main import RegistrationForbidden
-
+from cloudhands.web.main import registration_create
+from cloudhands.web.main import top_read
 
 @unittest.skip("Not doing it yet")
 class ACLTests(unittest.TestCase):
@@ -310,7 +311,72 @@ class AppliancePageTests(ServerTests):
         page = organisation_read(request)
         self.assertEqual(1, len(page["items"]))
 
+
+class CataloguePageTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route(
+            "catalogue", "/organisation/{org_name}/catalogue")
+
+    def test_no_options_seen_in_catalogue_view(self):
+        act = ServerTests.make_test_user_role_user(self.session)
+        org = act.artifact.organisation
+        self.session.add_all((
+            CatalogueItem(
+                uuid=uuid.uuid4().hex,
+                name="nfs-client",
+                description="Headless VM for file transfer operations",
+                note=textwrap.dedent("""
+                    <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
+                    no X server. It is used for file transfer operations from the
+                    command line.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            ),
+            CatalogueItem(
+                uuid=uuid.uuid4().hex,
+                name="Web-Server",
+                description="Headless VM with Web server",
+                note=textwrap.dedent("""
+                    <p>This VM runs Apache on CentOS 6.5.
+                    It has 8GB RAM and 4 CPU cores.
+                    It is used for hosting websites and applications with a
+                    Web API.</p>
+                    """),
+                logo="headless",
+                organisation=org
+            )
+        ))
+        self.session.commit()
+        request = testing.DummyRequest()
+        request.matchdict.update({"org_name": org.name})
+        page = organisation_catalogue_read(request)
+        self.assertFalse(list(page["options"].values()))
+        items = list(page["items"].values())
+        self.assertEqual(2, len(items))
+        self.assertTrue(any(i["name"] == "nfs-client" for i in items))
+        self.assertTrue(any(i["name"] == "Web-Server" for i in items))
+
  
+class LoginAndOutTests(ServerTests):
+
+    def setUp(self):
+        super().setUp()
+        self.config.add_route("top", "/")
+
+    def test_we_can_read_login_from_test(self):
+        request = testing.DummyRequest()
+        self.assertTrue(login_read(request))
+
+    def test_we_can_log_in_from_test(self):
+        act = ServerTests.make_test_user_role_user(self.session)
+        request = testing.DummyRequest(
+            post={"username": "Test User", "password": "TestPassw0rd"})
+        self.assertRaises(HTTPFound, login_update, request)
+
+
 class MembershipPageTests(ServerTests):
 
     def setUp(self):
@@ -460,53 +526,6 @@ class OrganisationPageTests(ServerTests):
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
 
-
-class CataloguePageTests(ServerTests):
-
-    def setUp(self):
-        super().setUp()
-        self.config.add_route(
-            "catalogue", "/organisation/{org_name}/catalogue")
-
-    def test_no_options_seen_in_catalogue_view(self):
-        act = ServerTests.make_test_user_role_user(self.session)
-        org = act.artifact.organisation
-        self.session.add_all((
-            CatalogueItem(
-                uuid=uuid.uuid4().hex,
-                name="nfs-client",
-                description="Headless VM for file transfer operations",
-                note=textwrap.dedent("""
-                    <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
-                    no X server. It is used for file transfer operations from the
-                    command line.</p>
-                    """),
-                logo="headless",
-                organisation=org
-            ),
-            CatalogueItem(
-                uuid=uuid.uuid4().hex,
-                name="Web-Server",
-                description="Headless VM with Web server",
-                note=textwrap.dedent("""
-                    <p>This VM runs Apache on CentOS 6.5.
-                    It has 8GB RAM and 4 CPU cores.
-                    It is used for hosting websites and applications with a
-                    Web API.</p>
-                    """),
-                logo="headless",
-                organisation=org
-            )
-        ))
-        self.session.commit()
-        request = testing.DummyRequest()
-        request.matchdict.update({"org_name": org.name})
-        page = organisation_catalogue_read(request)
-        self.assertFalse(list(page["options"].values()))
-        items = list(page["items"].values())
-        self.assertEqual(2, len(items))
-        self.assertTrue(any(i["name"] == "nfs-client" for i in items))
-        self.assertTrue(any(i["name"] == "Web-Server" for i in items))
 
 class PeoplePageTests(ServerTests):
 
