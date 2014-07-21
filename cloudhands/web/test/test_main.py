@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 import textwrap
 import unittest
+import unittest.mock
 import uuid
 
 import bcrypt
@@ -413,7 +414,13 @@ class LoginAndOutTests(ServerTests):
 
         request = testing.DummyRequest(
             post={"username": "Test User", "password": "TestPassw0rd"})
-        self.assertRaises(HTTPFound, login_update, request)
+
+        with unittest.mock.patch(
+            "cloudhands.web.main.next_uidnumber",
+            autospec=True, return_value = 7654321
+        ):
+            self.assertRaises(HTTPFound, login_update, request)
+
         self.assertEqual(1, self.session.query(User).count())
         self.assertEqual(1, self.session.query(Registration).count())
         self.assertEqual(1, self.session.query(BcryptedPassword).count())

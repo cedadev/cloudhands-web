@@ -42,8 +42,12 @@ def next_uidnumber(provider=None):
     start = int(provider["uidnumbers"]["start"])
     stop = int(provider["uidnumbers"]["stop"])
     pool = set(range(start, stop))
-    taken = discover_uids()
-    return next(from_pool(pool, taken))
+    try:
+        taken = discover_uids()
+    except TimeoutError:
+        return None
+    else:
+        return next(from_pool(pool, taken))
 
 
 def change_password(cn, pwd, config=None):

@@ -381,7 +381,7 @@ def login_update(request):
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
         if reg.changes[-1].state.name == "pre_user_posixaccount":
-            uidN = next_uidnumber()
+            uidN = next_uidnumber() # TODO: cope with None
             log.info("Allocating user id number {}".format(uidN))
         raise HTTPFound(
             location = request.route_url("top"), headers = headers)
