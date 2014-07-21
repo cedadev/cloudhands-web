@@ -363,7 +363,11 @@ def main(args):
     args.interval = None
     args.query = None
     log.info("Generating index at {}".format(args.index))
-    cloudhands.web.indexer.main(args)
+
+    try:
+        cloudhands.web.indexer.main(args)
+    except TimeoutError:
+        log.warning("Unable to contact service.")
 
     cfg, session = cloudhands.web.main.configure(args)
 
