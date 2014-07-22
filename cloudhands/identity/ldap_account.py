@@ -37,13 +37,14 @@ def discover_uids(config=None):
     return set(int(n) for i in c.response for n in i["attributes"].get("uidNumber", []))
 
 
-def next_uidnumber(provider=None):
+def next_uidnumber(taken=None, provider=None):
+    taken = taken or set()
     provider = provider or next(reversed(providers["vcloud"]))
     start = int(provider["uidnumbers"]["start"])
     stop = int(provider["uidnumbers"]["stop"])
     pool = set(range(start, stop))
     try:
-        taken = discover_uids()
+        taken = taken.union(discover_uids())
     except TimeoutError:
         return None
     else:

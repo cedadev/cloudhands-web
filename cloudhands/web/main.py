@@ -395,7 +395,8 @@ def login_update(request):
                     raise HTTPInternalServerError(
                         "Unable to create password-protected account")
 
-            uidN = next_uidnumber()
+            taken = {i.value for i in con.session.query(PosixUIdNumber).all()}
+            uidN = next_uidnumber(taken=taken)
             if uidN is None:
                 raise HTTPInternalServerError(
                     "UIdNumber could not be allocated")
