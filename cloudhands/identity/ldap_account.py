@@ -51,18 +51,6 @@ def next_uidnumber(taken=None, provider=None):
         return next(from_pool(pool, taken))
 
 
-def change_password(cn, pwd, config=None):
-    config = config or next(iter(settings.values()))
-    shellArgs = ["ldappasswd",
-    "-h", "ldap-test.jc.rl.ac.uk",
-    "-D", "cn=dehaynes,ou=ceda,ou=People,o=hpc,dc=rl,dc=ac,dc=uk",
-    "-w", "password",
-    "-s", pwd,
-    "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(cn)]
-    rv = subprocess.call(shellArgs)
-    return rv
-
-
 def change_password(cn, pwd, config=None, timeout=10):
     config = config or next(iter(settings.values()))
     shellArgs = ["ldappasswd",
