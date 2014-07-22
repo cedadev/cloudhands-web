@@ -62,7 +62,7 @@ def change_password(cn, pwd, config=None):
     return rv
 
 
-def change_password(cn, pwd, config=None):
+def change_password(cn, pwd, config=None, timeout=10):
     config = config or next(iter(settings.values()))
     shellArgs = ["ldappasswd",
     "-h", config["ldap.match"]["host"],
@@ -70,7 +70,10 @@ def change_password(cn, pwd, config=None):
     "-w", config["ldap.creds"]["password"],
     "-s", pwd,
     "cn={},ou=jasmin2,ou=People,o=hpc,dc=rl,dc=ac,dc=uk".format(cn)]
-    rv = subprocess.call(shellArgs)
+    try:
+        rv = subprocess.call(shellArgs, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        rv = None
     return rv
 
 

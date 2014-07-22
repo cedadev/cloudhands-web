@@ -380,12 +380,26 @@ def login_update(request):
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
         if reg.changes[-1].state.name == "pre_user_posixaccount":
+            try:
+                uids = sorted(
+                    ((c.at, r) for c in reg.changes for r in c.resources
+                    if isinstance(r, PosixUId)),
+                    reverse=True)
+                uid = uids[0][1].value
+                status = change_password(uid, data["password"], timeout=3)
+            except IndexError:
+                raise HTTPInternalServerError(
+                    "Registration {} is missing a uid".format(reg.uuid))
+            else:
+                if status is None:
+                    raise HTTPInternalServerError(
+                        "Unable to create password-protected account")
+
             uidN = next_uidnumber()
             if uidN is None:
                 raise HTTPInternalServerError(
                     "UIdNumber could not be allocated")
             else:
-                # TODO: set password in try block
                 log.info("Allocating user id number {}".format(uidN))
                 act = NewAccount(user, uidN, reg)(con.session)
                 # TODO: check state and report error
