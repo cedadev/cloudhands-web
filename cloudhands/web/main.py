@@ -381,8 +381,22 @@ def login_update(request):
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
         if reg.changes[-1].state.name == "pre_user_posixaccount":
-            uidN = next_uidnumber() # TODO: cope with None
-            log.info("Allocating user id number {}".format(uidN))
+            # TODO: put this in registration like NewPassword
+            uidN = next_uidnumber()
+            if uidN is None:
+                raise HTTPInternalServerError(
+                    "UIdNumber could not be allocated")
+            else:
+                # TODO: set password in try block
+                # TODO: test if public key in registration
+                log.info("Allocating user id number {}".format(uidN))
+                state = con.session.query(State).filter(
+                    State.name == "pre_user_ldappublickey").one()
+                now = datetime.datetime.utcnow()
+                act = Touch(artifact=reg, actor=user, state=state, at=now)
+                con.session.add(
+                    PosixUIdNumber(value=uidN, touch=act, provider=None))
+                con.session.commit()
         raise HTTPFound(
             location = request.route_url("top"), headers = headers)
     else:
