@@ -72,6 +72,7 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 import cloudhands.web
+from cloudhands.identity.ldap_account import change_password
 from cloudhands.identity.ldap_account import next_uidnumber
 from cloudhands.identity.registration import NewAccount
 from cloudhands.identity.registration import NewPassword

@@ -415,10 +415,13 @@ class LoginAndOutTests(ServerTests):
         request = testing.DummyRequest(
             post={"username": "Test User", "password": "TestPassw0rd"})
 
-        with unittest.mock.patch(
+        noUidNumber = unittest.mock.patch(
             "cloudhands.web.main.next_uidnumber",
-            autospec=True, return_value = 7654321
-        ):
+            autospec=True, return_value = 7654321)
+        noPasswordChange = unittest.mock.patch(
+            "cloudhands.web.main.change_password",
+            autospec=True, return_value = 0)
+        with noUidNumber, noPasswordChange:
             self.assertRaises(HTTPFound, login_update, request)
 
         self.assertEqual(1, self.session.query(User).count())
