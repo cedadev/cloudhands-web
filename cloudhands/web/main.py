@@ -73,6 +73,7 @@ from cloudhands.common.schema import User
 
 import cloudhands.web
 from cloudhands.identity.ldap_account import next_uidnumber
+from cloudhands.identity.registration import NewAccount
 from cloudhands.identity.registration import NewPassword
 from cloudhands.web.catalogue import CatalogueItemView
 from cloudhands.web.indexer import people
@@ -109,8 +110,7 @@ def registered_connection(request):
     r = Registry()
     return r.connect(*next(iter(r.items)))
 
-def authenticate_user(request, refuse=None):
-    # refuse should be an exception type like Forbidden
+def authenticate_user(request, refuse:Exception=None):
     userId = authenticated_userid(request)
     if refuse and userId is None:
         raise refuse("Authentication failure")
@@ -367,36 +367,27 @@ def login_update(request):
             "No valid registration found for {}".format(user.handle))
 
     try:
-        # FIXME:  get last password properly
-        #changes = sorted(
-        #    reg.changes,
-        #    key=operator.attrgetter("at"),
-        #    reverse=True)
-        hash = next(r for r in reg.changes[0].resources
-                    if isinstance(r, BcryptedPassword)).value
-    except StopIteration:
+        passwords = sorted(
+            ((c.at, r) for c in reg.changes for r in c.resources
+            if isinstance(r, BcryptedPassword)),
+            reverse=True)
+        hash = passwords[0][1].value
+    except IndexError:
         raise HTTPInternalServerError(
             "Registration {} is missing a password".format(reg.uuid))
 
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
         if reg.changes[-1].state.name == "pre_user_posixaccount":
-            # TODO: put this in registration like NewPassword
             uidN = next_uidnumber()
             if uidN is None:
                 raise HTTPInternalServerError(
                     "UIdNumber could not be allocated")
             else:
                 # TODO: set password in try block
-                # TODO: test if public key in registration
                 log.info("Allocating user id number {}".format(uidN))
-                state = con.session.query(State).filter(
-                    State.name == "pre_user_ldappublickey").one()
-                now = datetime.datetime.utcnow()
-                act = Touch(artifact=reg, actor=user, state=state, at=now)
-                con.session.add(
-                    PosixUIdNumber(value=uidN, touch=act, provider=None))
-                con.session.commit()
+                act = NewAccount(user, uidN, reg)(con.session)
+                # TODO: check state and report error
         raise HTTPFound(
             location = request.route_url("top"), headers = headers)
     else:
