@@ -6,6 +6,7 @@ import sqlite3
 import unittest
 import uuid
 
+from cloudhands.identity.registration import NewAccount
 from cloudhands.identity.registration import NewPassword
 from cloudhands.identity.registration import from_pool
 
@@ -18,6 +19,8 @@ from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import PosixUIdNumber
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
@@ -91,3 +94,43 @@ class NewPasswordTests(RegistrationLifecycleTests):
         op = NewPassword(self.user, password, self.reg)
         act = op(self.session)
         self.assertIsInstance(act, Touch)
+
+
+class NewAccountTests(RegistrationLifecycleTests):
+
+    def setUp(self):
+        super().setUp()
+        self.system = Component(handle="System", uuid=uuid.uuid4().hex)
+        self.user = User(handle=None, uuid=uuid.uuid4().hex)
+        preposix = self.session.query(
+            RegistrationState).filter(
+            RegistrationState.name == "pre_user_posixaccount").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=self.reg, actor=self.system, state=preposix, at=now)
+        self.session.add_all((act, self.system, self.user))
+        self.session.commit()
+
+    def test_bring_registration_to_pre_user_ldappublickey(self):
+        self.assertEqual("pre_user_posixaccount", self.reg.changes[-1].state.name)
+        uidNumber = 7654321
+        op = NewAccount(self.user, uidNumber, self.reg)
+        act = op(self.session)
+        self.assertEqual("pre_user_ldappublickey", self.reg.changes[-1].state.name)
+        self.assertTrue(self.session.query(PosixUIdNumber).count())
+
+    def test_bring_registration_to_valid(self):
+        self.assertEqual("pre_user_posixaccount", self.reg.changes[-1].state.name)
+        preposix = self.session.query(
+            RegistrationState).filter(
+            RegistrationState.name == "pre_user_posixaccount").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=self.reg, actor=self.system, state=preposix, at=now)
+        resource = PublicKey(value="X" * 512, touch=act, provider=None)
+        self.session.add(resource)
+        self.session.commit()
+
+        uidNumber = 7654321
+        op = NewAccount(self.user, uidNumber, self.reg)
+        act = op(self.session)
+        self.assertEqual("valid", self.reg.changes[-1].state.name)
+        self.assertTrue(self.session.query(PosixUIdNumber).count())
