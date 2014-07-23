@@ -11,6 +11,7 @@ import logging
 import sqlite3
 import sys
 import textwrap
+import warnings
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -148,15 +149,61 @@ class LDAPProxy:
 
     WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
 
-    @staticmethod
-    def ldif_add(msg, session):
-        con = ldap3.Connection(
-            server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
-        con.add(
-            list(record["dn"])[0], list(record["objectclass"]),
-            {k:list(v)[0] if len(v) == 1 else v
-            for k, v in record.items() if k not in ("dn", "objectclass")})
-        return con.response
+    @singledispatch
+    def message_handler(msg, *args, **kwargs):
+        warnings.warn("No handler for {}".format(type(msg)))
+
+    @message_handler.register(WriteCommonName)
+    def write_cn(msg, config, session, connection):
+        log = logging.getLogger("cloudhands.identity.write_cn")
+
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        success = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_posixaccount").one()
+        fail = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_inetorgperson_dn").one()
+        dn = list(msg.record["dn"])[0]
+        cn = list(msg.record["cn"])[0]
+        found = connection.search(
+            search_base=config["ldap.match"]["query"],
+            search_filter=config["ldap.match"]["filter"].format(cn),
+            search_scope=ldap3.SEARCH_SCOPE_WHOLE_SUBTREE)
+
+        if not found:
+            connection.add(dn, list(msg.record["objectclass"]),
+                  {k:list(v)[0] if len(v) == 1 else v
+                  for k, v in msg.record.items()
+                  if k not in ("dn", "objectclass")})
+            state = success
+        elif msg.reg_uuid is not None:
+            state = fail
+        else:
+            return None
+
+        reg = session.query(Registration).filter(
+            Registration.uuid == msg.reg_uuid).first()
+        now = datetime.datetime.utcnow()
+        act = Touch(
+            artifact=reg, actor=actor, state=state, at=now)
+        
+        try:
+            if state is success:
+                uid = PosixUId(value=cn, touch=act)
+                session.add(uid)
+            else:
+                session.add(act)
+
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            session.rollback()
+            rv = None
+        else:
+            log.debug(act)
+            rv = act
+        finally:
+            return rv
 
     def __init__(self, q, args, config):
         self.__dict__ = self._shared_state
@@ -171,15 +218,9 @@ class LDAPProxy:
         log = logging.getLogger("cloudhands.identity.ldap")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
-        actor = session.query(Component).filter(
-            Component.handle=="identity.controller").one()
-        success = session.query(RegistrationState).filter(
-            RegistrationState.name == "pre_user_posixaccount").one()
-        fail = session.query(RegistrationState).filter(
-            RegistrationState.name == "pre_user_inetorgperson_dn").one()
         while True:
-            record, reg_uuid = yield from self.q.get()
-            if record is None:
+            msg = yield from self.q.get()
+            if msg.record is None:
                 log.warning("Sentinel received. Shutting down.")
                 break
             else:
@@ -196,45 +237,8 @@ class LDAPProxy:
                         auto_bind=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
 
-                    # Dispatch according to message type
-                    dn = list(record["dn"])[0]
-                    cn = list(record["cn"])[0]
-                    found = c.search(
-                        search_base=self.config["ldap.match"]["query"],
-                        search_filter=self.config["ldap.match"]["filter"].format(cn),
-                        search_scope=ldap3.SEARCH_SCOPE_WHOLE_SUBTREE)
-
-                    if not found:
-                        c.add(dn, list(record["objectclass"]),
-                              {k:list(v)[0] if len(v) == 1 else v
-                              for k, v in record.items()
-                              if k not in ("dn", "objectclass")})
-                        state = success
-                    elif reg_uuid is not None:
-                        state = fail
-                    else:
-                        continue
-
-                    reg = session.query(Registration).filter(
-                        Registration.uuid == reg_uuid).first()
-                    now = datetime.datetime.utcnow()
-                    act = Touch(
-                        artifact=reg, actor=actor, state=state, at=now)
-                    
-                    try:
-                        if state is success:
-                            uid = PosixUId(value=cn, touch=act)
-                            session.add(uid)
-                        else:
-                            session.add(act)
-
-                        session.commit()
-                    except Exception as e:
-                        log.error(e)
-                        session.rollback()
-                    else:
-                        log.debug(act)
-
+                    act = LDAPProxy.message_handler(
+                        msg, self.config, session, c)
 
                 except Exception as e:
                     log.error(e)
