@@ -18,6 +18,7 @@ from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -44,7 +45,8 @@ class Observer:
             self.tasks = [
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
-                asyncio.Task(self.publish_uid())]
+                asyncio.Task(self.publish_uidnumber()),
+                asyncio.Task(self.publish_uuid())]
 
     @asyncio.coroutine
     def mailer(self):
@@ -87,7 +89,7 @@ class Observer:
 
     @asyncio.coroutine
     def publish_userhandle(self):
-        log = logging.getLogger(__name__ + ".publisher")
+        log = logging.getLogger(__name__ + ".name")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         actor = session.query(Component).filter(
@@ -125,8 +127,8 @@ class Observer:
             yield from asyncio.sleep(self.args.interval)
 
     @asyncio.coroutine
-    def publish_uid(self):
-        log = logging.getLogger(__name__ + ".publish_reg")
+    def publish_uuid(self):
+        log = logging.getLogger(__name__ + ".uuid")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         actor = session.query(Component).filter(
@@ -162,6 +164,52 @@ class Observer:
                     if resources:
                         record["mail"].add(resources[0].value)
                     msg = LDAPProxy.WriteCommonName(record, reg.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(reg)
+            except Exception as e:
+                log.error(e)
+            finally:
+                log.debug("Waiting for {}s".format(self.args.interval))
+                yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_uidnumber(self):
+        log = logging.getLogger(__name__ + ".uidnumber")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    r for r in session.query(Registration).all() if (
+                    r.changes[-1].state.name ==
+                    "pre_user_ldappublickey")]
+
+                for reg in unpublished:
+                    try:
+                        key = next(r for c in reversed(reg.changes)
+                            for r in c.resources if isinstance(r, PublicKey))
+                    except StopIteration:
+                        continue
+                    log.debug(key)
+                    user = reg.changes[0].actor
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
+                        objectclass={"top", "person", "organizationalPerson",
+                            "inetOrgPerson", "PosixAccount"},
+                        description={"JASMIN2 vCloud registration"},
+                        cn={reg.uuid},
+                        sn={"UNKNOWN"},
+                    )
+                    resources = [
+                        r for i in reg.changes for r in i.resources
+                        if isinstance(r, EmailAddress)]
+                    # TODO: collect PosixUId, PosixUIdNumber, PublicKey
+                    if resources:
+                        record["mail"].add(resources[0].value)
+                    msg = LDAPProxy.WriteUIdNumber(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
                     session.expire(reg)
             except Exception as e:

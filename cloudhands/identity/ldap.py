@@ -148,6 +148,7 @@ class LDAPProxy:
 
 
     WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
+    WriteUIdNumber = namedtuple("WriteUIdNumber", ["record", "reg_uuid"])
 
     @singledispatch
     def message_handler(msg, *args, **kwargs):
@@ -205,16 +206,21 @@ class LDAPProxy:
         finally:
             return rv
 
+    @message_handler.register(WriteUIdNumber)
+    def write_uidnumber(msg, config, session, connection):
+        log = logging.getLogger("cloudhands.identity.write_uidnumber")
+        log.error("NotImplemented")
+
     def __init__(self, q, args, config):
         self.__dict__ = self._shared_state
         if not hasattr(self, "task"):
             self.q = q
             self.args = args
             self.config = config
-            self.task = asyncio.Task(self.modify())
+            self.task = asyncio.Task(self.operate())
 
     @asyncio.coroutine
-    def modify(self):
+    def operate(self):
         log = logging.getLogger("cloudhands.identity.ldap")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
