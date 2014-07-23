@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+from collections import namedtuple
 from collections import UserDict
 import datetime
 import functools
@@ -22,6 +23,11 @@ from cloudhands.common.schema import Touch
 from cloudhands.web import __version__
 
 import ldap3
+
+try:
+    from functools import singledispatch
+except ImportError:
+    from singledispatch import singledispatch
 
 __doc__ = """
 This module has a test mode::
@@ -140,8 +146,10 @@ class LDAPProxy:
     _shared_state = {}
 
 
+    WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
+
     @staticmethod
-    def ldif_add(record):
+    def ldif_add(msg, session):
         con = ldap3.Connection(
             server=None, client_strategy=ldap3.STRATEGY_LDIF_PRODUCER)
         con.add(
@@ -188,6 +196,7 @@ class LDAPProxy:
                         auto_bind=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
 
+                    # Dispatch according to message type
                     dn = list(record["dn"])[0]
                     cn = list(record["cn"])[0]
                     found = c.search(

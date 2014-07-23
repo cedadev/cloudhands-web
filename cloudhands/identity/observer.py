@@ -22,6 +22,7 @@ from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.identity.ldap import LDAPProxy
 from cloudhands.identity.ldap import LDAPRecord
 from cloudhands.identity.ldap import RecordPatterns
 
@@ -114,7 +115,7 @@ class Observer:
                         if isinstance(r, EmailAddress)]
                     if resources:
                         record["mail"].add(resources[0].value)
-                    msg = (record, reg.uuid)
+                    msg = LDAPProxy.WriteCommonName(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
                     session.expire(reg)
             except Exception as e:
@@ -160,7 +161,7 @@ class Observer:
                         if isinstance(r, EmailAddress)]
                     if resources:
                         record["mail"].add(resources[0].value)
-                    msg = (record, reg.uuid)
+                    msg = LDAPProxy.WriteCommonName(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
                     session.expire(reg)
             except Exception as e:
