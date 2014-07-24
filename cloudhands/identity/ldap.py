@@ -272,7 +272,7 @@ class LDAPProxy:
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
-                    log.debug(act)
+                    log.info("{0.artifact.uuid} {0.state.name}".format(act))
 
                 except Exception as e:
                     log.error(e)

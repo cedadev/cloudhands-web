@@ -93,4 +93,6 @@ class Emailer:
                 session.rollback()
                 continue
             else:
-                log.debug(act)
+                log.info(
+                    "{0.touch.artifact.uuid} {0.touch.state.name} "
+                    "until {0.end:%Y-%m-%dT%H:%M:%S}".format(limit))
