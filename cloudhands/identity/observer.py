@@ -18,6 +18,7 @@ from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import PosixUId
+from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
@@ -187,28 +188,34 @@ class Observer:
                     "pre_user_ldappublickey")]
 
                 for reg in unpublished:
+                    resources = [r for c in reversed(reg.changes)
+                                 for r in c.resources]
                     try:
-                        key = next(r for c in reversed(reg.changes)
-                            for r in c.resources if isinstance(r, PublicKey))
+                        key = next(i for i in resources if isinstance(i, PublicKey))
                     except StopIteration:
-                        continue
-                    log.debug(key)
-                    user = reg.changes[0].actor
+                        #continue
+                        pass # TODO: enable again for keys
+
+                    emailAddr = next(i for i in resources
+                                     if isinstance(i, EmailAddress))
+                    uid = next(i for i in resources if isinstance(i, PosixUId))
+                    uidNumber = next(i for i in resources
+                                     if isinstance(i, PosixUIdNumber))
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
-                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
                         objectclass={"top", "person", "organizationalPerson",
-                            "inetOrgPerson", "PosixAccount"},
+                            "inetOrgPerson", "posixAccount"},
                         description={"JASMIN2 vCloud registration"},
-                        cn={reg.uuid},
+                        cn={uid.value},
                         sn={"UNKNOWN"},
+                        uid={uid.value},
+                        uidNumber={uidNumber.value},
+                        gidNumber={uidNumber.value},
+                        homeDirectory={"/home/{}".format(uid.value)},
+                        mail={emailAddr.value}
                     )
-                    resources = [
-                        r for i in reg.changes for r in i.resources
-                        if isinstance(r, EmailAddress)]
-                    # TODO: collect PosixUId, PosixUIdNumber, PublicKey
-                    if resources:
-                        record["mail"].add(resources[0].value)
+                    log.debug(record)
                     msg = LDAPProxy.WriteUIdNumber(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
                     session.expire(reg)

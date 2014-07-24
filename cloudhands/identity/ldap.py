@@ -201,7 +201,6 @@ class LDAPProxy:
             session.rollback()
             rv = None
         else:
-            log.debug(act)
             rv = act
         finally:
             return rv
@@ -209,7 +208,34 @@ class LDAPProxy:
     @message_handler.register(WriteUIdNumber)
     def write_uidnumber(msg, config, session, connection):
         log = logging.getLogger("cloudhands.identity.write_uidnumber")
-        log.error("NotImplemented")
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        valid = session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+
+        dn = list(msg.record["dn"])[0]
+        changes = {k: (ldap3.MODIFY_REPLACE, tuple(v))
+                   for k, v in msg.record.items()
+                   if k not in ("dn", )}
+        status = connection.modify(dn, changes)
+
+        reg = session.query(Registration).filter(
+            Registration.uuid == msg.reg_uuid).first()
+        now = datetime.datetime.utcnow()
+        act = Touch(
+            artifact=reg, actor=actor, state=valid, at=now)
+        
+        try:
+            session.add(act)
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            session.rollback()
+            rv = None
+        else:
+            rv = act
+        finally:
+            return rv
 
     def __init__(self, q, args, config):
         self.__dict__ = self._shared_state
@@ -241,10 +267,12 @@ class LDAPProxy:
                         user=self.config["ldap.creds"]["user"],
                         password=self.config["ldap.creds"]["password"],
                         auto_bind=True,
+                        raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
+                    log.debug(act)
 
                 except Exception as e:
                     log.error(e)
