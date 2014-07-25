@@ -472,7 +472,36 @@ class StateView(Validating, NamedDict):
         ]
 
 
-class GenericRegion(Region):
+class NavRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(Organisation)
+    def present_organisation(obj, isSelf=False):
+        item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        rel = "self" if isSelf else "canonical"
+        item["_links"] = [
+            Action(obj.name, rel, "/organisation/{}", obj.name,
+            "get", [], "View")]
+        return OrganisationInfo(item)
+
+    @present.register(Registration)
+    def present_registration(artifact):
+        latest = artifact.changes[-1] if artifact.changes else None 
+        resources = [r for i in artifact.changes for r in i.resources]
+        hndl = latest.actor.handle if (
+            latest and isinstance(latest.actor, User)) else ""
+        item = {
+            "username": hndl,
+            "modified": latest.at if latest else None,
+            "uuid": artifact.uuid,
+        }
+        return RegistrationView(item)
+
+
+class ItemRegion(Region):
 
     @singledispatch
     def present(obj):
@@ -571,7 +600,7 @@ class GenericRegion(Region):
 
     @present.register(PosixUId)
     def present_posixuid(obj):
-        item = PosixUIdView(
+        item = ResourceInfo(
             name=obj.value,
             uuid=uuid.uuid4().hex,
         )
@@ -674,42 +703,24 @@ class GenericRegion(Region):
         return obj.name("versions")
 
 
-class NavRegion(Region):
+class OptionRegion(ItemRegion):
 
-    @singledispatch
-    def present(obj):
-        return None
-
-    @present.register(Organisation)
-    def present_organisation(obj, isSelf=False):
-        item = {k: getattr(obj, k) for k in ("uuid", "name")}
-        rel = "self" if isSelf else "canonical"
-        item["_links"] = [
-            Action(obj.name, rel, "/organisation/{}", obj.name,
-            "get", [], "View")]
-        return OrganisationInfo(item)
-
-    @present.register(Registration)
-    def present_registration(artifact):
-        latest = artifact.changes[-1] if artifact.changes else None 
-        resources = [r for i in artifact.changes for r in i.resources]
-        hndl = latest.actor.handle if (
-            latest and isinstance(latest.actor, User)) else ""
-        item = {
-            "username": hndl,
-            "modified": latest.at if latest else None,
-            "uuid": artifact.uuid,
-        }
-        return RegistrationView(item)
+    @ItemRegion.present.register(PosixUId)
+    def present_posixuid(obj):
+        item = PosixUIdView(
+            name=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+        return item
 
 
 class Page(PageBase):
 
     plan = [
-        ("info", GenericRegion),
+        ("info", ItemRegion),
         ("nav", NavRegion),
-        ("items", GenericRegion),
-        ("options", GenericRegion)]
+        ("items", ItemRegion),
+        ("options", OptionRegion)]
 
     def __init__(self, session=None, user=None, paths={}):
         super().__init__(session, user)
