@@ -587,17 +587,6 @@ class ItemRegion(Region):
             prompt="OK")]
         return item
 
-    @present.register(Membership)
-    def present_membership(artifact):
-        item = {
-            "modified": artifact.changes[-1].at,
-            "organisation": artifact.organisation.name,
-            "role": artifact.role,
-            "states": [artifact.changes[-1].state],
-            "uuid": artifact.uuid,
-        }
-        return MembershipView(item)
-
     @present.register(PosixUId)
     def present_posixuid(obj):
         item = ResourceInfo(
@@ -626,28 +615,6 @@ class ItemRegion(Region):
             key=obj.value,
             uuid=uuid.uuid4().hex,
         )
-
-    @present.register(Registration)
-    def present_registration(artifact):
-        latest = artifact.changes[-1] if artifact.changes else None 
-        resources = [r for i in artifact.changes for r in i.resources]
-        hndl = latest.actor.handle if (
-            latest and isinstance(latest.actor, User)) else ""
-        item = {
-            "username": hndl,
-            "modified": latest.at if latest else None,
-            "uuid": artifact.uuid,
-        }
-        return RegistrationView(item)
-
-    @present.register(Organisation)
-    def present_organisation(obj, isSelf=False):
-        item = {k: getattr(obj, k) for k in ("uuid", "name")}
-        rel = "self" if isSelf else "canonical"
-        item["_links"] = [
-            Action(obj.name, rel, "/organisation/{}", obj.name,
-            "get", [], "View")]
-        return OrganisationView(item)
 
     @present.register(PageInfo)
     def present_pageinfo(obj):
@@ -687,6 +654,49 @@ class ItemRegion(Region):
             "get", [], "View")]
         return EventInfo(item)
 
+    @present.register(VersionInfo)
+    def present_pathinfo(obj):
+        return obj.name("versions")
+
+
+class OptionRegion(Region):
+
+    @singledispatch
+    def present(obj):
+        return None
+
+    @present.register(Membership)
+    def present_membership(artifact):
+        item = {
+            "modified": artifact.changes[-1].at,
+            "organisation": artifact.organisation.name,
+            "role": artifact.role,
+            "states": [artifact.changes[-1].state],
+            "uuid": artifact.uuid,
+        }
+        return MembershipView(item)
+
+    @present.register(PosixUId)
+    def present_posixuid(obj):
+        item = PosixUIdView(
+            name=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+        return item
+
+    @present.register(Registration)
+    def present_registration(artifact):
+        latest = artifact.changes[-1] if artifact.changes else None 
+        resources = [r for i in artifact.changes for r in i.resources]
+        hndl = latest.actor.handle if (
+            latest and isinstance(latest.actor, User)) else ""
+        item = {
+            "username": hndl,
+            "modified": latest.at if latest else None,
+            "uuid": artifact.uuid,
+        }
+        return RegistrationView(item)
+
     @present.register(User)
     def present_user(obj):
         item = LoginView({
@@ -696,21 +706,6 @@ class ItemRegion(Region):
         item["_links"] = [
             Action("User login", "payment", "/login", "",
             "post", item.parameters[0:2], "Log in")]
-        return item
-
-    @present.register(VersionInfo)
-    def present_pathinfo(obj):
-        return obj.name("versions")
-
-
-class OptionRegion(ItemRegion):
-
-    @ItemRegion.present.register(PosixUId)
-    def present_posixuid(obj):
-        item = PosixUIdView(
-            name=obj.value,
-            uuid=uuid.uuid4().hex,
-        )
         return item
 
 

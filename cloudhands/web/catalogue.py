@@ -19,7 +19,7 @@ from cloudhands.web.hateoas import Contextual
 from cloudhands.web.hateoas import Parameter
 from cloudhands.web.hateoas import Validating
 
-from cloudhands.web.model import GenericRegion
+from cloudhands.web.model import ItemRegion
 
 
 
@@ -38,7 +38,7 @@ class CatalogueItemView(Validating, NamedDict):
         ]
 
 
-@GenericRegion.present.register(CatalogueItem)
+@ItemRegion.present.register(CatalogueItem)
 def present_catalogueitem(obj):
     item = CatalogueItemView(
         name=obj.name,
