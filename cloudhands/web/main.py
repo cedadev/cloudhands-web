@@ -98,6 +98,7 @@ def cfg_paths(request, cfg=None):
     cfg = cfg or {
         "paths.assets": dict(
             css = "cloudhands.web:static/css",
+            html = "cloudhands.web:static/html",
             img = "cloudhands.web:static/img",
             js = "cloudhands.web:static/js")
     }
@@ -753,6 +754,7 @@ def register(request):
 def registration_create(request):
     log = logging.getLogger("cloudhands.web.registration_create")
     con = registered_connection(request)
+    cfg = request.registry.settings.get("cfg", None)
 
     data = RegistrationView(request.POST)
     if data.invalid:
@@ -783,7 +785,13 @@ def registration_create(request):
         con.session.commit()
     except Exception as e:
         raise Forbidden("Email already in use")
-    raise HTTPFound(location=request.route_url("top"))
+
+    if cfg is None:
+        raise HTTPFound(location=request.route_url("top"))
+    else:
+        raise HTTPFound(location=request.static_url(
+            "{}/registration-confirm.html".format(
+                cfg["paths.assets"]["html"])))
 
 
 def registration_read(request):
@@ -1029,6 +1037,7 @@ def wsgi_app(args, cfg):
         renderer=cfg["paths.templates"]["user"])
 
     config.add_static_view(name="css", path=cfg["paths.assets"]["css"])
+    config.add_static_view(name="html", path=cfg["paths.assets"]["html"])
     config.add_static_view(name="js", path=cfg["paths.assets"]["js"])
     config.add_static_view(name="img", path=cfg["paths.assets"]["img"])
 

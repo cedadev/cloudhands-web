@@ -662,6 +662,8 @@ class RegistrationPageTests(ServerTests):
         self.config.add_route("top", "/")
         self.config.add_route("register", "/registration")
         self.config.add_route("registration", "/registration/{reg_uuid}")
+        self.config.add_static_view(
+            name="html", path="cloudhands.web:static/html")
 
     def test_register_form(self):
         request = testing.DummyRequest()
