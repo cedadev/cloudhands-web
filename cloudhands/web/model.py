@@ -381,7 +381,8 @@ class PublicKeyView(Contextual, Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "value", True, re.compile("[\\w-]{2,}$"),
+                "value", True, re.compile(
+                    "ssh-rsa AAAA[0-9A-Za-z+/]+[=]{0,3} ([^@]+@[^@]+)"),
                 [self["value"]] if "value" in self else [], ""),
         ]
 

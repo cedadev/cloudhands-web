@@ -40,6 +40,7 @@ from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
@@ -67,6 +68,7 @@ from cloudhands.web.main import people_read
 from cloudhands.web.main import register
 from cloudhands.web.main import RegistrationForbidden
 from cloudhands.web.main import registration_create
+from cloudhands.web.main import registration_keys
 from cloudhands.web.main import top_read
 
 @unittest.skip("Not doing it yet")
@@ -662,6 +664,8 @@ class RegistrationPageTests(ServerTests):
         self.config.add_route("top", "/")
         self.config.add_route("register", "/registration")
         self.config.add_route("registration", "/registration/{reg_uuid}")
+        self.config.add_route(
+            "registration_keys", "/registration/{reg_uuid}/key")
         self.config.add_static_view(
             name="html", path="cloudhands.web:static/html")
 
@@ -688,6 +692,57 @@ class RegistrationPageTests(ServerTests):
         except HTTPFound:
             pass
         self.assertRaises(RegistrationForbidden, registration_create, request)
+
+    def test_registration_key_bad_prefix(self):
+        self.assertEqual(0, self.session.query(PublicKey).count())
+        act = ServerTests.make_test_user(self.session)
+        reg = self.session.query(Registration).one()
+        val = textwrap.dedent("""
+            AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETy
+            ppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/
+            b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRnga
+            mDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6
+            EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrq
+            p8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@
+            snow.badc.rl.ac.uk""").replace("\n", "")
+        request = testing.DummyRequest({"value": val})
+        request.matchdict.update({"reg_uuid": reg.uuid})
+        self.assertRaises(HTTPBadRequest, registration_keys, request)
+        self.assertEqual(0, self.session.query(PublicKey).count())
+
+    def test_registration_key_bad_suffix(self):
+        self.assertEqual(0, self.session.query(PublicKey).count())
+        act = ServerTests.make_test_user(self.session)
+        reg = self.session.query(Registration).one()
+        val = textwrap.dedent("""
+            ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETy
+            ppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/
+            b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRnga
+            mDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6
+            EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrq
+            p8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw==
+            """).replace("\n", "")
+        request = testing.DummyRequest({"value": val})
+        request.matchdict.update({"reg_uuid": reg.uuid})
+        self.assertRaises(HTTPBadRequest, registration_keys, request)
+        self.assertEqual(0, self.session.query(PublicKey).count())
+
+    def test_registration_key_valid(self):
+        self.assertEqual(0, self.session.query(PublicKey).count())
+        act = ServerTests.make_test_user(self.session)
+        reg = self.session.query(Registration).one()
+        val = textwrap.dedent("""
+            ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETy
+            ppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/
+            b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRnga
+            mDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6
+            EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrq
+            p8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@
+            snow.badc.rl.ac.uk""").replace("\n", "")
+        request = testing.DummyRequest({"value": val})
+        request.matchdict.update({"reg_uuid": reg.uuid})
+        self.assertRaises(HTTPFound, registration_keys, request)
+        self.assertEqual(1, self.session.query(PublicKey).count())
 
 if __name__ == "__main__":
     unittest.main()

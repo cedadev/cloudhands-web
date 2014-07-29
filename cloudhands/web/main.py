@@ -84,6 +84,7 @@ from cloudhands.web.model import LabelView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PageInfo
 from cloudhands.web.model import PeoplePage
+from cloudhands.web.model import PublicKeyView
 from cloudhands.web.model import RegistrationView
 from cloudhands.web.model import StateView
 
@@ -792,6 +793,37 @@ def registration_create(request):
         raise HTTPFound(location=request.static_url(
             "{}/registration-confirm.html".format(
                 cfg["paths.assets"]["html"])))
+
+
+def registration_keys(request):
+    log = logging.getLogger("cloudhands.web.registration_read")
+    reg_uuid = request.matchdict["reg_uuid"]
+    con = registered_connection(request)
+    reg = con.session.query(Registration).filter(
+        Registration.uuid == reg_uuid).first()
+    if not reg:
+        raise NotFound("Registration {} not found".format(reg_uuid))
+
+    user = con.session.merge(authenticate_user(request, Forbidden))
+    if not user is reg.changes[0].actor:
+        raise RegistrationForbidden(
+            "You are not authorized to modify this registration.")
+
+    data = PublicKeyView(request.POST)
+    if data.invalid:
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
+    now = datetime.datetime.utcnow()
+    state = reg.changes[-1].state
+    act = Touch(artifact=reg, actor=user, state=state, at=now)
+
+    key = PublicKey(touch=act, value=data["value"])
+    con.session.add(key)
+    con.session.commit()
+
+    raise HTTPFound(
+        location=request.route_url("registration", reg_uuid=reg.uuid))
 
 
 def registration_read(request):
