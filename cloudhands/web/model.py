@@ -92,6 +92,9 @@ class OrganisationInfo(NamedDict):
     pass
 
 
+class PublicKeyInfo(ResourceInfo): pass
+
+
 class ApplianceView(Contextual, Validating, NamedDict):
 
     @property
@@ -368,6 +371,28 @@ class PersonView(Contextual, Validating, NamedDict):
             return self
 
 
+class PublicKeyView(Contextual, Validating, NamedDict):
+
+    @property
+    def public(self):
+        return []
+
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "value", True, re.compile("[\\w-]{2,}$"),
+                [self["value"]] if "value" in self else [], ""),
+        ]
+
+    def configure(self, session, user):
+        self["_links"] = []
+        if not self["value"]:
+            self["_links"].append(
+                Action("Paste your key", "create-form", "#", "",
+                "post", self.parameters, "Add"))
+
+
 class RegistrationView(Contextual, Validating, NamedDict):
 
     @property
@@ -536,7 +561,7 @@ class ItemRegion(Region):
         ))
 
     @present.register(EmailAddress)
-    def present_bcryptedpassword(obj):
+    def present_emailaddress(obj):
         return ResourceInfo(
             email=obj.value,
             uuid=uuid.uuid4().hex,
@@ -617,10 +642,10 @@ class ItemRegion(Region):
 
     @present.register(PublicKey)
     def present_publickey(obj):
-        return ResourceInfo(
-            key=obj.value,
-            uuid=uuid.uuid4().hex,
-        )
+        return PublicKeyInfo({
+            "Public key": obj.value,
+            "uuid": uuid.uuid4().hex,
+        })
 
     @present.register(PageInfo)
     def present_pageinfo(obj):
@@ -689,6 +714,13 @@ class OptionRegion(Region):
             uuid=uuid.uuid4().hex,
         )
         return item
+
+    @present.register(PublicKey)
+    def present_publickey(obj):
+        return PublicKeyView(
+            value=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
 
     @present.register(Registration)
     def present_registration(artifact):

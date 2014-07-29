@@ -852,7 +852,8 @@ def registration_read(request):
         rsrcs = con.session.query(class_).join(Touch).join(Registration).filter(
             Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
         if not rsrcs and isCreatable:
-            page.layout.items.push(class_())
+            log.debug("sending {}".format(class_))
+            page.layout.options.push(class_())
         for r in rsrcs:
             page.layout.items.push(r)
 

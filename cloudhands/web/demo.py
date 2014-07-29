@@ -220,16 +220,8 @@ class WebFixture(object):
         reg = Registration(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__)
-        try:
-            offset = datetime.timedelta(
-                weeks=6, days=3, hours=11, minutes=4, seconds=1)
-            act = NewPassword(
-                user, WebFixture.demo_password(), reg)(session)
-        except Exception:
-            session.rollback()
-            session.flush()
-            return
-
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=preconfirm, at=now)
         ea = EmailAddress(touch=act, value=WebFixture.demo_email())
         try:
             session.add(ea)
@@ -240,6 +232,17 @@ class WebFixture(object):
             session.flush()
 
         yield act
+
+        try:
+            act = NewPassword(
+                user, WebFixture.demo_password(), reg)(session)
+        except Exception:
+            session.rollback()
+            session.flush()
+            return
+        else:
+            yield act
+
 
         # TODO: When gids are sorted out, set to pre_user_ldappublickey
         confirmed = session.query(RegistrationState).filter(
