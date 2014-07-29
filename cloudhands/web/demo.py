@@ -221,7 +221,10 @@ class WebFixture(object):
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__)
         try:
-            act = NewPassword(user, WebFixture.demo_password(), reg)(session)
+            offset = datetime.timedelta(
+                weeks=6, days=3, hours=11, minutes=4, seconds=1)
+            act = NewPassword(
+                user, WebFixture.demo_password(), reg)(session)
         except Exception:
             session.rollback()
             session.flush()

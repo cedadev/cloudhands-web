@@ -839,13 +839,19 @@ def registration_read(request):
         page.layout.options.push(PosixUId())
         return dict(page.termination())
 
-    required = (PosixUIdNumber, PosixUId, EmailAddress, BcryptedPassword,
-                PosixGId, PublicKey)
-    for class_ in required:
+    display = (
+        (PosixUIdNumber, False),
+        (PosixUId, False),
+        (EmailAddress, False),
+        (BcryptedPassword, False),
+        (PosixGId, False),
+        (PublicKey, True)
+    )
+
+    for class_, isCreatable in display:
         rsrcs = con.session.query(class_).join(Touch).join(Registration).filter(
             Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
-        log.debug(rsrcs)
-        if not rsrcs:
+        if not rsrcs and isCreatable:
             page.layout.items.push(class_())
         for r in rsrcs:
             page.layout.items.push(r)

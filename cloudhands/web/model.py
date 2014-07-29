@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+from collections import OrderedDict
+import datetime
 import re
 import uuid
 
@@ -65,7 +67,7 @@ class PathInfo(NamedDict):
     pass
 
 
-class ResourceInfo(NamedDict):
+class ResourceInfo(OrderedDict, NamedDict):
 
     @property
     def public(self):
@@ -524,10 +526,14 @@ class ItemRegion(Region):
 
     @present.register(BcryptedPassword)
     def present_bcryptedpassword(obj):
-        return ResourceInfo(
-            hash=obj.value,
-            uuid=uuid.uuid4().hex,
-        )
+        now = datetime.datetime.utcnow()
+        age = now - obj.touch.at
+        return ResourceInfo((
+            ("password", "********"),
+            ("set", "{0} days {1} mins ago".format(
+                age.days, age.seconds // 60)),
+            ("uuid", uuid.uuid4().hex),
+        ))
 
     @present.register(EmailAddress)
     def present_bcryptedpassword(obj):

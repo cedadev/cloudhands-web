@@ -34,6 +34,7 @@ class NewPassword:
         self.user = user
         self.hash = bcrypt.hashpw(passwd, bcrypt.gensalt(12))
         self.reg = reg
+        self.offset = datetime.timedelta()
 
     def match(self, attempt):
         return bcrypt.checkpw(attempt, self.hash)
@@ -42,13 +43,20 @@ class NewPassword:
         newreg = session.query(
             RegistrationState).filter(
             RegistrationState.name=="pre_registration_person").one()
-        now = datetime.datetime.utcnow()
+        ts = datetime.datetime.utcnow() - self.offset
         act = Touch(
-            artifact=self.reg, actor=self.user, state=newreg, at=now)
+            artifact=self.reg, actor=self.user, state=newreg, at=ts)
         resource = BcryptedPassword(touch=act, value=self.hash)
         session.add(resource)
         session.commit()
         return act
+
+#TODO: remove (bad idea)
+class AgedPassword(NewPassword):
+
+    def __init__(self, user, passwd, reg, offset):
+        super().__init__()
+        self.offset = offset
 
 
 class NewAccount:
