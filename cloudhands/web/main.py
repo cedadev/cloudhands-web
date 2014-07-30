@@ -806,7 +806,7 @@ def registration_keys(request):
 
     user = con.session.merge(authenticate_user(request, Forbidden))
     if not user is reg.changes[0].actor:
-        raise RegistrationForbidden(
+        raise Forbidden(
             "You are not authorized to modify this registration.")
 
     data = PublicKeyView(request.POST)
@@ -884,8 +884,9 @@ def registration_read(request):
         rsrcs = con.session.query(class_).join(Touch).join(Registration).filter(
             Registration.uuid == reg_uuid).order_by(desc(Touch.at)).all()
         if not rsrcs and isCreatable:
-            log.debug("sending {}".format(class_))
-            page.layout.options.push(class_())
+            blank = class_()
+            blank.uuid = reg_uuid
+            page.layout.options.push(blank)
         for r in rsrcs:
             page.layout.items.push(r)
 
@@ -1062,6 +1063,12 @@ def wsgi_app(args, cfg):
         registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["registration"])
+
+    config.add_route("registration_keys", "/registration/{reg_uuid}/keys")
+    config.add_view(
+        registration_keys,
+        route_name="registration_keys", request_method="POST")
+        #renderer="hateoas", accept="application/json", xhr=None)
 
     config.add_route("creds", "/creds")
     config.add_view(

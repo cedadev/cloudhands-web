@@ -371,7 +371,7 @@ class PersonView(Contextual, Validating, NamedDict):
             return self
 
 
-class PublicKeyView(Contextual, Validating, NamedDict):
+class PublicKeyView(Validating, NamedDict):
 
     @property
     def public(self):
@@ -385,13 +385,6 @@ class PublicKeyView(Contextual, Validating, NamedDict):
                     "ssh-rsa AAAA[0-9A-Za-z+/]+[=]{0,3} ([^@]+@[^@]+)"),
                 [self["value"]] if "value" in self else [], ""),
         ]
-
-    def configure(self, session, user):
-        self["_links"] = []
-        if not self["value"]:
-            self["_links"].append(
-                Action("Paste your key", "create-form", "#", "",
-                "post", self.parameters, "Add"))
 
 
 class RegistrationView(Contextual, Validating, NamedDict):
@@ -554,10 +547,12 @@ class ItemRegion(Region):
     def present_bcryptedpassword(obj):
         now = datetime.datetime.utcnow()
         age = now - obj.touch.at
+        hrs = age.seconds // 3600
+        mins = (age.seconds % 3600) // 60
         return ResourceInfo((
             ("password", "********"),
-            ("set", "{0} days {1} mins ago".format(
-                age.days, age.seconds // 60)),
+            ("set", "{0} days, {1} hrs, {2} mins ago".format(
+                age.days, hrs, mins)),
             ("uuid", uuid.uuid4().hex),
         ))
 
@@ -718,10 +713,19 @@ class OptionRegion(Region):
 
     @present.register(PublicKey)
     def present_publickey(obj):
-        return PublicKeyView(
+        item = PublicKeyView(
             value=obj.value,
             uuid=uuid.uuid4().hex,
         )
+        item["_links"] = [Action(
+            name="Paste your key",
+            rel="edit-form",
+            typ="/registration/{}/keys",
+            ref=obj.uuid,
+            method="post",
+            parameters=item.parameters,
+            prompt="Add")]
+        return item
 
     @present.register(Registration)
     def present_registration(artifact):
