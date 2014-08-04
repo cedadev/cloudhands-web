@@ -150,6 +150,17 @@ class ApplianceView(Contextual, Validating, NamedDict):
                 "Check"))
             self["_links"].append(Action(
                 "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_start").parameters,
+                "Start"))
+        elif state in (
+            "running",
+        ):
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
+                "post", StateView(fsm="appliance", name="pre_check").parameters,
+                "Check"))
+            self["_links"].append(Action(
+                "_hidden", "canonical", "/appliance/{}", self["uuid"],
                 "post", StateView(fsm="appliance", name="pre_stop").parameters,
                 "Stop"))
         elif state in (
