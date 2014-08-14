@@ -437,6 +437,12 @@ class LoginAndOutTests(ServerTests):
             "pre_user_ldappublickey",
             reg.changes[-1].state.name)
 
+    def test_memberships_get_session_token_to_each_organisation_provider(self):
+        self.fail(
+            "Need to create a session resource for every provider "
+            "and attach to a Membership artifact. "
+            "Not here though. Goes in cloudhands-common.")
+
 class MembershipPageTests(ServerTests):
 
     def setUp(self):
