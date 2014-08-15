@@ -2,6 +2,7 @@
 #   encoding: UTF-8
 
 import argparse
+import asyncio
 import datetime
 import functools
 import logging
@@ -49,6 +50,7 @@ from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.fsm import HostState
 from cloudhands.common.fsm import MembershipState
 from cloudhands.common.fsm import RegistrationState
+from cloudhands.common.pipes import PipeQueue
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import CatalogueChoice
@@ -67,6 +69,7 @@ from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Resource
 from cloudhands.common.schema import Serializable
+from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
@@ -406,6 +409,25 @@ def login_update(request):
                 log.info("Allocating user id number {}".format(uidN))
                 act = NewAccount(user, uidN, reg)(con.session)
                 # TODO: check state and report error
+
+        try:
+            config = request.registry.settings["cfg"]
+            userName = con.session.query(PosixUId).join(Registration).filter(
+                Registration.uuid == reg.uuid).first()
+            providers = con.session.query(Provider).join(Subscription).join(
+                Organisation).join(Membership).join(Touch).join(User).filter(
+                User.id == user.id).all()
+            for provider in providers:
+                # TODO: pipes will be one per provider
+                path = os.path.expanduser(config["pipe.tokens"]["vcloud"])
+                msg = (reg.uuid, provider.name, userName, data["password"])
+                pq = PipeQueue.pipequeue(path)
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(
+                    asyncio.wait_for(pq.put(msg), 0.5))
+        except Exception as e:
+            log.error(e)
+
         raise HTTPFound(
             location = request.route_url("top"), headers = headers)
     else:
