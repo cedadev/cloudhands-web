@@ -31,40 +31,53 @@ __doc__ = """
 
     subgraph cluster_web {
         label = "Web";
-        node [shape=box];
-        PRE_PROVISION_INETORGPERSON_CN -> "Set LDAP password" [style=invis];
-        "Set LDAP password" -> "PublicKey ?" [style=invis];
-        "PublicKey ?" -> PRE_USER_LDAPPUBLICKEY [style=invis];
+        style = filled;
+        labeljust = "l";
+        node [shape=ellipse];
+        "Set LDAP password" [shape=circle,width=0.8,fixedsize=true];
+        PRE_USER_LDAPPUBLICKEY [shape=box];
+        PRE_REGISTRATION_INETORGPERSON_CN [shape=box];
+        PRE_REGISTRATION_INETORGPERSON_CN -> "Set LDAP password" [style=invis];
+        "Set LDAP password" -> "BcryptedPassword" [style=invis];
+        "BcryptedPassword" -> "PosixUIdNumber" [style=invis];
+        "PosixUIdNumber" -> "PosixGIdNumber" [style=invis];
+        "PosixGIdNumber" -> PRE_USER_LDAPPUBLICKEY [style=invis];
+         PRE_USER_LDAPPUBLICKEY -> "PublicKey"[style=invis];
+        "PublicKey" -> PRE_USER_LDAPPUBLICKEY [style=invis];
     }
 
     subgraph cluster_identity {
-        label = "Identity";
-        style = filled;
+        label = "LDAP client";
         node [shape=box];
+        "PosixUId" [shape=ellipse];
+        "Write CN" [shape=circle,width=0.8,fixedsize=true];
+        "Write key" [shape=circle,width=0.8,fixedsize=true];
         "Write CN" -> "PosixUId" [style=invis];
         "PosixUId" -> PRE_USER_POSIXACCOUNT [style=invis];
-        PRE_USER_POSIXACCOUNT -> "Write UId" [style=invis];
-        "Write UId" -> VALID [style=invis];
+        PRE_USER_POSIXACCOUNT -> "Write key" [style=invis];
+        "Write key" -> VALID [style=invis];
     }
 
     subgraph cluster_observer {
         label = "Observer";
-        style = filled;
         node [shape=box];
+        "Monitor" [shape=circle];
+        "PublicKey ?" [shape=diamond];
         "Monitor" -> PRE_REGISTRATION_INETORGPERSON [style=invis];
+        "Monitor" -> "PublicKey ?" [style=invis];
     }
 
     subgraph cluster_emailer {
         label = "Emailer";
-        style = filled;
         "TimeInterval" [shape=ellipse];
-        "Send email" [shape=circle];
-        "TimeInterval" -> "Send email" [style=invis];
+        "Send" [shape=circle,width=0.5,fixedsize=true];
+        "TimeInterval" -> "Send" [style=invis];
     }
 
     subgraph cluster_admin {
         label = "Admin";
         style = filled;
+        labeljust = "l";
         node [shape=ellipse];
         PRE_REGISTRATION_PERSON [shape=box];
         "User" -> "Registration" [style=invis];
@@ -72,7 +85,38 @@ __doc__ = """
         "EmailAddress" -> PRE_REGISTRATION_PERSON [style=invis];
     }
 
-    PRE_PROVISION_INETORGPERSON_CN -> "Write CN" [taillabel="GET",style=dashed,arrowhead=none];
+    "Start" [shape=point];
+    "Guest" [shape=circle];
+    "Start" -> User [style=solid,arrowhead=odot];
+    "User" -> "Registration" [style=solid,arrowhead=odot];
+    "Registration" -> "EmailAddress" [style=solid,arrowhead=odot];
+    "EmailAddress" -> PRE_REGISTRATION_PERSON [style=solid,arrowhead=tee];
+    PRE_REGISTRATION_PERSON -> "Monitor" [style=dashed,arrowhead=vee];
+    PRE_REGISTRATION_INETORGPERSON_CN -> "Write CN"
+        [style=dashed,arrowhead=vee];
+    "Write CN" -> "PosixUId" [style=solid,arrowhead=odot];
+    "PosixUId" -> PRE_USER_POSIXACCOUNT [style=solid,arrowhead=tee];
+    PRE_USER_POSIXACCOUNT -> "Set LDAP password"
+        [taillabel="[POST /login]",style=dashed,arrowhead=vee];
+    "Set LDAP password" -> "BcryptedPassword"
+        [style=solid,arrowhead=odot];
+    "BcryptedPassword" -> "PosixUIdNumber" [style=solid,arrowhead=odot];
+    "PosixUIdNumber" -> "PosixGIdNumber" [style=solid,arrowhead=odot];
+    "PosixGIdNumber" -> PRE_USER_LDAPPUBLICKEY [style=solid,arrowhead=tee];
+    PRE_USER_LDAPPUBLICKEY -> "Monitor" [style=dashed,arrowhead=vee];
+    PRE_USER_LDAPPUBLICKEY -> "PublicKey"
+        [taillabel="[POST /registration/{uuid}/keys]",style=dashed,arrowhead=odot];
+    "PublicKey" -> PRE_USER_LDAPPUBLICKEY [style=dashed,arrowhead=tee];
+    "Monitor" -> "PublicKey ?" [style=solid,arrowhead=vee];
+    "PublicKey ?" -> "Write key" [taillabel="Y",style=solid,arrowhead=vee];
+    "Write key" -> VALID [style=solid,arrowhead=vee];
+    "Monitor" -> PRE_REGISTRATION_INETORGPERSON  [style=solid,arrowhead=tee];
+    PRE_REGISTRATION_INETORGPERSON -> "TimeInterval"
+        [style=solid,arrowhead=odot];
+    "TimeInterval" -> "Send" [style=solid,arrowhead=none];
+    "Send" -> "Guest" [style=dotted,arrowhead=vee];
+    "Guest" -> PRE_REGISTRATION_INETORGPERSON_CN
+        [taillabel="[GET /registration/{uuid}]",style=dotted,arrowhead=tee];
    }
 """
 
