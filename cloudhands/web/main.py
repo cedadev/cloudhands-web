@@ -816,7 +816,7 @@ def registration_create(request):
 
 
 def registration_keys(request):
-    log = logging.getLogger("cloudhands.web.registration_read")
+    log = logging.getLogger("cloudhands.web.registration_keys")
     reg_uuid = request.matchdict["reg_uuid"]
     con = registered_connection(request)
     reg = con.session.query(Registration).filter(

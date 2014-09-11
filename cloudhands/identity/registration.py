@@ -17,6 +17,65 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 
+__doc__ = """
+
+
+.. graphviz::
+
+   digraph registration {
+    center = true;
+    compound = true;
+    nodesep = 0.6;
+    edge [decorate,labeldistance=3,labelfontname=helvetica,
+        labelfontsize=10,labelfloat=false];
+
+    subgraph cluster_web {
+        label = "Web";
+        node [shape=box];
+        PRE_PROVISION_INETORGPERSON_CN -> "Set LDAP password" [style=invis];
+        "Set LDAP password" -> "PublicKey ?" [style=invis];
+        "PublicKey ?" -> PRE_USER_LDAPPUBLICKEY [style=invis];
+    }
+
+    subgraph cluster_identity {
+        label = "Identity";
+        style = filled;
+        node [shape=box];
+        "Write CN" -> "PosixUId" [style=invis];
+        "PosixUId" -> PRE_USER_POSIXACCOUNT [style=invis];
+        PRE_USER_POSIXACCOUNT -> "Write UId" [style=invis];
+        "Write UId" -> VALID [style=invis];
+    }
+
+    subgraph cluster_observer {
+        label = "Observer";
+        style = filled;
+        node [shape=box];
+        "Monitor" -> PRE_REGISTRATION_INETORGPERSON [style=invis];
+    }
+
+    subgraph cluster_emailer {
+        label = "Emailer";
+        style = filled;
+        "TimeInterval" [shape=ellipse];
+        "Send email" [shape=circle];
+        "TimeInterval" -> "Send email" [style=invis];
+    }
+
+    subgraph cluster_admin {
+        label = "Admin";
+        style = filled;
+        node [shape=ellipse];
+        PRE_REGISTRATION_PERSON [shape=box];
+        "User" -> "Registration" [style=invis];
+        "Registration" -> "EmailAddress" [style=invis];
+        "EmailAddress" -> PRE_REGISTRATION_PERSON [style=invis];
+    }
+
+    PRE_PROVISION_INETORGPERSON_CN -> "Write CN" [taillabel="GET",style=dashed,arrowhead=none];
+   }
+"""
+
 def handle_from_email(addrVal):
     return ' '.join(
         i.capitalize() for i in addrVal.split('@')[0].split('.'))
