@@ -96,11 +96,10 @@ __doc__ = """
         [style=dashed,arrowhead=vee];
     "Write CN" -> "PosixUId" [style=solid,arrowhead=odot];
     "PosixUId" -> PRE_USER_POSIXACCOUNT [style=solid,arrowhead=tee];
-    PRE_USER_POSIXACCOUNT -> "Set LDAP password"
-        [taillabel="[POST /login]",style=dashed,arrowhead=vee];
+    PRE_USER_POSIXACCOUNT -> "PosixUIdNumber"
+        [taillabel="[POST /login]",style=dashed,arrowhead=odot];
     "Set LDAP password" -> "BcryptedPassword"
         [style=solid,arrowhead=odot];
-    "BcryptedPassword" -> "PosixUIdNumber" [style=solid,arrowhead=odot];
     "PosixUIdNumber" -> "PosixGIdNumber" [style=solid,arrowhead=odot];
     "PosixGIdNumber" -> PRE_USER_LDAPPUBLICKEY [style=solid,arrowhead=tee];
     PRE_USER_LDAPPUBLICKEY -> "Monitor" [style=dashed,arrowhead=vee];
@@ -117,6 +116,8 @@ __doc__ = """
     "Send" -> "Guest" [style=dotted,arrowhead=vee];
     "Guest" -> PRE_REGISTRATION_INETORGPERSON_CN
         [taillabel="[GET /registration/{uuid}]",style=dotted,arrowhead=tee];
+    "Guest" -> "Set LDAP password"
+        [taillabel="[POST /registration/{uuid}/passwords]",style=dotted,arrowhead=tee];
    }
 """
 
