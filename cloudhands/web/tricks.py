@@ -5,8 +5,6 @@ import datetime
 import logging
 import uuid
 
-from cloudhands.common.fsm import MembershipState
-
 import cloudhands.common.schema
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Host
@@ -16,6 +14,8 @@ from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import MembershipState
 
 __doc__ = """
 Common functions for interacting with the schema.

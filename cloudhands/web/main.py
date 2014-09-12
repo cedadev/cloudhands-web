@@ -41,10 +41,6 @@ from waitress import serve
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import ApplianceState
-from cloudhands.common.fsm import HostState
-from cloudhands.common.fsm import MembershipState
-from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.pipes import SimplePipeQueue
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
@@ -68,6 +64,10 @@ from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+from cloudhands.common.states import ApplianceState
+from cloudhands.common.states import HostState
+from cloudhands.common.states import MembershipState
+from cloudhands.common.states import RegistrationState
 
 import cloudhands.web
 from cloudhands.identity.ldap_account import change_password

@@ -14,7 +14,6 @@ from sqlalchemy import desc
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
-from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import PosixUId
@@ -23,6 +22,7 @@ from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+from cloudhands.common.states import RegistrationState
 
 from cloudhands.identity.ldap import LDAPProxy
 from cloudhands.identity.ldap import LDAPRecord

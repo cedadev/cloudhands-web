@@ -13,11 +13,11 @@ import textwrap
 
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
-from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import TimeInterval
 from cloudhands.common.schema import Touch
+from cloudhands.common.states import RegistrationState
 
 
 class Emailer:

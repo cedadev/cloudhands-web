@@ -3,12 +3,12 @@
 
 import datetime
 import uuid
-from cloudhands.common.fsm import MembershipState
-
 import cloudhands.common.schema
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import MembershipState
 
 
 def handle_from_email(addrVal):

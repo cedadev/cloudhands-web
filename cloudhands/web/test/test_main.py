@@ -26,9 +26,6 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import MembershipState
-from cloudhands.common.fsm import RegistrationState
-
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import CatalogueItem
@@ -45,6 +42,9 @@ from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import MembershipState
+from cloudhands.common.states import RegistrationState
 
 from cloudhands.identity.membership import Invitation
 

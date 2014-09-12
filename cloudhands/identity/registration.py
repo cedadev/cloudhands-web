@@ -6,8 +6,6 @@ import uuid
 
 import bcrypt
 
-from cloudhands.common.fsm import RegistrationState
-
 import cloudhands.common.schema
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import Membership
@@ -15,6 +13,8 @@ from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import RegistrationState
 
 
 __doc__ = """

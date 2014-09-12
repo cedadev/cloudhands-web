@@ -10,13 +10,13 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import MembershipState
-
 from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import MembershipState
 
 from cloudhands.identity.membership import handle_from_email
 from cloudhands.identity.membership import Activation

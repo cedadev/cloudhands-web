@@ -16,8 +16,6 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import HostState
-
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Node
@@ -26,6 +24,8 @@ from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import HostState
 
 from cloudhands.common.types import NamedDict
 

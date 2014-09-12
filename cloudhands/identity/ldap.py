@@ -16,11 +16,11 @@ import warnings
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
+from cloudhands.common.states import RegistrationState
 from cloudhands.web import __version__
 
 import ldap3

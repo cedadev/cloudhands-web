@@ -9,9 +9,6 @@ import uuid
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import HostState
-from cloudhands.common.fsm import MembershipState
-
 import cloudhands.common.schema
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import IPAddress
@@ -20,6 +17,9 @@ from cloudhands.common.schema import Provider
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import HostState
+from cloudhands.common.states import MembershipState
 
 from cloudhands.web.tricks import allocate_ip
 

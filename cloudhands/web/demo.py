@@ -12,13 +12,12 @@ import sys
 import textwrap
 import uuid
 
+from cloudhands.burst.subscription import Online
+
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import MembershipState
-from cloudhands.common.fsm import RegistrationState
-from cloudhands.common.fsm import SubscriptionState
 
 from cloudhands.common.schema import Archive
 from cloudhands.common.schema import CatalogueItem
@@ -37,8 +36,11 @@ from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.common.states import MembershipState
+from cloudhands.common.states import RegistrationState
+from cloudhands.common.states import SubscriptionState
+
 from cloudhands.identity.membership import handle_from_email
-from cloudhands.identity.subscription import Online
 from cloudhands.identity.registration import NewPassword
 
 import cloudhands.web.indexer

@@ -14,8 +14,6 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import RegistrationState
-
 from cloudhands.common.schema import BcryptedPassword
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Provider
@@ -25,6 +23,8 @@ from cloudhands.common.schema import Registration
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.common.states import RegistrationState
 
 
 class RegistrationLifecycleTests(unittest.TestCase):
