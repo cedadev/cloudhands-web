@@ -281,9 +281,37 @@ class MembershipView(Contextual, NamedDict):
     def public(self):
         return ["organisation", "role"]
 
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "username", True, re.compile("\\w{8,10}$"),
+                [self["username"]] if getattr(self, "username", None)
+                else [],
+                """
+                Please choose a name 8 to 10 characters long.
+                """),
+            Parameter(
+                "surname", True, re.compile("\\w{2,32}$"),
+                [self["surname"]] if getattr(self, "surname", None)
+                else [],
+                ""),
+            Parameter(
+                "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
+                "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
+                "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
+                # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
+                ),
+                [self["email"]] if getattr(self, "email", None)
+                else [],
+                """
+                We will send instructions to this address to activate the account.
+                """),
+        ]
+
     def configure(self, session, user=None):
-        hf = HostView(organisation=self["organisation"])
-        hf.configure(session, user)
+        #hf = HostView(organisation=self["organisation"])
+        #hf.configure(session, user)
         # Create new host, etc belongs in membership view
         self["_links"] = []
         if self["role"] == "admin":
@@ -292,7 +320,7 @@ class MembershipView(Contextual, NamedDict):
                     "Invitation to {}".format(self["organisation"]),
                     "create-form",
                     "/organisation/{}/memberships", self["organisation"],
-                    "post", [], "Create")
+                    "post", self.parameters, "Create")
             )
         return self
 
