@@ -12,9 +12,6 @@ import sys
 import textwrap
 import uuid
 
-from cloudhands.burst.membership import handle_from_email
-from cloudhands.burst.subscription import Online
-
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import providers
@@ -40,6 +37,8 @@ from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
+from cloudhands.identity.membership import handle_from_email
+from cloudhands.identity.subscription import Online
 from cloudhands.identity.registration import NewPassword
 
 import cloudhands.web.indexer

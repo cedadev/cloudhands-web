@@ -22,8 +22,6 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPInternalServerError
 from pyramid.httpexceptions import HTTPNotFound
 
-from cloudhands.burst.membership import Invitation
-
 import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -47,6 +45,8 @@ from cloudhands.common.schema import Resource
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+
+from cloudhands.identity.membership import Invitation
 
 import cloudhands.web
 from cloudhands.web.indexer import create as create_index

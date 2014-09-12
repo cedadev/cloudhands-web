@@ -38,10 +38,6 @@ from sqlalchemy import desc
 
 from waitress import serve
 
-from cloudhands.burst.membership import handle_from_email
-from cloudhands.burst.membership import Activation
-from cloudhands.burst.membership import Invitation
-
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
@@ -76,6 +72,9 @@ from cloudhands.common.schema import User
 import cloudhands.web
 from cloudhands.identity.ldap_account import change_password
 from cloudhands.identity.ldap_account import next_uidnumber
+from cloudhands.identity.membership import handle_from_email
+from cloudhands.identity.membership import Activation
+from cloudhands.identity.membership import Invitation
 from cloudhands.identity.registration import NewAccount
 from cloudhands.identity.registration import NewPassword
 from cloudhands.web.catalogue import CatalogueItemView
