@@ -275,7 +275,7 @@ class LabelView(Validating, NamedDict):
         ]
 
 
-class MembershipView(Contextual, NamedDict):
+class MembershipView(Contextual, Validating, NamedDict):
 
     @property
     def public(self):

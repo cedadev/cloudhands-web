@@ -472,7 +472,10 @@ class MembershipPageTests(ServerTests):
         self.assertEqual(1, self.session.query(Membership).count())
 
         # Create a new invite
-        request = testing.DummyRequest()
+        request = testing.DummyRequest(post={
+            "username": "someonew",
+            "surname": "New",
+            "email": newuser_email()})
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
         self.assertEqual(1, self.session.query(User).count())
@@ -575,6 +578,10 @@ class OrganisationPageTests(ServerTests):
         act = ServerTests.make_test_user_role_user(self.session)
         org = act.artifact.organisation
         request = testing.DummyRequest()
+        request = testing.DummyRequest(post={
+            "username": "someonew",
+            "surname": "New",
+            "email": "someone@somewhere.net"})
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(Forbidden, organisation_memberships_create, request)
 
@@ -583,7 +590,10 @@ class OrganisationPageTests(ServerTests):
         self.config.add_route("people", "/people")
         act = ServerTests.make_test_user_role_admin(self.session)
         org = act.artifact.organisation
-        request = testing.DummyRequest()
+        request = testing.DummyRequest(post={
+            "username": "someonew",
+            "surname": "New",
+            "email": "someone@somewhere.net"})
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
 

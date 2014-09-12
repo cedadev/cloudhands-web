@@ -83,6 +83,7 @@ from cloudhands.web.indexer import people
 from cloudhands.web import __version__
 from cloudhands.web.model import HostView
 from cloudhands.web.model import LabelView
+from cloudhands.web.model import MembershipView
 from cloudhands.web.model import Page
 from cloudhands.web.model import PageInfo
 from cloudhands.web.model import PeoplePage
@@ -687,11 +688,15 @@ def organisation_appliances_create(request):
 
 def organisation_memberships_create(request):
     log = logging.getLogger("cloudhands.web.organisation_memberships_create")
-    userId = authenticated_userid(request)
-    if userId is None:
-        raise Forbidden()
-
     con = registered_connection(request)
+    data = MembershipView(request.POST)
+    
+    if data.invalid:
+        log.debug(request.POST)
+        log.debug(data)
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
     oN = request.matchdict["org_name"]
     org = con.session.query(Organisation).filter(
         Organisation.name == oN).first()
