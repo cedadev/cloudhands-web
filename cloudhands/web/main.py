@@ -41,6 +41,7 @@ from waitress import serve
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
+import cloudhands.common.factories
 from cloudhands.common.pipes import SimplePipeQueue
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import BcryptedPassword
@@ -702,13 +703,10 @@ def organisation_memberships_create(request):
     if not org:
         raise NotFound("Organisation '{}' not found".format(oN))
 
-    user = con.session.query(User).join(Touch).join(
-        EmailAddress).filter(EmailAddress.value == userId).first()
-    if not user:
-        raise NotFound("User not found for {}".format(userId))
-    invite = Invitation(user, org)(con.session)
+    admin = con.session.merge(authenticate_user(request, Forbidden))
+    invite = Invitation(admin, org)(con.session)
     if not invite:
-        raise Forbidden("User {} lacks permission.".format(user.handle))
+        raise Forbidden("User {} lacks permission.".format(admin.handle))
     else:
         log.debug(invite.artifact)
         locn = request.route_url(
