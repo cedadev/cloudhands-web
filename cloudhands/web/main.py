@@ -688,6 +688,7 @@ def organisation_appliances_create(request):
 
 def organisation_memberships_create(request):
     log = logging.getLogger("cloudhands.web.organisation_memberships_create")
+    cfg = request.registry.settings.get("cfg", None)
     con = registered_connection(request)
     data = MembershipView(request.POST)
     
@@ -709,11 +710,12 @@ def organisation_memberships_create(request):
         raise Forbidden("User {} lacks permission.".format(admin.handle))
     else:
         log.debug(invite.artifact)
+        # TODO: calculate this location from membership_read view
         locn = request.route_url(
             "membership", mship_uuid=invite.artifact.uuid)
-        raise HTTPFound(
-            #headers=[("Location", locn)],
-            location=request.route_url("people"))
+        raise HTTPFound(location=request.static_url(
+            "{}/membership-confirm.html".format(
+                cfg["paths.assets"]["html"])))
 
 
 def people_read(request):

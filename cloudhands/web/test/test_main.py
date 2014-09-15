@@ -98,10 +98,19 @@ class ServerTests(unittest.TestCase):
     def setUp(self):
         self.session = Registry().connect(sqlite3, ":memory:").session
         initialise(self.session)
+        self.assets = {
+            "paths.assets": dict(
+                css = "cloudhands.web:static/css",
+                html = "cloudhands.web:static/html",
+                img = "cloudhands.web:static/img",
+                js = "cloudhands.web:static/js")
+        }
         self.request = testing.DummyRequest()
         self.config = testing.setUp(request=self.request)
         self.config.add_static_view(
             name="css", path="cloudhands.web:static/css")
+        self.config.add_static_view(
+            name="html", path="cloudhands.web:static/html")
         self.config.add_static_view(
             name="js", path="cloudhands.web:static/js")
         self.config.add_static_view(
@@ -442,9 +451,10 @@ class MembershipPageTests(ServerTests):
 
     def setUp(self):
         super().setUp()
-        self.config.add_route("membership", "/membership")
-        self.config.add_route("organisation", "/organisation")
-        self.config.add_route("people", "/people")
+        self.config.add_route("membership", "/membership/{mship_uuid}")
+        self.config.add_route("registration", "/registration/{reg_uuid}")
+        #self.config.add_route("organisation", "/organisation")
+        #self.config.add_route("people", "/people")
 
     def test_authenticate_nonuser_raises_not_found(self):
         request = testing.DummyRequest()
@@ -476,6 +486,7 @@ class MembershipPageTests(ServerTests):
             "username": "someonew",
             "surname": "New",
             "email": newuser_email()})
+        request.registry.settings = {"cfg": self.assets}
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
         self.assertEqual(1, self.session.query(User).count())
@@ -594,6 +605,7 @@ class OrganisationPageTests(ServerTests):
             "username": "someonew",
             "surname": "New",
             "email": "someone@somewhere.net"})
+        request.registry.settings = {"cfg": self.assets}
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
 
@@ -677,8 +689,6 @@ class RegistrationPageTests(ServerTests):
         self.config.add_route("registration", "/registration/{reg_uuid}")
         self.config.add_route(
             "registration_keys", "/registration/{reg_uuid}/key")
-        self.config.add_static_view(
-            name="html", path="cloudhands.web:static/html")
 
     def test_register_form(self):
         request = testing.DummyRequest()
