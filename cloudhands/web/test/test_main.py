@@ -46,8 +46,6 @@ from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
 from cloudhands.common.states import RegistrationState
 
-from cloudhands.identity.membership import Invitation
-
 import cloudhands.web
 from cloudhands.web.indexer import create as create_index
 from cloudhands.web.indexer import indexer
@@ -469,7 +467,7 @@ class MembershipPageTests(ServerTests):
             self.assertEqual(
                 cloudhands.web.main.authenticated_userid(), e.userId)
 
-    def test_nonuser_membership_read_creates_user(self):
+    def test_guest_membership_read_activates_membership(self):
 
         def newuser_email(request=None):
             return "someone.new@somewhere.else.org"
@@ -480,6 +478,7 @@ class MembershipPageTests(ServerTests):
         act = ServerTests.make_test_user_role_admin(self.session)
         org = act.artifact.organisation
         self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(1, self.session.query(Registration).count())
         self.assertEqual(1, self.session.query(Membership).count())
 
         # Create a new invite
@@ -490,8 +489,8 @@ class MembershipPageTests(ServerTests):
         request.registry.settings = {"cfg": self.assets}
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
-        self.assertEqual(1, self.session.query(User).count())
-        self.assertEqual(1, self.session.query(Registration).count())
+        self.assertEqual(2, self.session.query(User).count())
+        self.assertEqual(2, self.session.query(Registration).count())
         self.assertEqual(2, self.session.query(Membership).count())
         mship = self.session.query(
             Membership).join(Touch).join(State).join(Organisation).filter(
@@ -506,7 +505,7 @@ class MembershipPageTests(ServerTests):
             reply = membership_read(request)
 
             # Check new user added
-            self.assertEqual(2, self.session.query(User).count())
+            self.assertEqual("active", mship.changes[-1].state.name)
             self.assertTrue(self.session.query(EmailAddress).filter(
                 EmailAddress.value == newuser_email()).first())
         finally:
@@ -658,30 +657,6 @@ class PeoplePageTests(ServerTests):
         request = testing.DummyRequest({"description": "User"})
         page = people_read(request)
         self.assertEqual(10, len(page["items"]))
-
-    def test_user_items_offer_open_invitation(self):
-        act = ServerTests.make_test_user_role_admin(self.session)
-        admin = act.actor
-        org = act.artifact.organisation
-
-        # Issue an invitation for the organisation
-        self.assertIsInstance(
-            Invitation(
-                admin, org,
-                "handle", "Surname", "e.m@il")(self.session), Touch)
-
-        # Populate some people
-        ix = create_index(self.td.name, **ldap_types)
-        wrtr = ix.writer()
-
-        for i in range(10):
-            wrtr.add_document(id=str(i), gecos="Person {}".format(i))
-        wrtr.commit()
-
-        request = testing.DummyRequest({"description": "Person"})
-        page = people_read(request)
-        items = page["items"].values()
-        self.assertTrue(all("_links" in i for i in items))
 
 class RegistrationPageTests(ServerTests):
 

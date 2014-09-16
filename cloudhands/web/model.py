@@ -370,7 +370,7 @@ class PosixUIdView(Contextual, Validating, NamedDict):
                 "post", self.parameters, "Ok"))
 
 
-class PersonView(Contextual, Validating, NamedDict):
+class PersonView(Validating, NamedDict):
     """
     Used for free-text search of contacts list
     """
@@ -385,29 +385,6 @@ class PersonView(Contextual, Validating, NamedDict):
                 "designator", True, re.compile("\\w{8,}$"),
                 [self["designator"]] if "designator" in self else [], "")
         ]
-
-    def configure(self, sn, user):
-        """
-        Add links to Memberships in 'invited' state created by this user
-        """
-        try:
-            m = sn.query(Membership).join(Touch).join(User).join(State).filter(
-                User.id == user.id).filter(
-                State.fsm == "membership").filter(
-                State.name == "invite").first()
-        except AttributeError:
-            # Lack session or user
-            pass
-        else:
-            if m is not None:
-                self["_links"] = [
-                    Action(
-                        m.organisation.name, "parent",
-                        "/membership/{}", m.uuid, "post",
-                        self.parameters, "Invite")
-                ]
-        finally:
-            return self
 
 
 class PublicKeyView(Validating, NamedDict):

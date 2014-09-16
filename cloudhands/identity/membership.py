@@ -3,6 +3,8 @@
 
 import datetime
 import uuid
+
+import cloudhands.common.factories
 import cloudhands.common.schema
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Touch
@@ -24,6 +26,9 @@ class Invitation():
     def __init__(self, user, org, handle, surname, emailAddr):
         self.user = user
         self.org = org
+        self.handle = handle
+        self.surname = surname
+        self.emailAddr = emailAddr
 
     def __call__(self, session):
         """
@@ -44,7 +49,7 @@ class Invitation():
 
         mship = Membership(
             uuid=uuid.uuid4().hex,
-            model=cloudhands.common.__version__,
+            model=cloudhands.web.__version__,
             organisation=self.org,
             role="user")
         invite = session.query(MembershipState).filter(
@@ -54,8 +59,16 @@ class Invitation():
         session.add(act)
         session.commit()
 
-        # Get a user for the guest
-        # Register the guest
+        guest = session.merge(cloudhands.common.factories.user(
+            session, self.handle, self.surname))
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=mship, actor=guest, state=invite, at=now)
+        session.add(act)
+        session.commit()
+
+        reg = cloudhands.common.factories.registration(
+            session, guest, self.emailAddr, cloudhands.common.__version__)
+
         return act
 
 

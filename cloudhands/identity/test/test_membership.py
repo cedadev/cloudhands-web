@@ -119,11 +119,13 @@ class ActivationTests(MembershipLifecycleTests):
 
         mship = Invitation(
                 self.admin, self.org,
-                "handle", "Surname", self.guestAddr)(self.session).artifact
+                handle, "Surname", self.guestAddr)(self.session).artifact
         act = Activation(user, mship)(self.session)
         self.assertIsInstance(act, Touch)
-        self.assertIs(user, self.session.query(User).join(Touch).join(
-            EmailAddress).filter(EmailAddress.value == self.guestAddr).first())
+        self.assertEqual(
+            user.handle,
+            self.session.query(User).join(Touch).join(EmailAddress).filter(
+            EmailAddress.value == self.guestAddr).first().handle)
 
     def test_add_user_twice(self):
         handle = handle_from_email(self.guestAddr)
@@ -139,5 +141,5 @@ class ActivationTests(MembershipLifecycleTests):
 
         reInvite = Invitation(
             self.admin, self.org,
-            "handle", "Surname", self.guestAddr)(self.session).artifact
+            "handle", "Surname", self.guestAddr)(self.session)
         self.assertIsInstance(reInvite, Touch)
