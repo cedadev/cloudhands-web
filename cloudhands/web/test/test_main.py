@@ -106,6 +106,7 @@ class ServerTests(unittest.TestCase):
                 js = "cloudhands.web:static/js")
         }
         self.request = testing.DummyRequest()
+        self.request.registry.settings = {"cfg": self.assets}
         self.config = testing.setUp(request=self.request)
         self.config.add_static_view(
             name="css", path="cloudhands.web:static/css")

@@ -14,10 +14,9 @@ import textwrap
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.schema import Component
-from cloudhands.common.schema import Registration
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import TimeInterval
 from cloudhands.common.schema import Touch
-from cloudhands.common.states import RegistrationState
 
 
 class Emailer:
@@ -27,7 +26,7 @@ class Emailer:
     TEXT = textwrap.dedent("""
     Your action is required.
 
-    Please visit this link to confirm your registration:
+    Please visit this link to confirm your membership:
     {url}
     """).strip()
 
@@ -36,7 +35,7 @@ class Emailer:
     <head></head>
     <body>
     <h1>Your action is required</h1>
-    <p>Please visit this link to confirm your registration.</p>
+    <p>Please visit this link to confirm your membership.</p>
     <p><a href="{url}">{url}</a></p>
     </body>
     </html>
@@ -58,17 +57,17 @@ class Emailer:
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
         while True:
-            dst, host, reg_uuid = yield from self.q.get()
-            path = "registration/{}".format(reg_uuid)
+            dst, host, mship_uuid = yield from self.q.get()
+            path = "membership/{}".format(mship_uuid)
             url = '/'.join((host, path))
             src = self.config["smtp.src"]["from"]
 
-            reg = session.query(Registration).filter(
-                Registration.uuid == reg_uuid).first()
-            latest = reg.changes[-1]
+            mship = session.query(Membership).filter(
+                Membership.uuid == mship_uuid).first()
+            latest = mship.changes[-1]
             now = datetime.datetime.utcnow()
             end = now + datetime.timedelta(hours=24)
-            act = Touch(artifact=reg, actor=actor, state=latest.state, at=now)
+            act = Touch(artifact=mship, actor=actor, state=latest.state, at=now)
             limit = TimeInterval(end=end, touch=act) 
 
             msg = MIMEMultipart("alternative")
