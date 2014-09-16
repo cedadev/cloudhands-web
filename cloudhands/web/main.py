@@ -453,7 +453,14 @@ def membership_read(request):
     if mship.changes[-1].state.name == "invited":
         act = Activation(mship, user)(con.session)
         log.debug(act)
-        # TODO: redirect to user registration
+        guest_uuid = act.actor.uuid
+        reg = con.session.query(Registration).join(Touch).join(User).filter(
+            User.uuid == guest_uuid).first()
+        if not reg:
+            raise NotFound("Registration not found for {}".format(guest_uuid))
+        else:
+            raise HTTPFound(
+                location=request.route_url("registration", reg_uuid=reg.uuid))
 
     page = Page(
         session=con.session, user=user,

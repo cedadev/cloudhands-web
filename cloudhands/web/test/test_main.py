@@ -501,10 +501,10 @@ class MembershipPageTests(ServerTests):
             cloudhands.web.main.authenticated_userid, newuser_email)
         try:
             # Email is sent
-            active = self.session.query(MembershipState).filter(
-                MembershipState.name == "active").one()
+            invited = self.session.query(MembershipState).filter(
+                MembershipState.name == "invited").one()
             act = Touch(
-                artifact=mship, actor=admin, state=active,
+                artifact=mship, actor=admin, state=invited,
                 at=datetime.datetime.utcnow())
             self.session.add(act)
             self.session.commit()
@@ -512,7 +512,8 @@ class MembershipPageTests(ServerTests):
             # New person visits membership
             request = testing.DummyRequest()
             request.matchdict.update({"mship_uuid": mship.uuid})
-            reply = membership_read(request)
+
+            self.assertRaises(HTTPFound, membership_read, request)
 
             # Check new user added
             self.assertEqual("active", mship.changes[-1].state.name)

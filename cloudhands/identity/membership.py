@@ -93,7 +93,7 @@ class Activation():
             MembershipState).filter(MembershipState.name == "active").one()
         now = datetime.datetime.utcnow()
 
-        user = self.user or self.mship.changes[1].actor
+        user = session.merge(self.user or self.mship.changes[1].actor)
         act = Touch(artifact=self.mship, actor=user, state=active, at=now)
         session.add(act)
         session.commit()
