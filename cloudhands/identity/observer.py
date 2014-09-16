@@ -64,7 +64,7 @@ class Observer:
                 if r.changes[-1].state.name == "pre_registration_person"]
             for reg in unsent:
                 try:
-                    user = reg.changes[0].actor
+                    user = reg.changes[-1].actor
                     email = session.query(EmailAddress).join(Touch).join(User).filter(
                         User.id == user.id).order_by(desc(Touch.at)).first().value
                     host = "http://{}:8080".format(platform.node()) #  FIXME

@@ -705,7 +705,10 @@ def organisation_memberships_create(request):
         raise NotFound("Organisation '{}' not found".format(oN))
 
     admin = con.session.merge(authenticate_user(request, Forbidden))
-    invite = Invitation(admin, org)(con.session)
+    invite = Invitation(
+        admin, org,
+        data["username"], data["surname"], data["email"]
+    )(con.session)
     if not invite:
         raise Forbidden("User {} lacks permission.".format(admin.handle))
     else:

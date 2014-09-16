@@ -78,7 +78,9 @@ class InvitationTests(MembershipLifecycleTests):
             )
         self.session.commit()
         self.assertIsNone(
-            Invitation(self.admin, self.org)(self.session))
+            Invitation(
+                self.admin, self.org,
+                "handle", "Surname", "e.m@il")(self.session))
 
     def test_withdrawn_admins_cannot_create_invites(self):
         withdrawn = self.session.query(MembershipState).filter(
@@ -92,14 +94,19 @@ class InvitationTests(MembershipLifecycleTests):
             )
         self.session.commit()
         self.assertIsNone(
-            Invitation(self.admin, self.org)(self.session))
+            Invitation(
+                self.admin, self.org,
+                "handle", "Surname", "e.m@il")(self.session))
 
     def test_only_admins_create_invites(self):
         self.assertIsNone(
-            Invitation(self.user, self.org)(self.session))
+            Invitation(
+                self.user, self.org,
+                "handle", "Surname", "e.m@il")(self.session))
         self.assertIsInstance(
-            Invitation(self.admin, self.org)(self.session),
-            Touch)
+            Invitation(
+                self.admin, self.org,
+                "handle", "Surname", "e.m@il")(self.session), Touch)
 
 
 class ActivationTests(MembershipLifecycleTests):
@@ -110,9 +117,10 @@ class ActivationTests(MembershipLifecycleTests):
         self.session.add(user)
         self.session.commit()
 
-        mship = Invitation(self.admin, self.org)(self.session).artifact
-        ea = EmailAddress(value=self.guestAddr)
-        act = Activation(user, mship, ea)(self.session)
+        mship = Invitation(
+                self.admin, self.org,
+                "handle", "Surname", self.guestAddr)(self.session).artifact
+        act = Activation(user, mship)(self.session)
         self.assertIsInstance(act, Touch)
         self.assertIs(user, self.session.query(User).join(Touch).join(
             EmailAddress).filter(EmailAddress.value == self.guestAddr).first())
@@ -123,10 +131,13 @@ class ActivationTests(MembershipLifecycleTests):
         self.session.add(user)
         self.session.commit()
 
-        mship = Invitation(self.admin, self.org)(self.session).artifact
-        ea = EmailAddress(value=self.guestAddr)
-        act = Activation(user, mship, ea)(self.session)
+        mship = Invitation(
+                self.admin, self.org,
+                "handle", "Surname", self.guestAddr)(self.session).artifact
+        act = Activation(user, mship)(self.session)
         self.assertIsInstance(act, Touch)
 
-        reInvite = Invitation(self.admin, self.org)(self.session).artifact
-        self.assertIsInstance(act, Touch)
+        reInvite = Invitation(
+            self.admin, self.org,
+            "handle", "Surname", self.guestAddr)(self.session).artifact
+        self.assertIsInstance(reInvite, Touch)

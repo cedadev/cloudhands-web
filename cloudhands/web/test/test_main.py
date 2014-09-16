@@ -491,10 +491,11 @@ class MembershipPageTests(ServerTests):
         request.matchdict.update({"org_name": org.name})
         self.assertRaises(HTTPFound, organisation_memberships_create, request)
         self.assertEqual(1, self.session.query(User).count())
+        self.assertEqual(1, self.session.query(Registration).count())
         self.assertEqual(2, self.session.query(Membership).count())
         mship = self.session.query(
             Membership).join(Touch).join(State).join(Organisation).filter(
-            Organisation.id == org.id).filter(State.name == "invite").one()
+            Organisation.id == org.id).filter(State.name == "created").one()
 
         testuser_email, cloudhands.web.main.authenticated_userid = (
             cloudhands.web.main.authenticated_userid, newuser_email)
@@ -665,8 +666,9 @@ class PeoplePageTests(ServerTests):
 
         # Issue an invitation for the organisation
         self.assertIsInstance(
-            Invitation(admin, org)(self.session),
-            Touch)
+            Invitation(
+                admin, org,
+                "handle", "Surname", "e.m@il")(self.session), Touch)
 
         # Populate some people
         ix = create_index(self.td.name, **ldap_types)

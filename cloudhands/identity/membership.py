@@ -21,7 +21,7 @@ class Invitation():
     :param object user: A :py:func:`cloudhands.common.schema.User` object.
     :param object org: A :py:func:`cloudhands.common.schema.Organisation`.
     """
-    def __init__(self, user, org):
+    def __init__(self, user, org, handle, surname, emailAddr):
         self.user = user
         self.org = org
 
@@ -48,12 +48,14 @@ class Invitation():
             organisation=self.org,
             role="user")
         invite = session.query(MembershipState).filter(
-            MembershipState.name == "invite").one()
+            MembershipState.name == "created").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=mship, actor=self.user, state=invite, at=now)
-        mship.changes.append(act)
-        session.add(mship)
+        session.add(act)
         session.commit()
+
+        # Get a user for the guest
+        # Register the guest
         return act
 
 
@@ -63,10 +65,9 @@ class Activation():
     :param object mship: A :py:func:`cloudhands.common.schema.Membership`.
     :param object eAddr: A :py:func:`cloudhands.common.schema.EmailAddress`.
     """
-    def __init__(self, user, mship, eAddr):
+    def __init__(self, user, mship):
         self.user = user
         self.mship = mship
-        self.eAddr = eAddr
 
     def __call__(self, session):
         """
@@ -80,9 +81,7 @@ class Activation():
         now = datetime.datetime.utcnow()
 
         act = Touch(artifact=self.mship, actor=self.user, state=active, at=now)
-        self.mship.changes.append(act)
-        self.eAddr.touch = act
-        session.add(self.eAddr)
+        session.add(act)
         session.commit()
         return act
 
