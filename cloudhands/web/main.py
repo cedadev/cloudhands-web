@@ -443,22 +443,17 @@ def logout_update(request):
 
 def membership_read(request):
     log = logging.getLogger("cloudhands.web.membership_read")
-    m_uuid = request.matchdict["mship_uuid"]
     con = registered_connection(request)
+    user = authenticate_user(request)  # NB: may be None
+
+    m_uuid = request.matchdict["mship_uuid"]
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
-    try:
-        user = authenticate_user(request, NotFound)
-    except NotFound as e:
-        # Create user only if invited
-        if mship.changes[-1].state.name != "invite":
-            raise Forbidden()
 
-        user = User(handle=handle_from_email(e.userId), uuid=uuid.uuid4().hex)
-        ea = EmailAddress(
-            value=cloudhands.web.main.authenticated_userid(request))
-        act = Activation(user, mship, ea)(con.session)
-        log.debug(user)
+    if mship.changes[-1].state.name == "invited":
+        act = Activation(mship, user)(con.session)
+        log.debug(act)
+        # TODO: redirect to user registration
 
     page = Page(
         session=con.session, user=user,

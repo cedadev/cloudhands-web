@@ -78,9 +78,9 @@ class Activation():
     :param object mship: A :py:func:`cloudhands.common.schema.Membership`.
     :param object eAddr: A :py:func:`cloudhands.common.schema.EmailAddress`.
     """
-    def __init__(self, user, mship):
-        self.user = user
+    def __init__(self, mship, user=None):
         self.mship = mship
+        self.user = user
 
     def __call__(self, session):
         """
@@ -93,7 +93,8 @@ class Activation():
             MembershipState).filter(MembershipState.name == "active").one()
         now = datetime.datetime.utcnow()
 
-        act = Touch(artifact=self.mship, actor=self.user, state=active, at=now)
+        user = self.user or self.mship.changes[1].actor
+        act = Touch(artifact=self.mship, actor=user, state=active, at=now)
         session.add(act)
         session.commit()
         return act

@@ -120,7 +120,7 @@ class ActivationTests(MembershipLifecycleTests):
         mship = Invitation(
                 self.admin, self.org,
                 handle, "Surname", self.guestAddr)(self.session).artifact
-        act = Activation(user, mship)(self.session)
+        act = Activation(mship, user)(self.session)
         self.assertIsInstance(act, Touch)
         self.assertEqual(
             user.handle,
@@ -136,7 +136,7 @@ class ActivationTests(MembershipLifecycleTests):
         mship = Invitation(
                 self.admin, self.org,
                 "handle", "Surname", self.guestAddr)(self.session).artifact
-        act = Activation(user, mship)(self.session)
+        act = Activation(mship, user)(self.session)
         self.assertIsInstance(act, Touch)
 
         reInvite = Invitation(

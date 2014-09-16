@@ -476,6 +476,7 @@ class MembershipPageTests(ServerTests):
         self.assertEqual(0, self.session.query(User).count())
         self.assertEqual(0, self.session.query(Membership).count())
         act = ServerTests.make_test_user_role_admin(self.session)
+        admin = act.actor
         org = act.artifact.organisation
         self.assertEqual(1, self.session.query(User).count())
         self.assertEqual(1, self.session.query(Registration).count())
@@ -499,6 +500,15 @@ class MembershipPageTests(ServerTests):
         testuser_email, cloudhands.web.main.authenticated_userid = (
             cloudhands.web.main.authenticated_userid, newuser_email)
         try:
+            # Email is sent
+            active = self.session.query(MembershipState).filter(
+                MembershipState.name == "active").one()
+            act = Touch(
+                artifact=mship, actor=admin, state=active,
+                at=datetime.datetime.utcnow())
+            self.session.add(act)
+            self.session.commit()
+
             # New person visits membership
             request = testing.DummyRequest()
             request.matchdict.update({"mship_uuid": mship.uuid})
