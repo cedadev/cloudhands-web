@@ -16,12 +16,14 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+from cloudhands.common.states import MembershipState
 from cloudhands.common.states import RegistrationState
 
 from cloudhands.identity.ldap import LDAPProxy
@@ -56,15 +58,15 @@ class Observer:
         initialise(session)
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
-        preconfirm = session.query(RegistrationState).filter(
-            RegistrationState.name == "pre_registration_inetorgperson").one()
+        invited = session.query(MembershipState).filter(
+            RegistrationState.name == "invited").one()
         while True:
             unsent = [
-                r for r in session.query(Registration).all()
-                if r.changes[-1].state.name == "pre_registration_person"]
-            for reg in unsent:
+                i for i in session.query(Membership).all()
+                if i.changes[-1].state.name == "created"]
+            for mship in unsent:
                 try:
-                    user = reg.changes[-1].actor
+                    user = mship.changes[-1].actor
                     email = session.query(EmailAddress).join(Touch).join(User).filter(
                         User.id == user.id).order_by(desc(Touch.at)).first().value
                     host = "http://{}:8080".format(platform.node()) #  FIXME
@@ -72,10 +74,10 @@ class Observer:
                     log.error(e)
                     break
                 else:
-                    msg = (email, host, reg.uuid)
+                    msg = (email, host, mship.uuid)
                     log.debug(msg)
                     now = datetime.datetime.utcnow()
-                    act = Touch(artifact=reg, actor=actor, state=preconfirm, at=now)
+                    act = Touch(artifact=mship, actor=actor, state=invited, at=now)
                     yield from self.emailQ.put(msg)
                     try:
                         session.add(act)

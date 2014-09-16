@@ -57,7 +57,6 @@ class Invitation():
         now = datetime.datetime.utcnow()
         act = Touch(artifact=mship, actor=self.user, state=invite, at=now)
         session.add(act)
-        session.commit()
 
         guest = session.merge(cloudhands.common.factories.user(
             session, self.handle, self.surname))
