@@ -838,8 +838,8 @@ def registration_keys(request):
 
 def registration_read(request):
     log = logging.getLogger("cloudhands.web.registration_read")
-    reg_uuid = request.matchdict["reg_uuid"]
     con = registered_connection(request)
+    reg_uuid = request.matchdict["reg_uuid"]
     reg = con.session.query(Registration).filter(
         Registration.uuid == reg_uuid).first()
     if not reg:
@@ -1054,6 +1054,11 @@ def wsgi_app(args, cfg):
     config.add_route("registration", "/registration/{reg_uuid}")
     config.add_view(
         registration_read, route_name="account", request_method="GET",
+        #renderer="hateoas", accept="application/json", xhr=None)
+        renderer=cfg["paths.templates"]["registration"])
+
+    config.add_view(
+        registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["registration"])
 

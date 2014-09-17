@@ -186,6 +186,33 @@ class ApplianceView(Contextual, Validating, NamedDict):
         return self
 
 
+class BcryptedPasswordView(Validating, NamedDict):
+
+    @property
+    def public(self):
+        return []
+
+    @property
+    def parameters(self):
+        return [
+            Parameter(
+                "password", True, re.compile(
+                    "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
+                    "(?!.*\\s).{8,20}$"
+                ),[],
+                """
+                Passwords are between 8 and 20 characters in length.
+                They must contain:
+                <ul>
+                <li>at least one lowercase letter</li>
+                <li>at least one uppercase letter</li>
+                <li>at least one numeric digit</li>
+                <li>at least one special character</li>
+                </ul>
+                They cannot contain whitespace.
+                """),
+        ]
+
 class HostView(Contextual, Validating, NamedDict):
 
     @property
@@ -403,6 +430,7 @@ class PublicKeyView(Validating, NamedDict):
         ]
 
 
+# TODO: remove
 class RegistrationView(Contextual, Validating, NamedDict):
 
     @property
@@ -712,7 +740,7 @@ class OptionRegion(Region):
             uuid=uuid.uuid4().hex,
         )
         item["_links"] = [Action(
-            name="Paste your key",
+            name="Set your password",
             rel="edit-form",
             typ="/registration/{}/passwords",
             ref=obj.uuid,
