@@ -102,7 +102,7 @@ class Observer:
                 unpublished = [
                     r for r in session.query(Registration).all() if (
                     r.changes[-1].state.name ==
-                    "pre_registration_inetorgperson_cn")]
+                    "pre_registration_inetorgperson")]
 
                 for reg in unpublished:
                     user = reg.changes[0].actor
