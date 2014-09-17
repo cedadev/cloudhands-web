@@ -413,13 +413,6 @@ class RegistrationView(Contextual, Validating, NamedDict):
     def parameters(self):
         return [
             Parameter(
-                "username", True, re.compile("\\w{8,10}$"),
-                [self["username"]] if getattr(self, "username", None)
-                else [],
-                """
-                Please choose a name 8 to 10 characters long.
-                """),
-            Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
                     "(?!.*\\s).{8,20}$"
@@ -435,27 +428,12 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 </ul>
                 They cannot contain whitespace.
                 """),
-            Parameter(
-                "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
-                "+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]"
-                "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
-                # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-                ),
-                [self["email"]] if getattr(self, "email", None)
-                else [],
-                """
-                We will send instructions to this address for you
-                to activate your account.
-                """),
         ]
-
 
     def configure(self, session, user):
         self["_links"] = []
         if not session.query(Registration).filter(
             Registration.uuid == self["uuid"]).count():
-            self["username"] = ""
-            self["email"] = ""
             self["password"] = ""
             self["_links"].append(
                 Action(
@@ -725,6 +703,22 @@ class OptionRegion(Region):
             name=obj.value,
             uuid=uuid.uuid4().hex,
         )
+        return item
+
+    @present.register(BcryptedPassword)
+    def present_bcryptedpassword(obj):
+        item = BcryptedPasswordView(
+            value=obj.value,
+            uuid=uuid.uuid4().hex,
+        )
+        item["_links"] = [Action(
+            name="Paste your key",
+            rel="edit-form",
+            typ="/registration/{}/passwords",
+            ref=obj.uuid,
+            method="post",
+            parameters=item.parameters,
+            prompt="Change")]
         return item
 
     @present.register(PublicKey)

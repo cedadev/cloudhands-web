@@ -765,6 +765,7 @@ def macauth_creds(request):
     return {"id": id, "key": key}
 
 
+#TODO: remove
 def register(request):
     log = logging.getLogger("cloudhands.web.register")
     con = registered_connection(request)
@@ -781,47 +782,27 @@ def register(request):
     return dict(page.termination())
 
 
-def registration_create(request):
-    log = logging.getLogger("cloudhands.web.registration_create")
+def registration_passwords(request):
+    log = logging.getLogger("cloudhands.web.registration_passwords")
     con = registered_connection(request)
     cfg = request.registry.settings.get("cfg", None)
 
+    reg_uuid = request.matchdict["reg_uuid"]
+    reg = con.session.query(Registration).filter(
+        Registration.uuid == reg_uuid).first()
+    if not reg:
+        raise NotFound("Registration {} not found".format(reg_uuid))
+
     data = RegistrationView(request.POST)
     if data.invalid:
-        log.debug(request.POST)
-        log.debug(data)
-        raise HTTPBadRequest(
-            "Bad value in '{}' field".format(data.invalid[0].name))
-
-    user = User(handle=data["username"], uuid=uuid.uuid4().hex)
-    try:
-        con.session.add(user)
-        con.session.commit()
-    except Exception as e:
-        con.session.rollback()
         raise RegistrationForbidden(
-            "The username you picked is already in use."
-            " Please choose again.")
+             "The password you entered does not conform to requirements."
+             " Please choose again.")
 
-    preconfirm = con.session.query(RegistrationState).filter(
-        RegistrationState.name == "pre_registration_inetorgperson").one()
-    reg = Registration(
-        uuid=uuid.uuid4().hex,
-        model=cloudhands.common.__version__)
+    user = reg.changes[0].actor
     act = NewPassword(user, data["password"], reg)(con.session)
-    ea = EmailAddress(touch=act, value=data["email"])
-    try:
-        con.session.add(ea)
-        con.session.commit()
-    except Exception as e:
-        raise Forbidden("Email already in use")
 
-    if cfg is None:
-        raise HTTPFound(location=request.route_url("top"))
-    else:
-        raise HTTPFound(location=request.static_url(
-            "{}/registration-confirm.html".format(
-                cfg["paths.assets"]["html"])))
+    raise HTTPFound(location=request.route_url("top"))
 
 
 def registration_keys(request):
@@ -864,37 +845,30 @@ def registration_read(request):
     if not reg:
         raise NotFound("Registration {} not found".format(reg_uuid))
 
-    # This page can be visited while unauthenticated but only in the
-    # first phase of the onboarding process.
-    sName = reg.changes[-1].state.name
-    if sName == "pre_registration_inetorgperson":
-        # TODO: Check TimeInterval hasn't expired
-        user = reg.changes[0].actor
-        valid = con.session.query(RegistrationState).filter(
-            RegistrationState.name == "pre_registration_inetorgperson_cn").one()
-        now = datetime.datetime.utcnow()
-        act = Touch(artifact=reg, actor=user, state=valid, at=now)
-        con.session.add(act)
-        con.session.commit()
-        raise HTTPFound(location=request.route_url("login"))
-
-    user = con.session.merge(authenticate_user(request, Forbidden))
-    mships = con.session.query(Membership).join(Touch).join(User).filter(
-        User.id==user.id).all()
-
     page = Page(
         session=con.session,
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
-    page.layout.info.push(PageInfo(title=user.handle))
 
     page.layout.nav.push(reg)
 
+    # This page can be visited while unauthenticated but only in the
+    # first phase of the onboarding process.
+    sName = reg.changes[-1].state.name
+    if sName == "pre_registration_person":
+        # TODO: Check TimeInterval hasn't expired
+        user = reg.changes[0].actor
+    else:
+        user = con.session.merge(authenticate_user(request, Forbidden))
+
+    page.layout.info.push(PageInfo(title=user.handle))
+
+    mships = con.session.query(Membership).join(Touch).join(User).filter(
+        User.id==user.id).all()
     for o in sorted(
         {i.organisation for i in mships},
         key=operator.attrgetter("name")
     ):
         page.layout.nav.push(o)
-
 
     if sName == "pre_user_inetorgperson_dn":
         page.layout.options.push(PosixUId())
@@ -904,7 +878,7 @@ def registration_read(request):
         (PosixUIdNumber, False),
         (PosixUId, False),
         (EmailAddress, False),
-        (BcryptedPassword, False),
+        (BcryptedPassword, True),
         (PosixGId, False),
         (PublicKey, True)
     )
@@ -1076,20 +1050,10 @@ def wsgi_app(args, cfg):
         register, context=RegistrationForbidden,
         renderer=cfg["paths.templates"]["registration"])
 
-    config.add_view(
-        registration_create, route_name="register", request_method="POST",
-        #renderer="hateoas", accept="application/json", xhr=None)
-        renderer=cfg["paths.templates"]["registration"])
-
     config.add_route("account", "/account/{reg_uuid}")
     config.add_route("registration", "/registration/{reg_uuid}")
     config.add_view(
         registration_read, route_name="account", request_method="GET",
-        #renderer="hateoas", accept="application/json", xhr=None)
-        renderer=cfg["paths.templates"]["registration"])
-
-    config.add_view(
-        registration_read, route_name="registration", request_method="GET",
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["registration"])
 
@@ -1098,6 +1062,14 @@ def wsgi_app(args, cfg):
         registration_keys,
         route_name="registration_keys", request_method="POST")
         #renderer="hateoas", accept="application/json", xhr=None)
+
+    config.add_route(
+        "registration_passwords",
+        "/registration/{reg_uuid}/passwords"
+    )
+    config.add_view(
+        registration_passwords, route_name="registration_passwords",
+        request_method="POST")
 
     config.add_route("creds", "/creds")
     config.add_view(

@@ -65,7 +65,7 @@ from cloudhands.web.main import parser
 from cloudhands.web.main import people_read
 from cloudhands.web.main import register
 from cloudhands.web.main import RegistrationForbidden
-from cloudhands.web.main import registration_create
+from cloudhands.web.main import registration_passwords
 from cloudhands.web.main import registration_keys
 from cloudhands.web.main import top_read
 
@@ -674,10 +674,11 @@ class RegistrationPageTests(ServerTests):
     def setUp(self):
         super().setUp()
         self.config.add_route("top", "/")
-        self.config.add_route("register", "/registration")
         self.config.add_route("registration", "/registration/{reg_uuid}")
         self.config.add_route(
-            "registration_keys", "/registration/{reg_uuid}/key")
+            "registration_keys", "/registration/{reg_uuid}/keys")
+        self.config.add_route(
+            "registration_passwords", "/registration/{reg_uuid}/passwords")
 
     def test_register_form(self):
         request = testing.DummyRequest()
@@ -687,21 +688,27 @@ class RegistrationPageTests(ServerTests):
             1, len([i for o in options for i in o["_links"]
             if i.rel == "create-form"]))
 
-    def test_registration_create(self):
-        request = testing.DummyRequest(
-            {"username": "new_user", "password": "th!swillb3myPa55w0rd",
-            "email": "somebody@some.ac.uk"})
-        self.assertRaises(HTTPFound, registration_create, request)
+    def test_registration_passwords(self):
+        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        self.session.add(user)
+        self.session.commit()
+        reg = cloudhands.common.factories.registration(
+            self.session, user, "e.m@il", cloudhands.web.__version__
+        )
+        request = testing.DummyRequest({"password": "th!swillb3myPa55w0rd"})
+        request.matchdict.update({"reg_uuid": reg.uuid})
+        self.assertRaises(HTTPFound, registration_passwords, request)
 
-    def test_registration_create_duplicate(self):
-        request = testing.DummyRequest(
-            {"username": "new_user", "password": "th!swillb3myPa55w0rd",
-            "email": "somebody@some.ac.uk"})
-        try:
-            registration_create(request)
-        except HTTPFound:
-            pass
-        self.assertRaises(RegistrationForbidden, registration_create, request)
+    def test_registration_passwords_bad_value(self):
+        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        self.session.add(user)
+        self.session.commit()
+        reg = cloudhands.common.factories.registration(
+            self.session, user, "e.m@il", cloudhands.web.__version__
+        )
+        request = testing.DummyRequest({"password": "pa$$word"})
+        request.matchdict.update({"reg_uuid": reg.uuid})
+        self.assertRaises(RegistrationForbidden, registration_passwords, request)
 
     def test_registration_key_bad_prefix(self):
         self.assertEqual(0, self.session.query(PublicKey).count())
