@@ -313,15 +313,13 @@ class MembershipView(Contextual, Validating, NamedDict):
         return [
             Parameter(
                 "username", True, re.compile("\\w{8,10}$"),
-                [self["username"]] if getattr(self, "username", None)
-                else [],
+                [self["username"]] if self.get("username", None) else [],
                 """
                 Please choose a name 8 to 10 characters long.
                 """),
             Parameter(
                 "surname", True, re.compile("\\w{2,32}$"),
-                [self["surname"]] if getattr(self, "surname", None)
-                else [],
+                [self["surname"]] if self.get("surname", None) else [],
                 ""),
             Parameter(
                 "email", True, re.compile("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]"
@@ -329,8 +327,7 @@ class MembershipView(Contextual, Validating, NamedDict):
                 "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+"
                 # http://www.w3.org/TR/html5/forms.html#valid-e-mail-address
                 ),
-                [self["email"]] if getattr(self, "email", None)
-                else [],
+                [self["email"]] if self.get("email", None) else [],
                 """
                 We will send instructions to this address to activate the account.
                 """),
@@ -441,8 +438,7 @@ class RegistrationView(Validating, NamedDict):
         return [
             Parameter(
                 "username", True, re.compile("\\w{8,10}$"),
-                [self["username"]] if getattr(self, "username", None)
-                else [],
+                [self["username"]] if self.get("username", None) else [],
                 """
                 User names are 8 to 10 characters long.
                 """),
@@ -773,11 +769,11 @@ class OptionRegion(Region):
     def present_user(obj):
         item = LoginView({
             "uuid": uuid.uuid4().hex,
-            "handle": obj.handle,
+            "username": obj.handle,
             "email": None})
         item["_links"] = [
-            Action("User login", "payment", "/login", "",
-            "post", item.parameters[0:2], "Log in")]
+            Action("User login", "login", "/login", "",
+            "post", item.parameters, "Log in")]
         return item
 
 

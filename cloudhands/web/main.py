@@ -808,7 +808,8 @@ def registration_passwords(request):
 
     act = NewPassword(user, data["password"], reg)(con.session)
 
-    raise HTTPFound(location=request.route_url("login"))
+    raise HTTPFound(location=request.route_url(
+        "login", _query={"username": user.handle}))
 
 
 def registration_keys(request):
