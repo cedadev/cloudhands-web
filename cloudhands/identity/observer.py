@@ -106,6 +106,7 @@ class Observer:
 
                 for reg in unpublished:
                     user = reg.changes[0].actor
+                    surname = user.surname or "UNKNOWN"
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(user.handle)},
@@ -113,7 +114,7 @@ class Observer:
                             "inetOrgPerson"},
                         description={"JASMIN2 vCloud registration"},
                         cn={user.handle},
-                        sn={"UNKNOWN"},
+                        sn={surname},
                     )
                     resources = [
                         r for i in reg.changes for r in i.resources
@@ -152,6 +153,7 @@ class Observer:
                         continue
                     log.debug(uid)
                     user = reg.changes[0].actor
+                    surname = user.surname or "UNKNOWN"
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
@@ -159,7 +161,7 @@ class Observer:
                             "inetOrgPerson"},
                         description={"JASMIN2 vCloud registration"},
                         cn={reg.uuid},
-                        sn={"UNKNOWN"},
+                        sn={surname},
                     )
                     resources = [
                         r for i in reg.changes for r in i.resources
@@ -190,13 +192,15 @@ class Observer:
                     "pre_user_ldappublickey")]
 
                 for reg in unpublished:
+                    user = reg.changes[0].actor
+                    surname = user.surname or "UNKNOWN"
                     resources = [r for c in reversed(reg.changes)
                                  for r in c.resources]
-                    try:
-                        key = next(i for i in resources if isinstance(i, PublicKey))
-                    except StopIteration:
-                        #continue
-                        pass # TODO: enable again for keys
+
+                    # TODO: use key if present
+                    key = next(
+                        (i for i in resources if isinstance(i, PublicKey)),
+                        None)
 
                     emailAddr = next(i for i in resources
                                      if isinstance(i, EmailAddress))
@@ -210,7 +214,7 @@ class Observer:
                             "inetOrgPerson", "posixAccount"},
                         description={"JASMIN2 vCloud registration"},
                         cn={uid.value},
-                        sn={"UNKNOWN"},
+                        sn={surname},
                         uid={uid.value},
                         uidNumber={uidNumber.value},
                         gidNumber={uidNumber.value},

@@ -674,6 +674,7 @@ class RegistrationPageTests(ServerTests):
     def setUp(self):
         super().setUp()
         self.config.add_route("top", "/")
+        self.config.add_route("login", "/login")
         self.config.add_route("registration", "/registration/{reg_uuid}")
         self.config.add_route(
             "registration_keys", "/registration/{reg_uuid}/keys")
