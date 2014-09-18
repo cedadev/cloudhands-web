@@ -63,7 +63,6 @@ from cloudhands.web.main import organisation_memberships_create
 from cloudhands.web.main import organisation_read
 from cloudhands.web.main import parser
 from cloudhands.web.main import people_read
-from cloudhands.web.main import register
 from cloudhands.web.main import RegistrationForbidden
 from cloudhands.web.main import registration_passwords
 from cloudhands.web.main import registration_keys
@@ -125,8 +124,8 @@ class ServerTests(unittest.TestCase):
         reg = Registration(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__)
-        user = User(handle="Test User", uuid=uuid.uuid4().hex)
-        hash = bcrypt.hashpw("TestPassw0rd", bcrypt.gensalt(12))
+        user = User(handle="TestUser", uuid=uuid.uuid4().hex)
+        hash = bcrypt.hashpw("TestPa$$w0rd", bcrypt.gensalt(12))
         now = datetime.datetime.utcnow()
         act = Touch(artifact=reg, actor=user, state=just_registered, at=now)
         pwd = BcryptedPassword(touch=act, value=hash)
@@ -388,7 +387,7 @@ class LoginAndOutTests(ServerTests):
     def test_we_can_log_in_from_test(self):
         act = ServerTests.make_test_user_role_user(self.session)
         request = testing.DummyRequest(
-            post={"username": "Test User", "password": "TestPassw0rd"})
+            post={"username": "TestUser", "password": "TestPa$$w0rd"})
         self.assertRaises(HTTPFound, login_update, request)
 
     def test_registration_lifecycle_pre_registration_inet_orgperson_cn(self):
@@ -423,7 +422,7 @@ class LoginAndOutTests(ServerTests):
         self.session.commit()
 
         request = testing.DummyRequest(
-            post={"username": "Test User", "password": "TestPassw0rd"})
+            post={"username": user.handle, "password": "TestPa$$w0rd"})
 
         noUidNumber = unittest.mock.patch(
             "cloudhands.web.main.next_uidnumber",
@@ -681,33 +680,27 @@ class RegistrationPageTests(ServerTests):
         self.config.add_route(
             "registration_passwords", "/registration/{reg_uuid}/passwords")
 
-    def test_register_form(self):
-        request = testing.DummyRequest()
-        rv = register(request)
-        options = [i for i in rv.get("options", {}).values() if "_links" in i]
-        self.assertEqual(
-            1, len([i for o in options for i in o["_links"]
-            if i.rel == "create-form"]))
-
     def test_registration_passwords(self):
-        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        user = User(handle="TestUser", uuid=uuid.uuid4().hex)
         self.session.add(user)
         self.session.commit()
         reg = cloudhands.common.factories.registration(
             self.session, user, "e.m@il", cloudhands.web.__version__
         )
-        request = testing.DummyRequest({"password": "th!swillb3myPa55w0rd"})
+        request = testing.DummyRequest(
+            {"username": user.handle, "password": "th!swillb3myPa55w0rd"})
         request.matchdict.update({"reg_uuid": reg.uuid})
         self.assertRaises(HTTPFound, registration_passwords, request)
 
     def test_registration_passwords_bad_value(self):
-        user = User(handle="Test User", uuid=uuid.uuid4().hex)
+        user = User(handle="TestUser", uuid=uuid.uuid4().hex)
         self.session.add(user)
         self.session.commit()
         reg = cloudhands.common.factories.registration(
             self.session, user, "e.m@il", cloudhands.web.__version__
         )
-        request = testing.DummyRequest({"password": "pa$$word"})
+        request = testing.DummyRequest(
+            {"username": user.handle, "password": "pa$$word"})
         request.matchdict.update({"reg_uuid": reg.uuid})
         self.assertRaises(RegistrationForbidden, registration_passwords, request)
 

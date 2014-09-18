@@ -81,6 +81,7 @@ from cloudhands.identity.registration import NewPassword
 from cloudhands.web.catalogue import CatalogueItemView
 from cloudhands.web.indexer import people
 from cloudhands.web import __version__
+from cloudhands.web.model import BcryptedPasswordView
 from cloudhands.web.model import HostView
 from cloudhands.web.model import LabelView
 from cloudhands.web.model import MembershipView
@@ -345,11 +346,14 @@ def host_update(request):
 
 def login_read(request):
     log = logging.getLogger("cloudhands.web.login_read")
+    username = dict(request.GET).get("username", "")
     page = Page(
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
     if getattr(request, "exception", None) is not None:
         page.layout.info.push(request.exception)
-    user = User()
+    user = User(
+        uuid=uuid.uuid4().hex,
+        handle=username)
     page.layout.options.push(user)
     return dict(page.termination())
 
@@ -357,7 +361,11 @@ def login_read(request):
 def login_update(request):
     log = logging.getLogger("cloudhands.web.login_update")
     con = registered_connection(request)
-    data = dict(request.POST)
+    data = RegistrationView(request.POST)
+    if data.invalid:
+        raise HTTPBadRequest(
+            "Bad value in '{}' field".format(data.invalid[0].name))
+
     user = con.session.query(User).filter(
         User.handle == data["username"]).first()
     if not user:
@@ -765,23 +773,6 @@ def macauth_creds(request):
     return {"id": id, "key": key}
 
 
-#TODO: remove
-def register(request):
-    log = logging.getLogger("cloudhands.web.register")
-    con = registered_connection(request)
-    page = Page(
-        paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
-    if getattr(request, "exception", None) is not None:
-        page.layout.info.push(request.exception)
-
-    reg = Registration(
-        uuid=uuid.uuid4().hex,
-        model=cloudhands.common.__version__)
-    page.layout.options.push(reg, session=con.session)
-    log.debug(reg)
-    return dict(page.termination())
-
-
 def registration_passwords(request):
     log = logging.getLogger("cloudhands.web.registration_passwords")
     con = registered_connection(request)
@@ -793,13 +784,28 @@ def registration_passwords(request):
     if not reg:
         raise NotFound("Registration {} not found".format(reg_uuid))
 
-    data = RegistrationView(request.POST)
-    if data.invalid:
-        raise RegistrationForbidden(
-             "The password you entered does not conform to requirements."
-             " Please choose again.")
+    # This page can be visited while unauthenticated but only in the
+    # first phase of the onboarding process.
+    sName = reg.changes[-1].state.name
+    if sName == "pre_registration_person":
+        user = reg.changes[0].actor
+    else:
+        user = con.session.merge(authenticate_user(request, Forbidden))
 
-    user = reg.changes[0].actor
+    if not user is reg.changes[0].actor:
+        raise Forbidden(
+            "You are not authorized to modify this registration.")
+
+    data = BcryptedPasswordView(request.POST)
+    if data.invalid:
+        bad = data.invalid[0].name
+        if bad == "password":
+            raise RegistrationForbidden(
+                "The password you entered does not conform to requirements."
+                " Please choose again.")
+        else:
+            raise HTTPBadRequest("Bad value in '{}' field".format(bad))
+
     act = NewPassword(user, data["password"], reg)(con.session)
 
     raise HTTPFound(location=request.route_url("login"))
@@ -1040,14 +1046,8 @@ def wsgi_app(args, cfg):
         #renderer="hateoas", accept="application/json", xhr=None)
         renderer=cfg["paths.templates"]["people"])
 
-    config.add_route("register", "/registration")
     config.add_view(
-        register, route_name="register", request_method="GET",
-        #renderer="hateoas", accept="application/json", xhr=None)
-        renderer=cfg["paths.templates"]["registration"])
-
-    config.add_view(
-        register, context=RegistrationForbidden,
+        login_read, context=RegistrationForbidden,
         renderer=cfg["paths.templates"]["registration"])
 
     config.add_route("account", "/account/{reg_uuid}")

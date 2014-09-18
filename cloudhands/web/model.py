@@ -430,8 +430,7 @@ class PublicKeyView(Validating, NamedDict):
         ]
 
 
-# TODO: remove
-class RegistrationView(Contextual, Validating, NamedDict):
+class RegistrationView(Validating, NamedDict):
 
     @property
     def public(self):
@@ -440,6 +439,13 @@ class RegistrationView(Contextual, Validating, NamedDict):
     @property
     def parameters(self):
         return [
+            Parameter(
+                "username", True, re.compile("\\w{8,10}$"),
+                [self["username"]] if getattr(self, "username", None)
+                else [],
+                """
+                User names are 8 to 10 characters long.
+                """),
             Parameter(
                 "password", True, re.compile(
                     "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])"
@@ -457,27 +463,6 @@ class RegistrationView(Contextual, Validating, NamedDict):
                 They cannot contain whitespace.
                 """),
         ]
-
-    def configure(self, session, user):
-        self["_links"] = []
-        if not session.query(Registration).filter(
-            Registration.uuid == self["uuid"]).count():
-            self["password"] = ""
-            self["_links"].append(
-                Action(
-                    "New user",
-                    "create-form",
-                    "/registration", None,
-                    "post", self.parameters, "Register me")
-            )
-        else:
-            self["_links"].append(
-                Action(
-                    "Account",
-                    "canonical",
-                    "/account/{}", self["uuid"],
-                    "get", [], "View")
-            )
 
 
 class LoginView(RegistrationView):
@@ -541,6 +526,13 @@ class NavRegion(Region):
             "modified": latest.at if latest else None,
             "uuid": artifact.uuid,
         }
+        item["_links"] = [
+            Action(
+                "Account",
+                "canonical",
+                "/account/{}", item["uuid"],
+                "get", [], "View")
+        ]
         return RegistrationView(item)
 
 
@@ -736,7 +728,6 @@ class OptionRegion(Region):
     @present.register(BcryptedPassword)
     def present_bcryptedpassword(obj):
         item = BcryptedPasswordView(
-            value=obj.value,
             uuid=uuid.uuid4().hex,
         )
         item["_links"] = [Action(
