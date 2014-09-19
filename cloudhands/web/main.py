@@ -386,7 +386,7 @@ def login_update(request):
             if isinstance(r, BcryptedPassword)),
             reverse=True)
         hash = passwords[0][1].value
-    except IndexError:
+    except (AttributeError, IndexError):
         raise HTTPInternalServerError(
             "Registration {} is missing a password".format(reg.uuid))
 
