@@ -515,7 +515,7 @@ class MembershipPageTests(ServerTests):
             self.assertRaises(HTTPFound, membership_read, request)
 
             # Check new user added
-            self.assertEqual("active", mship.changes[-1].state.name)
+            self.assertEqual("accepted", mship.changes[-1].state.name)
             self.assertTrue(self.session.query(EmailAddress).filter(
                 EmailAddress.value == newuser_email()).first())
         finally:

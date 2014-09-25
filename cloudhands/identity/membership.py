@@ -44,7 +44,9 @@ class Invitation():
             User.id == self.user.id).filter(
             Membership.organisation == self.org).filter(
             Membership.role == "admin").first()
-        if not prvlg or not prvlg.changes[-1].state.name == "active":
+        if not prvlg or prvlg.changes[-1].state.name in (
+            "created", "invited", "expired", "withdrawn"
+        ):
             return None
 
         mship = Membership(
@@ -71,11 +73,10 @@ class Invitation():
         return act
 
 
-class Activation():
+class Acceptance():
     """
-    :param object user: A :py:func:`cloudhands.common.schema.User` object.
     :param object mship: A :py:func:`cloudhands.common.schema.Membership`.
-    :param object eAddr: A :py:func:`cloudhands.common.schema.EmailAddress`.
+    :param object user: A :py:func:`cloudhands.common.schema.User` object.
     """
     def __init__(self, mship, user=None):
         self.mship = mship
@@ -83,21 +84,17 @@ class Activation():
 
     def __call__(self, session):
         """
-        Activates the membership record for the organisation.
+        Accepts the membership record on behalf of the user.
 
         :param object session:  A SQLALchemy database session.
         :returns: a :py:func:`cloudhands.common.schema.Touch` object.
         """
-        active = session.query(
-            MembershipState).filter(MembershipState.name == "active").one()
+        accepted = session.query(
+            MembershipState).filter(MembershipState.name == "accepted").one()
         now = datetime.datetime.utcnow()
 
         user = session.merge(self.user or self.mship.changes[1].actor)
-        act = Touch(artifact=self.mship, actor=user, state=active, at=now)
+        act = Touch(artifact=self.mship, actor=user, state=accepted, at=now)
         session.add(act)
         session.commit()
         return act
-
-
-class MembershipAgent():
-    pass

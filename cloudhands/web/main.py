@@ -74,7 +74,7 @@ import cloudhands.web
 from cloudhands.identity.ldap_account import change_password
 from cloudhands.identity.ldap_account import next_uidnumber
 from cloudhands.identity.membership import handle_from_email
-from cloudhands.identity.membership import Activation
+from cloudhands.identity.membership import Acceptance
 from cloudhands.identity.membership import Invitation
 from cloudhands.identity.registration import NewAccount
 from cloudhands.identity.registration import NewPassword
@@ -459,7 +459,7 @@ def membership_read(request):
         Membership.uuid == m_uuid).first()
 
     if mship.changes[-1].state.name == "invited":
-        act = Activation(mship, user)(con.session)
+        act = Acceptance(mship, user)(con.session)
         log.debug(act)
         guest_uuid = act.actor.uuid
         reg = con.session.query(Registration).join(Touch).join(User).filter(
@@ -496,7 +496,7 @@ def membership_update(request):
         User.id == user.id).filter(
         Organisation.id == mship.organisation.id).filter(
         Membership.role == "admin").first()
-    if not prvlg or not prvlg.changes[-1].state.name == "active":
+    if not prvlg or not prvlg.changes[-1].state.name in ("accepted", "active"):
         raise Forbidden("Admin privilege is required to update membership.")
 
     index = request.registry.settings["args"].index
@@ -567,8 +567,7 @@ def organisation_read(request):
     mships = con.session.query(Membership).join(Organisation).join(
         Touch).join(State).join(User).filter(
         User.id == user.id).filter(
-        Organisation.id == org.id).filter(
-        State.name == "active").all()
+        Organisation.id == org.id).all()
     for m in mships:
         page.layout.options.push(m, session=con.session)
 

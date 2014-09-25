@@ -19,7 +19,7 @@ from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
 
 from cloudhands.identity.membership import handle_from_email
-from cloudhands.identity.membership import Activation
+from cloudhands.identity.membership import Acceptance
 from cloudhands.identity.membership import Invitation
 
 
@@ -120,7 +120,7 @@ class ActivationTests(MembershipLifecycleTests):
         mship = Invitation(
                 self.admin, self.org,
                 handle, "Surname", self.guestAddr)(self.session).artifact
-        act = Activation(mship, user)(self.session)
+        act = Acceptance(mship, user)(self.session)
         self.assertIsInstance(act, Touch)
         self.assertEqual(
             user.handle,
@@ -136,7 +136,7 @@ class ActivationTests(MembershipLifecycleTests):
         mship = Invitation(
                 self.admin, self.org,
                 "handle", "Surname", self.guestAddr)(self.session).artifact
-        act = Activation(mship, user)(self.session)
+        act = Acceptance(mship, user)(self.session)
         self.assertIsInstance(act, Touch)
 
         reInvite = Invitation(

@@ -360,7 +360,9 @@ class OrganisationView(Contextual, NamedDict):
             User.id == user.id).filter(
             Organisation.name == self["data"]["name"]).filter(
             Membership.role == "admin").first()
-        if not prvlg or not prvlg.changes[-1].state.name == "active":
+        if not prvlg or prvlg.changes[-1].state.name in (
+            "created", "invited", "expired", "withdrawn"
+        ):
             return self
 
         self["_links"] = [
