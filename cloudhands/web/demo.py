@@ -57,6 +57,7 @@ DFLT_DB = ":memory:"
 class WebFixture(object):
 
     subscriptions = [
+        ("STFCloud", "cloudhands.jasmin.vcloud.phase04.cfg"),
         ("EOSCloud", "cloudhands.jasmin.vcloud.phase04.cfg"),
         ("NERC-EW", "cloudhands.jasmin.vcloud.phase04.cfg"),
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
@@ -378,54 +379,54 @@ def main(args):
 
     cfg, session = cloudhands.web.main.configure(args)
 
-    for t in WebFixture.create_subscriptions(session):
-        try:
-            log.info("{} subscribed to {}".format(
-                t.artifact.organisation.name,
-                t.artifact.provider.name))
-        except AttributeError:
-            log.debug("Subscription pre-exists")
+    #for t in WebFixture.create_subscriptions(session):
+    #    try:
+    #        log.info("{} subscribed to {}".format(
+    #            t.artifact.organisation.name,
+    #            t.artifact.provider.name))
+    #    except AttributeError:
+    #        log.debug("Subscription pre-exists")
 
     WebFixture.create_catalogue(session)
-    user = User(
-        handle=WebFixture.demo_username(),
-        uuid=uuid.uuid4().hex)
-    try:
-        session.add(user)
-        session.commit()
-    except Exception as e:
-        session.rollback()
-    finally:
-        session.flush()
+    #user = User(
+    #    handle=WebFixture.demo_username(),
+    #    uuid=uuid.uuid4().hex)
+    #try:
+    #    session.add(user)
+    #    session.commit()
+    #except Exception as e:
+    #    session.rollback()
+    #finally:
+    #    session.flush()
 
 
-    try:
-        pKey = open(os.path.expanduser(args.identity), 'r').read().strip()
-    except FileNotFoundError as e:
-        log.error(e)
-        return 1
+    #try:
+    #    pKey = open(os.path.expanduser(args.identity), 'r').read().strip()
+    #except FileNotFoundError as e:
+    #    log.error(e)
+    #    return 1
 
 
-    for t in WebFixture.create_registration(session, user, key=pKey):
-        for r in t.resources:
-            log.debug(r)
+    #for t in WebFixture.create_registration(session, user, key=pKey):
+    #    for r in t.resources:
+    #        log.debug(r)
 
-    user = session.query(User).filter(User.handle == user.handle).one()
-    for t in WebFixture.grant_admin_memberships(session, user):
-        try:
-            log.info("{} activated as admin for {}".format(
-                t.actor.handle,
-                t.artifact.organisation.name))
-        except AttributeError:
-            log.debug("Membership pre-exists for {}".format(user.handle))
+    #user = session.query(User).filter(User.handle == user.handle).one()
+    #for t in WebFixture.grant_admin_memberships(session, user):
+    #    try:
+    #        log.info("{} activated as admin for {}".format(
+    #            t.actor.handle,
+    #            t.artifact.organisation.name))
+    #    except AttributeError:
+    #        log.debug("Membership pre-exists for {}".format(user.handle))
 
-    user = session.query(User).filter(User.handle == user.handle).one()
-    for t in WebFixture.add_subscribed_resources(session, user):
-        for r in t.resources:
-            log.info("{} permitted access to a {} resource ({}).".format(
-                t.actor.handle,
-                r.provider.name,
-                getattr(r, "description", "?")))
+    #user = session.query(User).filter(User.handle == user.handle).one()
+    #for t in WebFixture.add_subscribed_resources(session, user):
+    #    for r in t.resources:
+    #        log.info("{} permitted access to a {} resource ({}).".format(
+    #            t.actor.handle,
+    #            r.provider.name,
+    #            getattr(r, "description", "?")))
 
 
     #cloudhands.web.main.authenticated_userid = WebFixture.demo_email
@@ -438,10 +439,6 @@ def main(args):
 
 def parser(description=__doc__):
     rv = cloudhands.web.main.parser(description)
-    rv.add_argument(
-        "--identity", required=True,
-        help="Set the path to an OpenSSH public key file")
-    
     return rv
 
 
