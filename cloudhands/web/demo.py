@@ -60,6 +60,10 @@ class WebFixture(object):
         ("STFCloud", "cloudhands.jasmin.vcloud.phase04.cfg"),
         ("EOSCloud", "cloudhands.jasmin.vcloud.phase04.cfg"),
         ("NERC-EW", "cloudhands.jasmin.vcloud.phase04.cfg"),
+        (
+            "Portal Test Organisation",
+            "cloudhands.jasmin.vcloud.ref-portalTest-U.cfg"
+        ),
         #("MARMITE", "cloudhands.jasmin.vcloud.phase02.cfg"),  # FIXME: SSL cert
     ]
 
@@ -148,7 +152,10 @@ class WebFixture(object):
 
     @staticmethod
     def create_catalogue(session):
-        org = session.query(Organisation).first()
+        log = logging.getLogger("cloudhands.web.demo.catalogue")
+        org = session.query(Organisation).filter(
+            Organisation.name == "Portal Test Organisation").one()
+        log.debug(org)
         try:
             session.add_all((
                 CatalogueItem(
@@ -211,6 +218,7 @@ class WebFixture(object):
             ))
             session.commit()
         except Exception as e:
+            log.error(e)
             session.rollback()
         finally:
             session.flush()
