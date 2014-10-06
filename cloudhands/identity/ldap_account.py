@@ -31,7 +31,7 @@ def discover_uids(config=None):
     log.info("Opening LDAP connection to {}.".format(
         config["ldap.search"]["host"]))
 
-    c.search(config["ldap.search"]["query"], "(objectclass=posixAccount)",
+    c.search(config["ldap.match"]["query"], "(objectclass=posixAccount)",
         ldap3.SEARCH_SCOPE_WHOLE_SUBTREE,
         attributes=["uidNumber"])
     return set(int(n) for i in c.response for n in i["attributes"].get("uidNumber", []))
