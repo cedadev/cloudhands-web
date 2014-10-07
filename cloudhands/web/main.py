@@ -458,7 +458,7 @@ def membership_read(request):
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
 
-    if mship.changes[-1].state.name == "invited":
+    if mship.changes and mship.changes[-1].state.name == "invited":
         act = Acceptance(mship, user)(con.session)
         log.debug(act)
         guest_uuid = act.actor.uuid
