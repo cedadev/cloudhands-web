@@ -232,7 +232,9 @@ def appliance_read(request):
     page = Page(
         session=con.session, user=user,
         paths=cfg_paths(request, request.registry.settings.get("cfg", None)))
-    page.layout.info.push(PageInfo(title="Configure appliance"))
+    page.layout.info.push(PageInfo(
+        title="Configure appliance",
+        url=request.route_url("appliance", app_uuid=appUuid)))
 
     for o in sorted(
         {i.organisation for i in mships}, key=operator.attrgetter("name")
