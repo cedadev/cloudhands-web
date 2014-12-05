@@ -581,6 +581,7 @@ class ItemRegion(Region):
             "template": obj.name,
             "purpose": obj.description,
             "uuid": uuid.uuid4().hex,
+            "_type": "cataloguechoice",
         }
         item["_links"] = [
             Action("Catalogue", "collection", "#", "",  # FIXME
