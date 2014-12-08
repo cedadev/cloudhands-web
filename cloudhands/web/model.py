@@ -618,11 +618,15 @@ class ItemRegion(Region):
             description = obj.description,
             uuid = uuid.uuid4().hex,
         )
+        try:
+            ref = obj.touch.artifact.uuid
+        except AttributeError:
+            ref = obj.uuid
         item["_links"] = [Action(
             name="General information",
             rel="edit-form",
             typ="/appliance/{}",
-            ref=obj.uuid,
+            ref=ref,
             method="post",
             parameters=item.parameters,
             prompt="OK")]
