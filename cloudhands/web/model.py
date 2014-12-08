@@ -507,6 +507,7 @@ class NavRegion(Region):
     @present.register(Organisation)
     def present_organisation(obj, isSelf=False):
         item = {k: getattr(obj, k) for k in ("uuid", "name")}
+        item["_type"] = "organisation"
         rel = "self" if isSelf else "canonical"
         item["_links"] = [
             Action(obj.name, rel, "/organisation/{}", obj.name,
