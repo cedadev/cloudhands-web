@@ -617,6 +617,7 @@ class ItemRegion(Region):
             name = obj.name,
             description = obj.description,
             uuid = uuid.uuid4().hex,
+            _type = "label"
         )
         try:
             ref = obj.touch.artifact.uuid
@@ -680,9 +681,7 @@ class ItemRegion(Region):
     @present.register(Resource)
     def present_resource(obj):
         item = {k: getattr(obj, k, "") for k in ("name", "value", "uri")}
-        item["data"] = {
-            "type": type(obj).__name__
-        }
+        item["_type"] = type(obj).__name__.lower()
         return ResourceView(item)
 
     @present.register(Touch)
