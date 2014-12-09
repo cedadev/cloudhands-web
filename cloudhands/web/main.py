@@ -219,15 +219,12 @@ def top_read(request):
 def appliance_read(request):
     log = logging.getLogger("cloudhands.web.appliance_read")
     con = registered_connection(request)
-    user = con.session.merge(authenticate_user(request, Forbidden))
+    user = authenticate_user(request)
     appUuid = request.matchdict["app_uuid"]
     app = con.session.query(Appliance).filter(
         Appliance.uuid == appUuid).first()
     if not app:
         raise NotFound("Appliance {} not found".format(appUuid))
-
-    mships = con.session.query(Membership).join(Touch).join(User).filter(
-        User.id==user.id).all()
 
     page = Page(
         session=con.session, user=user,
@@ -236,10 +233,17 @@ def appliance_read(request):
         title="Configure appliance",
         url=request.route_url("appliance", app_uuid=appUuid)))
 
-    for o in sorted(
-        {i.organisation for i in mships}, key=operator.attrgetter("name")
-    ):
-        page.layout.nav.push(o)
+    if user is not None:
+        user = con.session.merge(user)
+        mships = con.session.query(Membership).join(Touch).join(User).filter(
+            User.id==user.id).all()
+
+        for o in sorted(
+            {i.organisation for i in mships}, key=operator.attrgetter("name")
+        ):
+            page.layout.nav.push(o)
+    else:
+        page.layout.nav.push(app.organisation)
 
     resources = [r for c in app.changes for r in c.resources]
     for i in resources:
