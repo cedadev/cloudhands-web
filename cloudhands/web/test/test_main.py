@@ -223,6 +223,7 @@ class AppliancePageTests(ServerTests):
                     command line.</p>
                     """),
                 logo="headless",
+                natrouted=False,
                 organisation=org
             ),
             CatalogueItem(
@@ -236,6 +237,7 @@ class AppliancePageTests(ServerTests):
                     Web API.</p>
                     """),
                 logo="headless",
+                natrouted=True,
                 organisation=org
             )
         ))
@@ -347,6 +349,7 @@ class CataloguePageTests(ServerTests):
                     command line.</p>
                     """),
                 logo="headless",
+                natrouted=False,
                 organisation=org
             ),
             CatalogueItem(
@@ -360,6 +363,7 @@ class CataloguePageTests(ServerTests):
                     Web API.</p>
                     """),
                 logo="headless",
+                natrouted=True,
                 organisation=org
             )
         ))
