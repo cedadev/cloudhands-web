@@ -162,7 +162,7 @@ class WebFixture(object):
                     name="sshbastion",
                     description="Headless VM for admin tasks",
                     note=textwrap.dedent("""
-                        <p>This VM runs OpenSSH on RedHat 6.5.
+                        <p>This VM runs OpenSSH on RedHat 6.6.
                         It is used for administration and monitoring tasks.</p>
                         """),
                     logo="headless",
@@ -174,7 +174,7 @@ class WebFixture(object):
                     name="scianalysis",
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
-                        <p>This VM runs RedHat 6.5 with a number of installed
+                        <p>This VM runs RedHat 6.6 with a number of installed
                         packages for Scientific Analysis.</p>
                         """),
                     logo="headless",
