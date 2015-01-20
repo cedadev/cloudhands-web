@@ -471,7 +471,10 @@ class LoginView(RegistrationView):
 
 
 class ResourceView(NamedDict):
-    pass
+
+    @property
+    def public(self):
+        return ["name", "value"]
 
 
 class CatalogueChoiceView(ResourceView):
@@ -681,6 +684,7 @@ class ItemRegion(Region):
     @present.register(Resource)
     def present_resource(obj):
         item = {k: getattr(obj, k, "") for k in ("name", "value", "uri")}
+        item["uuid"] = uuid.uuid4().hex
         item["_type"] = type(obj).__name__.lower()
         return ResourceView(item)
 
