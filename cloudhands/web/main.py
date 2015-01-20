@@ -971,7 +971,10 @@ def wsgi_app(args, cfg):
         appliance_read,
         route_name="appliance", request_method="GET",
         renderer=cfg["paths.templates"]["appliance"])
-        #renderer="hateoas", accept="application/json", xhr=None)
+    config.add_view(
+        appliance_read,
+        route_name="appliance", request_method="GET",
+        renderer="hateoas", accept="application/json", xhr=True)
 
     config.add_view(
         appliance_modify,
