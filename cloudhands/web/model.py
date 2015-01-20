@@ -296,9 +296,6 @@ class LabelView(Validating, NamedDict):
             Parameter(
                 "description", True, re.compile("[\\w ]{8,}$"),
                 [self["description"]] if "description" in self else [], ""),
-            Parameter(
-                "ipaddr", False, re.compile("routed$"),
-                ["routed", None], "Publicly routable IP address"),
         ]
 
 
