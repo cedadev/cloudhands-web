@@ -692,8 +692,8 @@ def organisation_appliances_create(request):
         CatalogueItem.uuid == data["uuid"]).first()
     choice = CatalogueChoice(
         provider=None, touch=act,
-        natrouted=True, **{k: getattr(tmplt, k, None)
-        for k in ("name", "description", "logo")})
+        **{k: getattr(tmplt, k, None)
+        for k in ("name", "description", "logo", "natrouted")})
     con.session.add(choice)
     con.session.commit()
 
