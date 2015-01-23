@@ -464,6 +464,9 @@ def membership_read(request):
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
 
+    if mship is None:
+        raise NotFound("Membership {} not found".format(m_uuid))
+
     if mship.changes and mship.changes[-1].state.name == "invited":
         act = Acceptance(mship, user)(con.session)
         log.debug(act)
@@ -692,8 +695,8 @@ def organisation_appliances_create(request):
         CatalogueItem.uuid == data["uuid"]).first()
     choice = CatalogueChoice(
         provider=None, touch=act,
-        natrouted=True, **{k: getattr(tmplt, k, None)
-        for k in ("name", "description", "logo")})
+        **{k: getattr(tmplt, k, None)
+        for k in ("name", "description", "logo", "natrouted")})
     con.session.add(choice)
     con.session.commit()
 
@@ -970,8 +973,11 @@ def wsgi_app(args, cfg):
     config.add_view(
         appliance_read,
         route_name="appliance", request_method="GET",
-        #renderer=cfg["paths.templates"]["appliance"])
-        renderer="hateoas", accept="application/json", xhr=None)
+        renderer=cfg["paths.templates"]["appliance"])
+    config.add_view(
+        appliance_read,
+        route_name="appliance", request_method="GET",
+        renderer="hateoas", accept="application/json", xhr=True)
 
     config.add_view(
         appliance_modify,

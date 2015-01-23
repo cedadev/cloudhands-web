@@ -159,62 +159,30 @@ class WebFixture(object):
         try:
             session.add_all((
                 CatalogueItem(
-                    name="Bastion-host",
+                    #name="sshbastion",
+                    name="ssh_bastion", # FIXME: Integration
                     description="Headless VM for admin tasks",
                     note=textwrap.dedent("""
-                        <p>This VM runs OpenSSH on CentOS 6.5.
+                        <p>This VM runs OpenSSH on RedHat 6.6.
                         It is used for administration and monitoring tasks.</p>
                         """),
                     logo="headless",
                     organisation=org,
+                    natrouted=True,
                     uuid=uuid.uuid4().hex,
                 ),
                 CatalogueItem(
-                    name="nfs-client",
+                    name="scianalysis",
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
-                        <p>This VM runs CentOS 6.5 with a minimal amount of RAM and
-                        no X server. It is used for file transfer operations from the
-                        command line.</p>
+                        <p>This VM runs RedHat 6.6 with a number of installed
+                        packages for Scientific Analysis.</p>
                         """),
                     logo="headless",
                     organisation=org,
+                    natrouted=False,
                     uuid=uuid.uuid4().hex,
                 ),
-                CatalogueItem(
-                    name="NFS-client-server",
-                    description="Headless VM for file transfer operations",
-                    note=textwrap.dedent("""
-                        <p>This VM runs NFS services on CentOS 6.5.</p>
-                        """),
-                    logo="headless",
-                    organisation=org,
-                    uuid=uuid.uuid4().hex,
-                ),
-                CatalogueItem(
-                    name="Web-Server",
-                    description="Headless VM with Web server",
-                    note=textwrap.dedent("""
-                        <p>This VM runs Apache on CentOS 6.5.
-                        It has 8GB RAM and 4 CPU cores.
-                        It is used for hosting websites and applications with a
-                        Web API.</p>
-                        """),
-                    logo="headless",
-                    organisation=org,
-                    uuid=uuid.uuid4().hex,
-                ),
-                CatalogueItem(
-                    name="steve-pasco",
-                    description="JASMIN Analysis Platform",
-                    note=textwrap.dedent("""
-                        <p>This VM runs IPython notebook.
-                        It has a wide range of uses for research and analysis.</p>
-                        """),
-                    logo="headless",
-                    organisation=org,
-                    uuid=uuid.uuid4().hex,
-                )
             ))
             session.commit()
         except Exception as e:
