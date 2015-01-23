@@ -464,6 +464,9 @@ def membership_read(request):
     mship = con.session.query(Membership).filter(
         Membership.uuid == m_uuid).first()
 
+    if mship is None:
+        raise NotFound("Membership {} not found".format(m_uuid))
+
     if mship.changes and mship.changes[-1].state.name == "invited":
         act = Acceptance(mship, user)(con.session)
         log.debug(act)
