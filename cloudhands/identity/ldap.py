@@ -9,6 +9,7 @@ import datetime
 import functools
 import logging
 import sqlite3
+import ssl
 import sys
 import textwrap
 import warnings
@@ -269,6 +270,13 @@ class LDAPProxy:
                         auto_bind=True,
                         raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
+
+                    if self.config["ldap.creds"].getboolean("use_ssl"):
+                        c.tls = ldap3.Tls(
+                            validate=ssl.CERT_NONE,
+                            version=ssl.PROTOCOL_TLSv1,
+                            )
+                        c.start_tls()
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
