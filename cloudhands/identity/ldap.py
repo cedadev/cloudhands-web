@@ -25,6 +25,7 @@ from cloudhands.common.states import RegistrationState
 from cloudhands.web import __version__
 
 import ldap3
+import ldap3.core.exceptions
 
 try:
     from functools import singledispatch
@@ -257,30 +258,47 @@ class LDAPProxy:
                 log.warning("Sentinel received. Shutting down.")
                 break
             else:
+                tls = ldap3.Tls(
+                    validate=ssl.CERT_NONE,
+                    version=ssl.PROTOCOL_TLSv1,
+                    )
                 s = ldap3.Server(
                     self.config["ldap.search"]["host"],
                     port=int(self.config["ldap.search"]["port"]),
                     use_ssl=self.config["ldap.creds"].getboolean("use_ssl"),
-                    get_info=ldap3.GET_NO_INFO)
+                    get_info=ldap3.GET_NO_INFO, tls=tls)
+                log.debug("Port {}".format(s.port))
                 try:
                     c = ldap3.Connection(
                         s,
                         user=self.config["ldap.creds"]["user"],
                         password=self.config["ldap.creds"]["password"],
-                        auto_bind=True,
+                        #auto_bind=ldap3.AUTO_BIND_NONE,
+                        auto_bind=False,
                         raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
 
-                    if self.config["ldap.creds"].getboolean("use_ssl"):
-                        c.tls = ldap3.Tls(
-                            validate=ssl.CERT_NONE,
-                            version=ssl.PROTOCOL_TLSv1,
-                            )
-                        c.start_tls()
+                    log.debug("Opening")
+                    try:
+                        c.open()
+                    except Exception as e:
+                        log.warning(getattr(e, "args", e))
+
+                    log.debug("Start TLS")
+                    c.start_tls()
+
+                    log.debug("Binding")
+                    try:
+                        c.bind()
+                    except Exception as e:
+                        log.warning(getattr(e, "args", e))
+                    log.debug("Bound")
+                    #if self.config["ldap.creds"].getboolean("use_ssl"):
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
                     log.info("{0.artifact.uuid} {0.state.name}".format(act))
+                    c.close()
 
                 except Exception as e:
                     log.error(e)
