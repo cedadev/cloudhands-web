@@ -265,15 +265,16 @@ class LDAPProxy:
                 s = ldap3.Server(
                     self.config["ldap.search"]["host"],
                     port=int(self.config["ldap.search"]["port"]),
-                    use_ssl=self.config["ldap.creds"].getboolean("use_ssl"),
-                    get_info=ldap3.GET_NO_INFO, tls=tls)
-                log.debug("Port {}".format(s.port))
+                    use_ssl=False,
+                    get_info=ldap3.GET_ALL_INFO,
+                    tls=tls
+                    )
+
                 try:
                     c = ldap3.Connection(
                         s,
                         user=self.config["ldap.creds"]["user"],
                         password=self.config["ldap.creds"]["password"],
-                        #auto_bind=ldap3.AUTO_BIND_NONE,
                         auto_bind=False,
                         raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
@@ -293,7 +294,6 @@ class LDAPProxy:
                     except Exception as e:
                         log.warning(getattr(e, "args", e))
                     log.debug("Bound")
-                    #if self.config["ldap.creds"].getboolean("use_ssl"):
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
