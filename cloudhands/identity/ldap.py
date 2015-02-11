@@ -279,26 +279,13 @@ class LDAPProxy:
                         raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
 
-                    log.debug("Opening")
-                    try:
-                        c.open()
-                    except Exception as e:
-                        log.warning(getattr(e, "args", e))
-
-                    log.debug("Start TLS")
+                    c.open()
                     c.start_tls()
-
-                    log.debug("Binding")
-                    try:
-                        c.bind()
-                    except Exception as e:
-                        log.warning(getattr(e, "args", e))
-                    log.debug("Bound")
+                    c.bind()
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)
                     log.info("{0.artifact.uuid} {0.state.name}".format(act))
-                    c.close()
 
                 except Exception as e:
                     log.error(e)
