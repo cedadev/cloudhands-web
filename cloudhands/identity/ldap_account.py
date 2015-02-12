@@ -58,6 +58,7 @@ def next_uidnumber(taken=None, provider=None):
 def change_password(cn, pwd, config=None, timeout=10):
     config = config or next(iter(settings.values()))
     shellArgs = ["ldappasswd",
+    "-Z",
     "-h", config["ldap.match"]["host"],
     "-D", config["ldap.creds"]["user"],
     "-w", config["ldap.creds"]["password"],
