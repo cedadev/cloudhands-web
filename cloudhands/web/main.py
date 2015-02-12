@@ -406,7 +406,7 @@ def login_update(request):
                     reverse=True)
                 uid = uids[0][1].value
                 status = change_password(uid, data["password"], timeout=3)
-            except IndexError:
+            except (AttributeError, IndexError):
                 raise HTTPInternalServerError(
                     "Registration {} is missing a uid".format(reg.uuid))
             else:
