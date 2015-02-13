@@ -398,7 +398,8 @@ def login_update(request):
 
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
-        if reg.changes[-1].state.name == "pre_user_posixaccount":
+        # FIXME: This is a temporary workaround for bug #380.
+        if reg.changes[-1].state.name == "valid":
             try:
                 uids = sorted(
                     ((c.at, r) for c in reg.changes for r in c.resources
