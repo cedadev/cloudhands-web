@@ -398,8 +398,8 @@ def login_update(request):
 
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
-        # FIXME: This is a temporary workaround for bug #380.
         if reg.changes[-1].state.name == "valid":
+            # FIXME: Temporary workaround for race condition (bug #380)
             try:
                 uids = sorted(
                     ((c.at, r) for c in reg.changes for r in c.resources
@@ -415,6 +415,7 @@ def login_update(request):
                     raise HTTPInternalServerError(
                         "Unable to create password-protected account")
 
+        if reg.changes[-1].state.name == "pre_user_posixaccount":
             taken = {i.value for i in con.session.query(PosixUIdNumber).all()}
             uidN = next_uidnumber(taken=taken)
             if uidN is None:
