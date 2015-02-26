@@ -76,7 +76,7 @@ class LDAPRecord(UserDict):
             return rv
 
     def __delitem__(self, key):
-        del self.store[self.__keytransform__(key)]
+        del self.data[self.__keytransform__(key)]
 
     def __eq__(self, other):
         keyDiff = set(self.keys()) ^ set(other.keys())

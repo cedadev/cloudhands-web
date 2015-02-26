@@ -17,6 +17,13 @@ class TestLDAPRecord(unittest.TestCase):
         a = LDAPRecord()
         self.assertTrue(isinstance(a["new"], set))
 
+    def test_remove_key(self):
+        a = LDAPRecord()
+        a["new"].add(None)
+        self.assertEqual(1, len(a))
+        del a["new"]
+        self.assertEqual(0, len(a))
+
     def test_equality(self):
         len_ = 20
         a = LDAPRecord((str(n), set(range(0, n))) for n in range(len_))
