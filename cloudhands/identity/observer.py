@@ -255,7 +255,7 @@ class Observer:
                         dn={
                             ("cn={},ou=jasmin2,"
                             "ou=Group,o=hpc,dc=rl,dc=ac,dc=uk").format(
-                            mship.organisation.name)
+                            mship.organisation.name + "_vcloud-admins")
                         },
                         memberUId={user.handle},
                     )
