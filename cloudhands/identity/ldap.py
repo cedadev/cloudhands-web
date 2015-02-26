@@ -245,6 +245,8 @@ class LDAPProxy:
     @message_handler.register(WriteLDAPAttribute)
     def write_attribute(msg, config, session, connection):
         log = logging.getLogger("cloudhands.identity.write_attribute")
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
         log.debug(msg)
         attrs = msg.record.copy()
         dn = attrs.pop("dn").pop()
@@ -259,10 +261,11 @@ class LDAPProxy:
         act = Touch(
             artifact=mship, actor=actor, state=mship.changes[-1].state, at=now
         )
-        for k, v in attrs.items():
-            session.add(
-                LDAPAttribute(dn=dn, key=k, value=v, verb="add", touch=act)
-            )
+        for k, m in attrs.items():
+            for v in m:
+                session.add(
+                    LDAPAttribute(dn=dn, key=k, value=v, verb="add", touch=act)
+                )
 
         try:
             session.commit()
