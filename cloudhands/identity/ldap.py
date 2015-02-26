@@ -18,6 +18,8 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 from cloudhands.common.schema import Component
+from cloudhands.common.schema import LDAPAttribute
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
@@ -151,6 +153,7 @@ class LDAPProxy:
 
     WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
     WriteUIdNumber = namedtuple("WriteUIdNumber", ["record", "reg_uuid"])
+    WriteLDAPAttribute = namedtuple("WriteLDAPAttribute", ["record", "mship_uuid"])
 
     @singledispatch
     def message_handler(msg, *args, **kwargs):
@@ -229,6 +232,39 @@ class LDAPProxy:
         
         try:
             session.add(act)
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            session.rollback()
+            rv = None
+        else:
+            rv = act
+        finally:
+            return rv
+
+    @message_handler.register(WriteLDAPAttribute)
+    def write_attribute(msg, config, session, connection):
+        log = logging.getLogger("cloudhands.identity.write_attribute")
+        log.debug(msg)
+        attrs = msg.record.copy()
+        dn = attrs.pop("dn").pop()
+        log.debug(attrs)
+        changes = {k: (ldap3.MODIFY_ADD, tuple(v))
+                   for k, v in attrs.items()}
+        status = connection.modify(dn, changes)
+
+        now = datetime.datetime.utcnow()
+        mship = session.query(Membership).filter(
+            Membership.uuid == msg.mship_uuid).first()
+        act = Touch(
+            artifact=mship, actor=actor, state=mship.changes[-1].state, at=now
+        )
+        for k, v in attrs.items():
+            session.add(
+                LDAPAttribute(dn=dn, key=k, value=v, verb="add", touch=act)
+            )
+
+        try:
             session.commit()
         except Exception as e:
             log.error(e)

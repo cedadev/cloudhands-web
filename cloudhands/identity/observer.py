@@ -16,6 +16,7 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import LDAPAttribute
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
@@ -49,6 +50,7 @@ class Observer:
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
                 asyncio.Task(self.publish_uidnumber()),
+                asyncio.Task(self.publish_user_membership()),
                 asyncio.Task(self.publish_uuid())]
 
     @asyncio.coroutine
@@ -230,3 +232,39 @@ class Observer:
             finally:
                 log.debug("Waiting for {}s".format(self.args.interval))
                 yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_user_membership(self):
+        log = logging.getLogger(__name__ + ".publish_user_membership")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    mship for mship, res in session.query(
+                    Membership, LDAPAttribute).join(Touch).outerjoin(
+                    LDAPAttribute).all()
+                    if res is None
+                    and mship.changes[-1].state.name == "accepted"]
+
+                for mship in unpublished:
+                    user = mship.changes[1].actor
+                    record = LDAPRecord(
+                        dn={
+                            ("cn={},ou=jasmin2,"
+                            "ou=Group,o=hpc,dc=rl,dc=ac,dc=uk").format(
+                            mship.organisation.name)
+                        },
+                        memberUId={user.handle},
+                    )
+                    msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(mship)
+            except Exception as e:
+                log.error(e)
+
+            log.debug("Waiting for {}s".format(self.args.interval))
+            yield from asyncio.sleep(self.args.interval)
+
