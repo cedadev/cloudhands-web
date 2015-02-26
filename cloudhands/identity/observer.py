@@ -253,8 +253,8 @@ class Observer:
                     user = mship.changes[1].actor
                     record = LDAPRecord(
                         dn={
-                            ("cn={},ou=jasmin2,"
-                            "ou=Group,o=hpc,dc=rl,dc=ac,dc=uk").format(
+                            ("cn={},ou=Groups,ou=jasmin2,"
+                            "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(
                             mship.organisation.name + "_vcloud-admins")
                         },
                         memberUId={user.handle},
