@@ -242,12 +242,13 @@ class Observer:
             Component.handle=="identity.controller").one()
         while True:
             try:
+                # Unwieldy, but left outer joins seem not to work with table
+                # inheritance.
                 unpublished = [
-                    mship for mship, res in session.query(
-                    Membership, LDAPAttribute).join(Touch).outerjoin(
-                    LDAPAttribute).all()
-                    if res is None
-                    and mship.changes[-1].state.name == "accepted"]
+                    mship for mship in session.query(Membership).join(
+                    Touch).join(State, State.name == "accepted").all()
+                    if not any(isinstance(r, LDAPAttribute)
+                        for c in mship.changes for r in c.resources)]
 
                 for mship in unpublished:
                     user = mship.changes[1].actor
