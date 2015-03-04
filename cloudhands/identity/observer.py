@@ -22,6 +22,7 @@ from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
+from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
@@ -256,7 +257,7 @@ class Observer:
                         dn={
                             ("cn={},ou=Groups,ou=jasmin2,"
                             "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(
-                            mship.organisation.name + "_vcloud-admins")
+                            mship.organisation.name.lower() + "_vcloud-admins")
                         },
                         memberUId={user.handle},
                     )
