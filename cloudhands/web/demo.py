@@ -154,8 +154,7 @@ class WebFixture(object):
     def create_catalogue(session):
         log = logging.getLogger("cloudhands.web.demo.catalogue")
         org = session.query(Organisation).filter(
-            Organisation.name == "Portal Test Organisation").one()
-        log.debug(org)
+            Organisation.name == "stfc-managed-m").one()
         try:
             session.add_all((
                 CatalogueItem(
