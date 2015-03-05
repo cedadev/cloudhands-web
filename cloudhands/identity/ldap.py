@@ -9,6 +9,7 @@ import datetime
 import functools
 import logging
 import sqlite3
+import ssl
 import sys
 import textwrap
 import warnings
@@ -17,6 +18,8 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
 from cloudhands.common.schema import Component
+from cloudhands.common.schema import LDAPAttribute
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
@@ -24,6 +27,7 @@ from cloudhands.common.states import RegistrationState
 from cloudhands.web import __version__
 
 import ldap3
+import ldap3.core.exceptions
 
 try:
     from functools import singledispatch
@@ -72,7 +76,7 @@ class LDAPRecord(UserDict):
             return rv
 
     def __delitem__(self, key):
-        del self.store[self.__keytransform__(key)]
+        del self.data[self.__keytransform__(key)]
 
     def __eq__(self, other):
         keyDiff = set(self.keys()) ^ set(other.keys())
@@ -149,6 +153,7 @@ class LDAPProxy:
 
     WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
     WriteUIdNumber = namedtuple("WriteUIdNumber", ["record", "reg_uuid"])
+    WriteLDAPAttribute = namedtuple("WriteLDAPAttribute", ["record", "mship_uuid"])
 
     @singledispatch
     def message_handler(msg, *args, **kwargs):
@@ -237,6 +242,42 @@ class LDAPProxy:
         finally:
             return rv
 
+    @message_handler.register(WriteLDAPAttribute)
+    def write_attribute(msg, config, session, connection):
+        log = logging.getLogger("cloudhands.identity.write_attribute")
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        log.debug(msg)
+        attrs = msg.record.copy()
+        dn = attrs.pop("dn").pop()
+        log.debug(attrs)
+        changes = {k: (ldap3.MODIFY_ADD, tuple(v))
+                   for k, v in attrs.items()}
+        status = connection.modify(dn, changes)
+
+        now = datetime.datetime.utcnow()
+        mship = session.query(Membership).filter(
+            Membership.uuid == msg.mship_uuid).first()
+        act = Touch(
+            artifact=mship, actor=actor, state=mship.changes[-1].state, at=now
+        )
+        for k, m in attrs.items():
+            for v in m:
+                session.add(
+                    LDAPAttribute(dn=dn, key=k, value=v, verb="add", touch=act)
+                )
+
+        try:
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            session.rollback()
+            rv = None
+        else:
+            rv = act
+        finally:
+            return rv
+
     def __init__(self, q, args, config):
         self.__dict__ = self._shared_state
         if not hasattr(self, "task"):
@@ -256,19 +297,30 @@ class LDAPProxy:
                 log.warning("Sentinel received. Shutting down.")
                 break
             else:
+                tls = ldap3.Tls(
+                    validate=ssl.CERT_NONE,
+                    version=ssl.PROTOCOL_TLSv1,
+                    )
                 s = ldap3.Server(
                     self.config["ldap.search"]["host"],
                     port=int(self.config["ldap.search"]["port"]),
-                    use_ssl=self.config["ldap.creds"].getboolean("use_ssl"),
-                    get_info=ldap3.GET_NO_INFO)
+                    use_ssl=False,
+                    get_info=ldap3.GET_ALL_INFO,
+                    tls=tls
+                    )
+
                 try:
                     c = ldap3.Connection(
                         s,
                         user=self.config["ldap.creds"]["user"],
                         password=self.config["ldap.creds"]["password"],
-                        auto_bind=True,
+                        auto_bind=False,
                         raise_exceptions=True,
                         client_strategy=ldap3.STRATEGY_SYNC)
+
+                    c.open()
+                    c.start_tls()
+                    c.bind()
 
                     act = LDAPProxy.message_handler(
                         msg, self.config, session, c)

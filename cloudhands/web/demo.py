@@ -154,8 +154,7 @@ class WebFixture(object):
     def create_catalogue(session):
         log = logging.getLogger("cloudhands.web.demo.catalogue")
         org = session.query(Organisation).filter(
-            Organisation.name == "Portal Test Organisation").one()
-        log.debug(org)
+            Organisation.name == "stfc-managed-m").one()
         try:
             session.add_all((
                 CatalogueItem(
@@ -172,7 +171,8 @@ class WebFixture(object):
                     uuid=uuid.uuid4().hex,
                 ),
                 CatalogueItem(
-                    name="scianalysis",
+                    #name="scianalysis",
+                    name="sci_analysis", # FIXME: Integration
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
                         <p>This VM runs RedHat 6.6 with a number of installed

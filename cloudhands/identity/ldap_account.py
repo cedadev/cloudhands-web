@@ -34,7 +34,11 @@ def discover_uids(config=None):
     c.search(config["ldap.match"]["query"], "(objectclass=posixAccount)",
         ldap3.SEARCH_SCOPE_WHOLE_SUBTREE,
         attributes=["uidNumber"])
-    return set(int(n) for i in c.response for n in i["attributes"].get("uidNumber", []))
+    return {
+        int(n) for n in (
+            i["attributes"].get("uidNumber", None) for i in c.response
+        ) if n is not None
+    }
 
 
 def next_uidnumber(taken=None, provider=None):
@@ -54,6 +58,7 @@ def next_uidnumber(taken=None, provider=None):
 def change_password(cn, pwd, config=None, timeout=10):
     config = config or next(iter(settings.values()))
     shellArgs = ["ldappasswd",
+    "-Z",
     "-h", config["ldap.match"]["host"],
     "-D", config["ldap.creds"]["user"],
     "-w", config["ldap.creds"]["password"],

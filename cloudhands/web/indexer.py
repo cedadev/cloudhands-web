@@ -8,6 +8,7 @@ import logging
 from logging.handlers import WatchedFileHandler
 import os
 import sched
+import ssl
 import sys
 
 import ldap3
@@ -98,6 +99,13 @@ def ingest(args, config, loop=None):
         get_info=ldap3.GET_ALL_INFO)
     c = ldap3.Connection(
         s, auto_bind=True, client_strategy=ldap3.STRATEGY_SYNC)
+    if config["ldap.creds"].getboolean("use_ssl"):
+        c.tls = ldap3.Tls(
+            validate=ssl.CERT_NONE,
+            version=ssl.PROTOCOL_TLSv1,
+            )
+        c.start_tls()
+
     log.info("Opening LDAP connection to {}.".format(
         config["ldap.search"]["host"]))
 
@@ -122,8 +130,11 @@ def ingest(args, config, loop=None):
     for n, i in enumerate(pager()):
         writer.add_document(
             id=i["dn"],
-            **{k: '\n'.join(v) if v else None
-                for k, v in i["attributes"].items()})
+            **{key: '\n'.join((v.decode("utf-8") for v in values))
+                if values else None
+                for key, values in i.get("raw_attributes", {}).items()}
+            )
+
     log.info("Indexed {} records".format(n))
     writer.commit(mergetype=whoosh.writing.CLEAR)
 

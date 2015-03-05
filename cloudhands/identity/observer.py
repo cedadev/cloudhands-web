@@ -16,11 +16,13 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import EmailAddress
+from cloudhands.common.schema import LDAPAttribute
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import PosixUId
 from cloudhands.common.schema import PosixUIdNumber
 from cloudhands.common.schema import PublicKey
 from cloudhands.common.schema import Registration
+from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
@@ -49,6 +51,7 @@ class Observer:
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
                 asyncio.Task(self.publish_uidnumber()),
+                asyncio.Task(self.publish_user_membership()),
                 asyncio.Task(self.publish_uuid())]
 
     @asyncio.coroutine
@@ -230,3 +233,40 @@ class Observer:
             finally:
                 log.debug("Waiting for {}s".format(self.args.interval))
                 yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_user_membership(self):
+        log = logging.getLogger(__name__ + ".publish_user_membership")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                # Unwieldy, but left outer joins seem not to work with table
+                # inheritance.
+                unpublished = [
+                    mship for mship in session.query(Membership).join(
+                    Touch).join(State, State.name == "accepted").all()
+                    if not any(isinstance(r, LDAPAttribute)
+                        for c in mship.changes for r in c.resources)]
+
+                for mship in unpublished:
+                    user = mship.changes[1].actor
+                    record = LDAPRecord(
+                        dn={
+                            ("cn={},ou=Groups,ou=jasmin2,"
+                            "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(
+                            mship.organisation.name.lower() + "_vcloud-admins")
+                        },
+                        memberUId={user.handle},
+                    )
+                    msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(mship)
+            except Exception as e:
+                log.error(e)
+
+            log.debug("Waiting for {}s".format(self.args.interval))
+            yield from asyncio.sleep(self.args.interval)
+
