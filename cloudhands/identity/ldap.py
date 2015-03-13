@@ -153,6 +153,7 @@ class LDAPProxy:
 
     WriteCommonName = namedtuple("WriteCommonName", ["record", "reg_uuid"])
     WriteUIdNumber = namedtuple("WriteUIdNumber", ["record", "reg_uuid"])
+    WriteSSHPublicKey = namedtuple("WriteSSHPublicKey", ["record", "reg_uuid"])
     WriteLDAPAttribute = namedtuple("WriteLDAPAttribute", ["record", "mship_uuid"])
 
     @singledispatch
@@ -215,6 +216,9 @@ class LDAPProxy:
         log = logging.getLogger("cloudhands.identity.write_uidnumber")
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
+
+        pre_key = session.query(RegistrationState).filter(
+            RegistrationState.name == "pre_user_ldappublickey").one()
         valid = session.query(RegistrationState).filter(
             RegistrationState.name == "valid").one()
 
@@ -228,7 +232,44 @@ class LDAPProxy:
             Registration.uuid == msg.reg_uuid).first()
         now = datetime.datetime.utcnow()
         act = Touch(
-            artifact=reg, actor=actor, state=valid, at=now)
+            artifact=reg,
+            actor=actor,
+            state=valid if "sshPublicKey" in msg.record else pre_key,
+            at=now
+        )
+        
+        try:
+            session.add(act)
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            session.rollback()
+            rv = None
+        else:
+            rv = act
+        finally:
+            return rv
+
+    @message_handler.register(WriteSSHPublicKey)
+    def write_sshpublickey(msg, config, session, connection):
+        log = logging.getLogger("cloudhands.identity.write_sshpublickey")
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+
+        valid = session.query(RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+
+        dn = list(msg.record["dn"])[0]
+        changes = {k: (ldap3.MODIFY_ADD, tuple(v))
+                   for k, v in msg.record.items()
+                   if k not in ("dn", )}
+        status = connection.modify(dn, changes)
+        log.debug(status) # TODO: We should be checking status in every case.
+
+        reg = session.query(Registration).filter(
+            Registration.uuid == msg.reg_uuid).first()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=actor, state=valid, at=now)
         
         try:
             session.add(act)
