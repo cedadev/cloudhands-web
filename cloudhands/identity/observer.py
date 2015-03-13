@@ -51,8 +51,10 @@ class Observer:
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
                 asyncio.Task(self.publish_uidnumber()),
+                asyncio.Task(self.publish_sshpublickey()),
                 asyncio.Task(self.publish_user_membership()),
-                asyncio.Task(self.publish_uuid())]
+                asyncio.Task(self.publish_uuid())
+            ]
 
     @asyncio.coroutine
     def mailer(self):
@@ -115,7 +117,7 @@ class Observer:
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(user.handle)},
                         objectclass={"top", "person", "organizationalPerson",
                             "inetOrgPerson"},
-                        description={"JASMIN2 vCloud registration"},
+                        description={"cluster:jasmin-login"},
                         cn={user.handle},
                         sn={surname},
                     )
@@ -162,7 +164,7 @@ class Observer:
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
                         objectclass={"top", "person", "organizationalPerson",
                             "inetOrgPerson"},
-                        description={"JASMIN2 vCloud registration"},
+                        description={"cluster:jasmin-login"},
                         cn={reg.uuid},
                         sn={surname},
                     )
@@ -215,17 +217,62 @@ class Observer:
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
                         objectclass={"top", "person", "organizationalPerson",
                             "inetOrgPerson", "posixAccount"},
-                        description={"JASMIN2 vCloud registration"},
+                        description={"cluster:jasmin-login"},
                         cn={uid.value},
                         sn={surname},
                         uid={uid.value},
                         uidNumber={uidNumber.value},
                         gidNumber={uidNumber.value},
+                        gecos={"{} <{}>".format(uid.value, emailAddr.value)},
                         homeDirectory={"/home/{}".format(uid.value)},
+                        loginShell={"/bin/bash"},
                         mail={emailAddr.value}
                     )
                     log.debug(record)
                     msg = LDAPProxy.WriteUIdNumber(record, reg.uuid)
+                    yield from self.ldapQ.put(msg)
+                    session.expire(reg)
+            except Exception as e:
+                log.error(e)
+            finally:
+                log.debug("Waiting for {}s".format(self.args.interval))
+                yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_sshpublickey(self):
+        log = logging.getLogger(__name__ + ".sshpublickey")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
+        actor = session.query(Component).filter(
+            Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    r for r in session.query(Registration).all() if (
+                    r.changes[-1].state.name ==
+                    "pre_user_ldappublickey")]
+
+                for reg in unpublished:
+                    user = reg.changes[0].actor
+                    resources = [r for c in reversed(reg.changes)
+                                 for r in c.resources]
+
+                    key = next(
+                        (i for i in resources if isinstance(i, PublicKey)),
+                        None)
+
+                    if key is None:
+                        continue
+
+                    uid = next(i for i in resources if isinstance(i, PosixUId))
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
+                        objectclass={"ldapPublicKey"},
+                        sshPublicKey={key.value},
+                    )
+                    log.debug(record)
+                    msg = LDAPProxy.WriteSSHPublicKey(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
                     session.expire(reg)
             except Exception as e:
