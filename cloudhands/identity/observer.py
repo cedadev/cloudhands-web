@@ -257,6 +257,7 @@ class Observer:
                         None)
 
                     if key is None:
+                        session.expire(reg)
                         continue
 
                     uid = next(i for i in resources if isinstance(i, PosixUId))
