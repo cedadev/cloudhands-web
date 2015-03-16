@@ -165,9 +165,7 @@ class NewAccount:
         self.reg = reg
 
     def __call__(self, session):
-        nextState = "valid" if any(
-            r for c in self.reg.changes for r in c.resources
-            if isinstance(r, PublicKey)) else "pre_user_ldappublickey"
+        nextState = "user_posixaccount"
         state = session.query(
             RegistrationState).filter(
             RegistrationState.name == nextState).one()

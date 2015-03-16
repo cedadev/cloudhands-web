@@ -194,21 +194,13 @@ class Observer:
                 unpublished = [
                     r for r in session.query(Registration).all() if (
                     r.changes[-1].state.name ==
-                    "pre_user_ldappublickey")]
+                    "user_posixaccount")]
 
                 for reg in unpublished:
                     user = reg.changes[0].actor
                     surname = user.surname or "UNKNOWN"
                     resources = [r for c in reversed(reg.changes)
                                  for r in c.resources]
-
-                    key = next(
-                        (i for i in resources if isinstance(i, PublicKey)),
-                        None)
-
-                    if key is not None:
-                        # handled by self.publish_sshpublickey
-                        continue
 
                     emailAddr = next(i for i in resources
                                      if isinstance(i, EmailAddress))
@@ -265,7 +257,6 @@ class Observer:
                         None)
 
                     if key is None:
-                        # handled by self.publish_uidnumber
                         continue
 
                     uid = next(i for i in resources if isinstance(i, PosixUId))
