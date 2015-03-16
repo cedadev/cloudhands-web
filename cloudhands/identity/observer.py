@@ -202,10 +202,13 @@ class Observer:
                     resources = [r for c in reversed(reg.changes)
                                  for r in c.resources]
 
-                    # TODO: use key if present
                     key = next(
                         (i for i in resources if isinstance(i, PublicKey)),
                         None)
+
+                    if key is not None:
+                        # handled by self.publish_sshpublickey
+                        continue
 
                     emailAddr = next(i for i in resources
                                      if isinstance(i, EmailAddress))
@@ -262,6 +265,7 @@ class Observer:
                         None)
 
                     if key is None:
+                        # handled by self.publish_uidnumber
                         continue
 
                     uid = next(i for i in resources if isinstance(i, PosixUId))
