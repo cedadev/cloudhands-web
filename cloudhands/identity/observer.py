@@ -269,10 +269,10 @@ class Observer:
                     log.debug(record)
                     msg = LDAPProxy.WriteSSHPublicKey(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
-                    session.close()
             except Exception as e:
                 log.error(e)
             finally:
+                session.close()
                 log.debug("Waiting for {}s".format(self.args.interval))
                 yield from asyncio.sleep(self.args.interval)
 
