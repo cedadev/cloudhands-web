@@ -281,8 +281,6 @@ class Observer:
         log = logging.getLogger(__name__ + ".publish_user_membership")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
-        actor = session.query(Component).filter(
-            Component.handle=="identity.controller").one()
         while True:
             try:
                 # Unwieldy, but left outer joins seem not to work with table
@@ -295,20 +293,44 @@ class Observer:
 
                 for mship in unpublished:
                     user = mship.changes[1].actor
+                    reg = next((
+                        r for r in session.query(Registration).all()
+                        if (r.changes[0].actor is user)), None)
+                    if reg is None:
+                        raise StopIteration("Failed finding registration.")
+
+                    try:
+                        uid = next(r for c in reversed(reg.changes)
+                            for r in c.resources if isinstance(r, PosixUId))
+                    except StopIteration:
+                        continue
+
                     record = LDAPRecord(
                         dn={
                             ("cn={},ou=Groups,ou=jasmin2,"
                             "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(
                             mship.organisation.name.lower() + "_vcloud-admins")
                         },
-                        memberUId={user.handle},
+                        memberUId={uid.value},
                     )
                     msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
                     yield from self.ldapQ.put(msg)
-                    session.expire(mship)
+
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
+                        description={
+                            "jvo:{}".format(mship.organisation.name.lower())
+                        },
+                    )
+                    msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
+                    yield from self.ldapQ.put(msg)
+
             except Exception as e:
                 log.error(e)
-
+            finally:
+                session.close()
+            
             log.debug("Waiting for {}s".format(self.args.interval))
             yield from asyncio.sleep(self.args.interval)
 
