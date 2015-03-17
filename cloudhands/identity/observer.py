@@ -197,8 +197,6 @@ class Observer:
                     "user_posixaccount")]
 
                 for reg in unpublished:
-                    user = reg.changes[0].actor
-                    surname = user.surname or "UNKNOWN"
                     resources = [r for c in reversed(reg.changes)
                                  for r in c.resources]
 
@@ -210,18 +208,13 @@ class Observer:
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
-                        objectclass={"top", "person", "organizationalPerson",
-                            "inetOrgPerson", "posixAccount"},
-                        description={"cluster:jasmin-login"},
-                        cn={uid.value},
-                        sn={surname},
+                        objectclass={"posixAccount"},
                         uid={uid.value},
                         uidNumber={uidNumber.value},
                         gidNumber={uidNumber.value},
                         gecos={"{} <{}>".format(uid.value, emailAddr.value)},
                         homeDirectory={"/home/{}".format(uid.value)},
                         loginShell={"/bin/bash"},
-                        mail={emailAddr.value}
                     )
                     log.debug(record)
                     msg = LDAPProxy.WriteUIdNumber(record, reg.uuid)
