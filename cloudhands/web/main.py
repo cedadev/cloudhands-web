@@ -846,7 +846,7 @@ def registration_keys(request):
     state = reg.changes[-1].state
     act = Touch(artifact=reg, actor=user, state=state, at=now)
 
-    key = PublicKey(touch=act, value=data["value"])
+    key = PublicKey(touch=act, value=data["value"].strip())
     con.session.add(key)
     con.session.commit()
 
