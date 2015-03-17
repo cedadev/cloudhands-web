@@ -257,7 +257,6 @@ class Observer:
                         None)
 
                     if key is None:
-                        session.expire(reg)
                         continue
 
                     uid = next(i for i in resources if isinstance(i, PosixUId))
@@ -270,7 +269,7 @@ class Observer:
                     log.debug(record)
                     msg = LDAPProxy.WriteSSHPublicKey(record, reg.uuid)
                     yield from self.ldapQ.put(msg)
-                    session.expire(reg)
+                    session.close()
             except Exception as e:
                 log.error(e)
             finally:
