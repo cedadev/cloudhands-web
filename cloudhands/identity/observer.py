@@ -51,8 +51,10 @@ class Observer:
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
                 asyncio.Task(self.publish_uidnumber()),
+                asyncio.Task(self.publish_sshpublickey()),
                 asyncio.Task(self.publish_user_membership()),
-                asyncio.Task(self.publish_uuid())]
+                asyncio.Task(self.publish_uuid())
+            ]
 
     @asyncio.coroutine
     def mailer(self):
@@ -115,7 +117,7 @@ class Observer:
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(user.handle)},
                         objectclass={"top", "person", "organizationalPerson",
                             "inetOrgPerson"},
-                        description={"JASMIN2 vCloud registration"},
+                        description={"cluster:jasmin-login"},
                         cn={user.handle},
                         sn={surname},
                     )
@@ -162,7 +164,7 @@ class Observer:
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(reg.uuid)},
                         objectclass={"top", "person", "organizationalPerson",
                             "inetOrgPerson"},
-                        description={"JASMIN2 vCloud registration"},
+                        description={"cluster:jasmin-login"},
                         cn={reg.uuid},
                         sn={surname},
                     )
@@ -192,18 +194,11 @@ class Observer:
                 unpublished = [
                     r for r in session.query(Registration).all() if (
                     r.changes[-1].state.name ==
-                    "pre_user_ldappublickey")]
+                    "user_posixaccount")]
 
                 for reg in unpublished:
-                    user = reg.changes[0].actor
-                    surname = user.surname or "UNKNOWN"
                     resources = [r for c in reversed(reg.changes)
                                  for r in c.resources]
-
-                    # TODO: use key if present
-                    key = next(
-                        (i for i in resources if isinstance(i, PublicKey)),
-                        None)
 
                     emailAddr = next(i for i in resources
                                      if isinstance(i, EmailAddress))
@@ -213,16 +208,13 @@ class Observer:
                     record = LDAPRecord(
                         dn={("cn={},ou=jasmin2,"
                         "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
-                        objectclass={"top", "person", "organizationalPerson",
-                            "inetOrgPerson", "posixAccount"},
-                        description={"JASMIN2 vCloud registration"},
-                        cn={uid.value},
-                        sn={surname},
+                        objectclass={"posixAccount"},
                         uid={uid.value},
                         uidNumber={uidNumber.value},
                         gidNumber={uidNumber.value},
+                        gecos={"{} <{}>".format(uid.value, emailAddr.value)},
                         homeDirectory={"/home/{}".format(uid.value)},
-                        mail={emailAddr.value}
+                        loginShell={"/bin/bash"},
                     )
                     log.debug(record)
                     msg = LDAPProxy.WriteUIdNumber(record, reg.uuid)
@@ -235,12 +227,53 @@ class Observer:
                 yield from asyncio.sleep(self.args.interval)
 
     @asyncio.coroutine
-    def publish_user_membership(self):
-        log = logging.getLogger(__name__ + ".publish_user_membership")
+    def publish_sshpublickey(self):
+        log = logging.getLogger(__name__ + ".sshpublickey")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         actor = session.query(Component).filter(
             Component.handle=="identity.controller").one()
+        while True:
+            try:
+                unpublished = [
+                    r for r in session.query(Registration).all() if (
+                    r.changes[-1].state.name ==
+                    "pre_user_ldappublickey")]
+
+                for reg in unpublished:
+                    user = reg.changes[0].actor
+                    resources = [r for c in reversed(reg.changes)
+                                 for r in c.resources]
+
+                    key = next(
+                        (i for i in resources if isinstance(i, PublicKey)),
+                        None)
+
+                    if key is None:
+                        continue
+
+                    uid = next(i for i in resources if isinstance(i, PosixUId))
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
+                        objectclass={"ldapPublicKey"},
+                        sshPublicKey={key.value},
+                    )
+                    log.debug(record)
+                    msg = LDAPProxy.WriteSSHPublicKey(record, reg.uuid)
+                    yield from self.ldapQ.put(msg)
+            except Exception as e:
+                log.error(e)
+            finally:
+                session.close()
+                log.debug("Waiting for {}s".format(self.args.interval))
+                yield from asyncio.sleep(self.args.interval)
+
+    @asyncio.coroutine
+    def publish_user_membership(self):
+        log = logging.getLogger(__name__ + ".publish_user_membership")
+        session = Registry().connect(sqlite3, self.args.db).session
+        initialise(session)
         while True:
             try:
                 # Unwieldy, but left outer joins seem not to work with table
@@ -253,20 +286,44 @@ class Observer:
 
                 for mship in unpublished:
                     user = mship.changes[1].actor
+                    reg = next((
+                        r for r in session.query(Registration).all()
+                        if (r.changes[0].actor is user)), None)
+                    if reg is None:
+                        raise StopIteration("Failed finding registration.")
+
+                    try:
+                        uid = next(r for c in reversed(reg.changes)
+                            for r in c.resources if isinstance(r, PosixUId))
+                    except StopIteration:
+                        continue
+
                     record = LDAPRecord(
                         dn={
                             ("cn={},ou=Groups,ou=jasmin2,"
                             "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(
                             mship.organisation.name.lower() + "_vcloud-admins")
                         },
-                        memberUId={user.handle},
+                        memberUId={uid.value},
                     )
                     msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
                     yield from self.ldapQ.put(msg)
-                    session.expire(mship)
+
+                    record = LDAPRecord(
+                        dn={("cn={},ou=jasmin2,"
+                        "ou=People,o=hpc,dc=rl,dc=ac,dc=uk").format(uid.value)},
+                        description={
+                            "jvo:{}".format(mship.organisation.name.lower())
+                        },
+                    )
+                    msg = LDAPProxy.WriteLDAPAttribute(record, mship.uuid)
+                    yield from self.ldapQ.put(msg)
+
             except Exception as e:
                 log.error(e)
-
+            finally:
+                session.close()
+            
             log.debug("Waiting for {}s".format(self.args.interval))
             yield from asyncio.sleep(self.args.interval)
 

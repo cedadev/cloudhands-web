@@ -445,7 +445,7 @@ class LoginAndOutTests(ServerTests):
         self.assertEqual(1, self.session.query(PosixUIdNumber).count())
 
         self.assertEqual(
-            "pre_user_ldappublickey",
+            "user_posixaccount",
             reg.changes[-1].state.name)
 
 

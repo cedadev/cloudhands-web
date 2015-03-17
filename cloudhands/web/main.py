@@ -398,7 +398,19 @@ def login_update(request):
 
     if bcrypt.checkpw(data["password"], hash):
         headers = remember(request, user.handle)
-        if reg.changes[-1].state.name == "valid":
+        latest = reg.changes[-1]
+        if latest.state.name == "pre_user_posixaccount":
+            taken = {i.value for i in con.session.query(PosixUIdNumber).all()}
+            uidN = next_uidnumber(taken=taken)
+            if uidN is None:
+                raise HTTPInternalServerError(
+                    "UIdNumber could not be allocated")
+            else:
+                log.info("Allocating user id number {}".format(uidN))
+                latest = NewAccount(user, uidN, reg)(con.session)
+                # TODO: check state and report error
+
+        if latest.state.name in ("user_posixaccount", "valid"):
             # FIXME: Temporary workaround for race condition (bug #380)
             try:
                 uids = sorted(
@@ -414,17 +426,6 @@ def login_update(request):
                 if status is None:
                     raise HTTPInternalServerError(
                         "Unable to create password-protected account")
-
-        if reg.changes[-1].state.name == "pre_user_posixaccount":
-            taken = {i.value for i in con.session.query(PosixUIdNumber).all()}
-            uidN = next_uidnumber(taken=taken)
-            if uidN is None:
-                raise HTTPInternalServerError(
-                    "UIdNumber could not be allocated")
-            else:
-                log.info("Allocating user id number {}".format(uidN))
-                act = NewAccount(user, uidN, reg)(con.session)
-                # TODO: check state and report error
 
         try:
             config = request.registry.settings["cfg"]
@@ -845,7 +846,7 @@ def registration_keys(request):
     state = reg.changes[-1].state
     act = Touch(artifact=reg, actor=user, state=state, at=now)
 
-    key = PublicKey(touch=act, value=data["value"])
+    key = PublicKey(touch=act, value=data["value"].strip())
     con.session.add(key)
     con.session.commit()
 

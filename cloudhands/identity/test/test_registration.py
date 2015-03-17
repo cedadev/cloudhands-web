@@ -110,15 +110,15 @@ class NewAccountTests(RegistrationLifecycleTests):
         self.session.add_all((act, self.system, self.user))
         self.session.commit()
 
-    def test_bring_registration_to_pre_user_ldappublickey(self):
+    def test_bring_registration_to_user_posixaccount(self):
         self.assertEqual("pre_user_posixaccount", self.reg.changes[-1].state.name)
         uidNumber = 7654321
         op = NewAccount(self.user, uidNumber, self.reg)
         act = op(self.session)
-        self.assertEqual("pre_user_ldappublickey", self.reg.changes[-1].state.name)
+        self.assertEqual("user_posixaccount", self.reg.changes[-1].state.name)
         self.assertTrue(self.session.query(PosixUIdNumber).count())
 
-    def test_bring_registration_to_valid(self):
+    def test_bring_registration_to_user_posixaccount(self):
         self.assertEqual("pre_user_posixaccount", self.reg.changes[-1].state.name)
         preposix = self.session.query(
             RegistrationState).filter(
@@ -132,5 +132,5 @@ class NewAccountTests(RegistrationLifecycleTests):
         uidNumber = 7654321
         op = NewAccount(self.user, uidNumber, self.reg)
         act = op(self.session)
-        self.assertEqual("valid", self.reg.changes[-1].state.name)
+        self.assertEqual("user_posixaccount", self.reg.changes[-1].state.name)
         self.assertTrue(self.session.query(PosixUIdNumber).count())
