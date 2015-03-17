@@ -409,9 +409,8 @@ def login_update(request):
                 log.info("Allocating user id number {}".format(uidN))
                 latest = NewAccount(user, uidN, reg)(con.session)
                 # TODO: check state and report error
-                log.debug(latest.state.name)
 
-        if latest.state.name in ("pre_user_ldappublickey", "valid"):
+        if latest.state.name in ("user_posixaccount", "valid"):
             # FIXME: Temporary workaround for race condition (bug #380)
             try:
                 uids = sorted(
