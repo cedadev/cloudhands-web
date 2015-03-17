@@ -223,7 +223,7 @@ class LDAPProxy:
             RegistrationState.name == "valid").one()
 
         dn = list(msg.record["dn"])[0]
-        changes = {k: (ldap3.MODIFY_REPLACE, tuple(v))
+        changes = {k: (ldap3.MODIFY_ADD, tuple(v))
                    for k, v in msg.record.items()
                    if k not in ("dn", )}
         status = connection.modify(dn, changes)
