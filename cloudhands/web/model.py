@@ -22,6 +22,7 @@ from cloudhands.common.schema import Host
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import NATRouting
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import PosixGId
@@ -551,7 +552,9 @@ class ItemRegion(Region):
             "organisation": artifact.organisation.name,
             "nodes": [i.name for i in resources if isinstance(i, Node)],
             "ips": ', '.join(
-                [i.value for i in resources if isinstance(i, IPAddress)]),
+                [i.ip_ext for i in resources if isinstance(i, NATRouting)] +
+                [i.value for i in resources if isinstance(i, IPAddress)]
+            ),
             "latest":  artifact.changes[-1],
         }
         return ApplianceView(item)
