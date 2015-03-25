@@ -171,8 +171,8 @@ class WebFixture(object):
                     uuid=uuid.uuid4().hex,
                 ),
                 CatalogueItem(
-                    #name="scianalysis",
-                    name="sci_analysis", # FIXME: Integration
+                    #name="sci_analysis",
+                    name="sci_refanalysis", # FIXME: Integration
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
                         <p>This VM runs RedHat 6.6 with a number of installed
