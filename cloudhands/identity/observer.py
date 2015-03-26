@@ -47,6 +47,7 @@ class Observer:
             self.emailQ = emailQ
             self.ldapQ = ldapQ
             self.args = args
+            self.config = config
             self.tasks = [
                 asyncio.Task(self.mailer()),
                 asyncio.Task(self.publish_userhandle()),
@@ -213,7 +214,11 @@ class Observer:
                         uidNumber={uidNumber.value},
                         gidNumber={uidNumber.value},
                         gecos={"{} <{}>".format(uid.value, emailAddr.value)},
-                        homeDirectory={"/home/{}".format(uid.value)},
+                        homeDirectory={
+                            self.config.get(
+                                "mount", "home", fallback="/home/{}"
+                            ).format(uid.value)
+                        },
                         loginShell={"/bin/bash"},
                     )
                     log.debug(record)

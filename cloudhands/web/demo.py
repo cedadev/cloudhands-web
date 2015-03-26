@@ -158,8 +158,7 @@ class WebFixture(object):
         try:
             session.add_all((
                 CatalogueItem(
-                    #name="sshbastion",
-                    name="ssh_bastion", # FIXME: Integration
+                    name="ssh_bastion",
                     description="Headless VM for admin tasks",
                     note=textwrap.dedent("""
                         <p>This VM runs OpenSSH on RedHat 6.6.
@@ -171,8 +170,7 @@ class WebFixture(object):
                     uuid=uuid.uuid4().hex,
                 ),
                 CatalogueItem(
-                    #name="scianalysis",
-                    name="sci_analysis", # FIXME: Integration
+                    name="sci_analysis",
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
                         <p>This VM runs RedHat 6.6 with a number of installed
@@ -348,10 +346,10 @@ def main(args):
     args.query = None
     log.info("Generating index at {}".format(args.index))
 
-    try:
-        cloudhands.web.indexer.main(args)
-    except TimeoutError:
-        log.warning("Unable to contact service.")
+    #try:
+    #    cloudhands.web.indexer.main(args)
+    #except TimeoutError:
+    #    log.warning("Unable to contact service.")
 
     cfg, session = cloudhands.web.main.configure(args)
 
