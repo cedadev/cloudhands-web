@@ -158,8 +158,7 @@ class WebFixture(object):
         try:
             session.add_all((
                 CatalogueItem(
-                    #name="sshbastion",
-                    name="ssh_refbastion", # FIXME: Integration
+                    name="ssh_bastion",
                     description="Headless VM for admin tasks",
                     note=textwrap.dedent("""
                         <p>This VM runs OpenSSH on RedHat 6.6.
@@ -171,8 +170,7 @@ class WebFixture(object):
                     uuid=uuid.uuid4().hex,
                 ),
                 CatalogueItem(
-                    #name="sci_analysis",
-                    name="sci_refanalysis", # FIXME: Integration
+                    name="sci_analysis",
                     description="Headless VM for file transfer operations",
                     note=textwrap.dedent("""
                         <p>This VM runs RedHat 6.6 with a number of installed
